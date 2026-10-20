@@ -20,7 +20,9 @@ struct SettingsSheet: View {
 
 struct SettingsView: View {
     @Environment(\.appContainer) private var container
+    @AppStorage("onboardingComplete") private var onboardingComplete = false
     @State private var downloadsVM: DownloadsViewModel?
+    @State private var addServerViewModel: OnboardingViewModel?
 
     var body: some View {
         Group {
@@ -90,6 +92,28 @@ struct SettingsView: View {
         .refreshable {
             await downloadsVM.loadData()
         }
+        .sheet(isPresented: Binding(
+            get: { addServerViewModel != nil },
+            set: { if !$0 { addServerViewModel = nil } }
+        )) {
+            if let addServerViewModel {
+                NavigationStack {
+                    ServerFormView(viewModel: addServerViewModel)
+                        .toolbar {
+                            ToolbarItem(placement: .cancellationAction) {
+                                Button("Cancel") { self.addServerViewModel = nil }
+                            }
+                        }
+                }
+            }
+        }
+        // A server added from Settings counts as finished onboarding, so removing Local Files
+        // later never drops the user back to the welcome screen.
+        .onChange(of: container?.serverState.activeServer != nil) { _, connected in
+            guard connected else { return }
+            onboardingComplete = true
+            addServerViewModel = nil
+        }
     }
 
     // MARK: - Sections
@@ -111,6 +135,12 @@ struct SettingsView: View {
             } else {
                 Text("No server configured.")
                     .foregroundStyle(.secondary)
+                Button("Add Server", systemImage: "plus.circle") {
+                    guard let container else { return }
+                    addServerViewModel = OnboardingViewModel(serverService: container.serverService)
+                }
+                .foregroundStyle(.primary)
+                .accessibilityIdentifier("settings-add-server")
             }
         } header: {
             Text("Server")
