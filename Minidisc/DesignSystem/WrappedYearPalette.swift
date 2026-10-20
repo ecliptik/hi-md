@@ -18,11 +18,11 @@ nonisolated enum WrappedYearPalette {
                 Color(red: 0.925, green: 0.251, blue: 0.478), // #EC407A hot pink
                 Color(red: 0.157, green: 0.208, blue: 0.576), // #283593 deep indigo
             ]
-        case 2: // 2026 — Minidisc identity (Orange-Red brand)
+        case 2: // 2026 — Minidisc identity (gold brand)
             return [
-                Color(red: 0.910, green: 0.259, blue: 0.055), // #E8420E orange-red base
-                Color(red: 0.718, green: 0.184, blue: 0.039), // #B72F0A deep orange-red
-                Color(red: 1.000, green: 0.522, blue: 0.376), // #FF8560 warm coral
+                Color(red: 0.573, green: 0.416, blue: 0.047), // #926A0C brand gold
+                Color(red: 0.384, green: 0.275, blue: 0.020), // #624605 deep bronze
+                Color(red: 0.835, green: 0.612, blue: 0.094), // #D59C18 bright gold
             ]
         case 3: // 2027 — oceanic
             return [
@@ -56,9 +56,9 @@ nonisolated enum WrappedYearPalette {
             ]
         default:
             return [
-                Color(red: 0.910, green: 0.259, blue: 0.055),
-                Color(red: 0.718, green: 0.184, blue: 0.039),
-                Color(red: 1.000, green: 0.522, blue: 0.376),
+                Color(red: 0.573, green: 0.416, blue: 0.047),
+                Color(red: 0.384, green: 0.275, blue: 0.020),
+                Color(red: 0.835, green: 0.612, blue: 0.094),
             ]
         }
     }

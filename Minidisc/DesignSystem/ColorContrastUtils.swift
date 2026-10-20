@@ -1,11 +1,11 @@
 import SwiftUI
 
 extension MinidiscColors {
-    // Relative luminance: #FF6242 ≈ 0.304; #8F2408 ≈ 0.071.
-    private static let accentFgLight = Color(hex: "#FF6242")
-    private static let accentFgDark  = Color(hex: "#8F2408")
-    private static let luminanceFgLight: Double = 0.304
-    private static let luminanceFgDark:  Double = 0.071
+    // Relative luminance: #D59C18 ≈ 0.380; #624605 ≈ 0.070.
+    private static let accentFgLight = Color(hex: "#D59C18")
+    private static let accentFgDark  = Color(hex: "#624605")
+    private static let luminanceFgLight: Double = 0.380
+    private static let luminanceFgDark:  Double = 0.070
     static var contrastThreshold: Double = 3.0
 
     /// Returns whichever accentForeground variant achieves WCAG 2.1 contrast (≥3.0:1)
