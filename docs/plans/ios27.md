@@ -76,7 +76,10 @@ Outcome so far: `systemPrefersReducedResourceUsage` pauses the playlist hero's p
 7. **Lighter rendering.** Honour `systemPrefersReducedResourceUsage` by stopping the Wrapped mesh-gradient animation and the player's colour-band background animation. This also closes an energy item from the audit.
 8. **Carried over from the audit:** Dynamic Type for the Wrapped slides, done together with the layout work.
 
-## Phase 5: CarPlay
+## Phase 5: CarPlay — built for the simulator 2026-10-20
+
+Outcome: a `CPTemplateApplicationScene` with Home (recently played and pinned), Library (playlists, albums and artists from the local index), Downloads (downloaded songs) and Moods. Lists of songs have a Shuffle row; playback uses `PlayerService` and the system Now Playing template. The owner's team is a free personal team, which cannot request the CarPlay entitlement, so it is applied to simulator builds only. Check it in Simulator with I/O > External Displays > CarPlay; it reaches a car only after joining the paid program and getting Apple's approval.
+
 
 1. **Entitlement first.** Request `com.apple.developer.carplay-audio` for `com.ecliptik.minidisc` from Apple. Nothing below ships to a car without it, but the CarPlay simulator works without it.
 2. **Scene.** Add a `CPTemplateApplicationScene` delegate with tabs for Home (recent and pinned), Library (artists, albums and playlists from the local index, so it works offline), Downloads and Moods. `CPNowPlayingTemplate.allowsMiniPlayer` is on by default in iOS 27.
