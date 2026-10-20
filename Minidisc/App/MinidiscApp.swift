@@ -72,6 +72,7 @@ struct MinidiscApp: App {
                     guard snapshot.isOnline else { return }
                     await container.downloadService.restorePendingDownloads()
                     await container.listenBrainzService.flushOfflineQueue()
+                    await container.libraryService.flushPendingScrobbles()
                     do {
                         try await container.libraryCatalog.prepare(
                             automaticRefreshAllowed: snapshot.automaticRefreshAllowed

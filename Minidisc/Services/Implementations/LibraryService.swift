@@ -12,6 +12,8 @@ actor LibraryService: LibraryServiceProtocol {
     private let indexStore: LibraryIndexStore
     private let offlineReader: OfflineBrowsingReader?
     private let offlineFavorites: OfflineFavoritesStore?
+    private let pendingScrobbles: PendingScrobbleQueue
+    private var isFlushingScrobbles = false
     private var cachedClient: SwiftSonicClient?
     private var cachedConnectionVersion: ServerConnection.Version?
     private var artistInfoCache: [String: ArtistInfo] = [:]
@@ -24,8 +26,10 @@ actor LibraryService: LibraryServiceProtocol {
         catalog: LibraryCatalog,
         indexStore: LibraryIndexStore,
         offlineFavorites: OfflineFavoritesStore? = nil,
-        offlineReader: OfflineBrowsingReader? = nil
+        offlineReader: OfflineBrowsingReader? = nil,
+        pendingScrobbles: PendingScrobbleQueue = PendingScrobbleQueue()
     ) {
+        self.pendingScrobbles = pendingScrobbles
         self.serverService = serverService
         self.modelContainer = modelContainer
         self.downloadService = downloadService
@@ -286,22 +290,59 @@ actor LibraryService: LibraryServiceProtocol {
     // MARK: - Discover
 
     func scrobble(songId: String, submission: Bool) async {
+        await scrobble(songId: songId, submission: submission, playedAt: Date())
+    }
+
+    func scrobble(songId: String, submission: Bool, playedAt: Date) async {
+        let serverId = await serverService.activeConnectionVersion()?.serverID
         do {
             try Task.checkCancellation()
             let subsonicClient = try await client()
             try Task.checkCancellation()
-            try await subsonicClient.scrobble(id: songId, submission: submission)
-            try Task.checkCancellation()
+            try await subsonicClient.scrobble(id: songId, time: submission ? playedAt : nil, submission: submission)
             Logger.library.debug("Scrobbled '\(songId, privacy: .public)' submission=\(submission)")
+            if submission { await flushPendingScrobbles() }
         } catch is CancellationError {
             Logger.library.debug(
                 "Scrobble cancelled for '\(songId, privacy: .public)' submission=\(submission)"
             )
         } catch {
-            // Silent failure per Subsonic convention. Log at debug level only — scrobble errors
-            // are common (network blips, auth races) and should never surface to the user.
+            // Never surfaced to the listener. A completed listen the server could not receive is kept;
+            // a now-playing notice is only meaningful at the moment it is sent.
             Logger.library.debug("Scrobble failed for '\(songId, privacy: .public)' submission=\(submission): \(error, privacy: .public)")
+            if submission, let serverId, Self.isWorthRetrying(error) {
+                await pendingScrobbles.enqueue(PendingScrobble(songId: songId, serverId: serverId, playedAt: playedAt))
+            }
         }
+    }
+
+    func flushPendingScrobbles() async {
+        guard !isFlushingScrobbles,
+              let serverId = await serverService.activeConnectionVersion()?.serverID else { return }
+        isFlushingScrobbles = true
+        defer { isFlushingScrobbles = false }
+        let pending = await pendingScrobbles.pending(serverId: serverId)
+        guard !pending.isEmpty, let subsonicClient = try? await client() else { return }
+        var sent = 0
+        for scrobble in pending {
+            do {
+                try await subsonicClient.scrobble(id: scrobble.songId, time: scrobble.playedAt, submission: true)
+                await pendingScrobbles.remove(scrobble)
+                sent += 1
+            } catch {
+                guard !Self.isWorthRetrying(error) else { break }
+                // The server answered and refused this one (for example, the song is gone).
+                await pendingScrobbles.remove(scrobble)
+            }
+        }
+        if sent > 0 { Logger.library.info("Sent \(sent, privacy: .public) scrobble(s) kept while the server was unreachable") }
+    }
+
+    /// The server could not be reached or failed temporarily. A Subsonic error response means it
+    /// answered and refused, so sending the same play again would not help.
+    nonisolated static func isWorthRetrying(_ error: any Error) -> Bool {
+        if let error = error as? SwiftSonicError, case .api = error { return false }
+        return true
     }
 
     func recentlyPlayedAlbums(size: Int) async throws -> [AlbumID3] {

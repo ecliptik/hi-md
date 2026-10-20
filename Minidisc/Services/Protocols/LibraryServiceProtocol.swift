@@ -112,6 +112,18 @@ nonisolated protocol PlaybackReporting: AnyObject, Sendable {
     /// `submission: false` reports now-playing; `true` submits a completed listen.
     /// Reporting failures never interrupt playback.
     func scrobble(songId: String, submission: Bool) async
+    /// A completed listen that started at `playedAt`. Kept and resent later if the server is unreachable.
+    func scrobble(songId: String, submission: Bool, playedAt: Date) async
+    /// Sends listens that were kept while the server was unreachable.
+    func flushPendingScrobbles() async
+}
+
+extension PlaybackReporting {
+    func scrobble(songId: String, submission: Bool, playedAt: Date) async {
+        await scrobble(songId: songId, submission: submission)
+    }
+
+    func flushPendingScrobbles() async {}
 }
 
 nonisolated protocol ArtworkURLResolving: AnyObject, Sendable {

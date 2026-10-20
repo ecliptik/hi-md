@@ -3232,7 +3232,7 @@ actor PlayerService: PlayerServiceProtocol {
         }
         if !song.isLocalFile {
             Task { [libraryService] in
-                await libraryService.scrobble(songId: songId, submission: true)
+                await libraryService.scrobble(songId: songId, submission: true, playedAt: startDate)
             }
         }
         Task { [listenBrainzService] in
