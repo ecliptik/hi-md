@@ -45,6 +45,11 @@ struct SearchView: View {
                 VStack(spacing: 0) {
                     SearchScopeBar(selection: $scope)
                     List {
+                        // Longer requests such as "mellow 90s rock I haven't played lately" read
+                        // better as a description than as keywords.
+                        if Self.offersSmartSearch(for: trimmed) {
+                            SmartSearchRow(text: trimmed)
+                        }
                         if let vm = viewModel {
                             activeSearchContent(vm)
                         }
@@ -111,6 +116,9 @@ struct SearchView: View {
                 HomeDestinationView(destination: destination)
             }
         }
+        .navigationDestination(for: SmartSearchRequest.self) { request in
+            SmartSearchResultsView(request: request)
+        }
         .navigationDestination(for: SearchHistoryNavTarget.self) { entry in
             switch entry.itemType {
             case "artist":
@@ -142,6 +150,11 @@ struct SearchView: View {
         }
         .sheet(item: $songSelection) { SongSelectionSheet(request: $0) }
         .minidiscContentWidth()
+    }
+
+    /// Three words or more, and only where the on-device model is ready.
+    static func offersSmartSearch(for query: String) -> Bool {
+        query.split(whereSeparator: \.isWhitespace).count >= 3 && SmartSearchService.isAvailable
     }
 
     private var offlineMatches: [LibrarySearchMatch] {
