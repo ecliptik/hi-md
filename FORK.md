@@ -25,6 +25,7 @@ Then build, run the `MinidiscTests` scheme and `./Scripts/doctor.sh --build` bef
 
 ## Fork-specific changes to keep during merges
 
+- **Minimum iOS:** the deployment target is iOS 27.0 (upstream: 26.1). Keep 27.0 when merging `project.pbxproj`; the iOS 27 adoption plan is `docs/plans/ios27.md`.
 - **Identity:** bundle ID `com.ecliptik.minidisc` (plus `.tests` and `.uitests`), signing team `JG6P86C33U`, the background download session ID in `BackgroundDownloadTransport.swift`, the URL type name in `Info.plist`, and the bundle-ID check in `Scripts/doctor.sh`.
 - **Branding:** `AppIcon.icon` (Apple 💽 emoji on a gold fill), `docs/app-icon.png`, the gold accent colour sets in `Assets.xcassets`, `MinidiscColors.AccentRamp`, `ColorContrastUtils` and the 2026 palette in `WrappedYearPalette`. The light and dark accents are chosen so white button labels stay at or above 4.5:1.
 - **Links:** `MinidiscURLs` points at this GitHub repository, the App Store review and share rows are removed from Settings, and Acknowledgements credits upstream Minidisc.
