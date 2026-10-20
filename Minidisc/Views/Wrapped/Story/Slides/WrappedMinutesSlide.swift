@@ -18,10 +18,10 @@ struct WrappedMinutesSlide: View {
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text("This year, you")
-                        .font(.system(size: 22, weight: .medium, design: .rounded))
+                        .scaledFont(size: 22, weight: .medium, design: .rounded)
                         .foregroundStyle(.white.opacity(0.8))
                     Text("listened to")
-                        .font(.system(size: 22, weight: .medium, design: .rounded))
+                        .scaledFont(size: 22, weight: .medium, design: .rounded)
                         .foregroundStyle(.white.opacity(0.8))
                 }
 
@@ -33,7 +33,7 @@ struct WrappedMinutesSlide: View {
 
                 if totalHours > 0 {
                     Text("That's \(totalHours) hours of music.")
-                        .font(.system(size: 20, weight: .semibold, design: .rounded))
+                        .scaledFont(size: 20, weight: .semibold, design: .rounded)
                         .foregroundStyle(.white.opacity(0.75))
                 }
 
@@ -70,13 +70,13 @@ private struct AnimatedMinutesText: View, Animatable {
         let (number, unit) = seconds.wrappedHeroMinutesFormat()
         VStack(alignment: .leading, spacing: MinidiscSpacing.xs) {
             Text(number)
-                .font(.system(size: 96, weight: .black, design: .rounded))
+                .scaledFont(size: 96, weight: .black, design: .rounded)
                 .kerning(-2)
                 .foregroundStyle(.white)
                 .lineLimit(1)
                 .minimumScaleFactor(0.5)
             Text(unit)
-                .font(.system(size: 24, weight: .medium, design: .rounded))
+                .scaledFont(size: 24, weight: .medium, design: .rounded)
                 .foregroundStyle(.white.opacity(0.85))
         }
     }

@@ -88,7 +88,7 @@ struct WrappedStoryPlayerView: View {
                     dismiss()
                 } label: {
                     Image(systemName: "xmark")
-                        .font(.system(size: 14, weight: .bold))
+                        .scaledFont(size: 14, weight: .bold)
                         .foregroundStyle(.white)
                         .padding(8)
                         .background(Color.white.opacity(0.2), in: Circle())
@@ -279,7 +279,7 @@ struct WrappedStoryPlayerView: View {
                     }
                     Text(isRendering ? "Preparing…" : "Share your Wrapped")
                 }
-                .font(.system(size: 16, weight: .semibold, design: .rounded))
+                .scaledFont(size: 16, weight: .semibold, design: .rounded)
                 .foregroundStyle(.white)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, MinidiscSpacing.m)

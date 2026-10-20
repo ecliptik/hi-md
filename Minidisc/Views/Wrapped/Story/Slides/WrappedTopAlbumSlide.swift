@@ -16,7 +16,7 @@ struct WrappedTopAlbumSlide: View {
                 Spacer(minLength: MinidiscSpacing.xxxxl)
 
                 Text("YOUR #1 ALBUM")
-                    .font(.system(size: 13, weight: .heavy, design: .rounded))
+                    .scaledFont(size: 13, weight: .heavy, design: .rounded)
                     .tracking(2.5)
                     .foregroundStyle(.white.opacity(0.7))
 
@@ -29,7 +29,7 @@ struct WrappedTopAlbumSlide: View {
 
                     VStack(spacing: MinidiscSpacing.xs) {
                         Text(album.title)
-                            .font(.system(size: 30, weight: .black, design: .rounded))
+                            .scaledFont(size: 30, weight: .black, design: .rounded)
                             .kerning(-0.5)
                             .foregroundStyle(.white)
                             .multilineTextAlignment(.center)
@@ -37,7 +37,7 @@ struct WrappedTopAlbumSlide: View {
                             .minimumScaleFactor(0.7)
 
                         Text(album.artistName)
-                            .font(.system(size: 20, weight: .medium, design: .rounded))
+                            .scaledFont(size: 20, weight: .medium, design: .rounded)
                             .foregroundStyle(.white.opacity(0.8))
                             .lineLimit(1)
                     }
@@ -46,7 +46,7 @@ struct WrappedTopAlbumSlide: View {
                     Spacer(minLength: MinidiscSpacing.l)
 
                     Text(album.playCount.plural("play", "plays"))
-                        .font(.system(size: 15, weight: .semibold, design: .rounded))
+                        .scaledFont(size: 15, weight: .semibold, design: .rounded)
                         .foregroundStyle(.white)
                         .padding(.horizontal, MinidiscSpacing.m)
                         .padding(.vertical, MinidiscSpacing.s)

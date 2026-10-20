@@ -22,7 +22,7 @@ struct WrappedCurrentYearCard: View {
                 showStoryPlayer = true
             } label: {
                 Image(systemName: isUnlocked ? "play.circle.fill" : "lock.circle.fill")
-                    .font(.system(size: 30, weight: .medium))
+                    .scaledFont(size: 30, weight: .medium)
                     .foregroundStyle(.white)
                     .opacity(isUnlocked ? 1.0 : 0.45)
             }
@@ -38,11 +38,11 @@ struct WrappedCurrentYearCard: View {
         VStack(alignment: .leading, spacing: 2) {
             Spacer()
             Text(String(year))
-                .font(.system(size: 40, weight: .black, design: .rounded))
+                .scaledFont(size: 40, weight: .black, design: .rounded)
                 .foregroundStyle(.white)
                 .lineLimit(1)
             Text("Wrapped")
-                .font(.system(size: 12, weight: .medium, design: .rounded))
+                .scaledFont(size: 12, weight: .medium, design: .rounded)
                 .foregroundStyle(.white.opacity(0.75))
                 .lineLimit(1)
         }

@@ -15,19 +15,19 @@ struct WrappedIntroSlide: View {
 
                 VStack(spacing: MinidiscSpacing.xs) {
                     Text("YOUR")
-                        .font(.system(size: 16, weight: .heavy, design: .rounded))
+                        .scaledFont(size: 16, weight: .heavy, design: .rounded)
                         .tracking(4)
                         .foregroundStyle(.white.opacity(0.7))
 
                     Text("\(year)")
-                        .font(.system(size: 120, weight: .black, design: .rounded))
+                        .scaledFont(size: 120, weight: .black, design: .rounded)
                         .kerning(-3)
                         .foregroundStyle(.white)
                         .lineLimit(1)
                         .minimumScaleFactor(0.6)
 
                     Text("Wrapped")
-                        .font(.system(size: 52, weight: .heavy, design: .rounded))
+                        .scaledFont(size: 52, weight: .heavy, design: .rounded)
                         .kerning(-1)
                         .foregroundStyle(.white)
                 }
@@ -36,7 +36,7 @@ struct WrappedIntroSlide: View {
                 Spacer()
 
                 Text("Your year in music.")
-                    .font(.system(size: 18, weight: .medium, design: .rounded))
+                    .scaledFont(size: 18, weight: .medium, design: .rounded)
                     .foregroundStyle(.white.opacity(0.75))
                     .padding(.bottom, MinidiscSpacing.xxxxl)
             }

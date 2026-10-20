@@ -16,17 +16,17 @@ struct WrappedClosingSlide: View {
 
                 VStack(spacing: MinidiscSpacing.m) {
                     Image(systemName: "waveform")
-                        .font(.system(size: 56, weight: .medium))
+                        .scaledFont(size: 56, weight: .medium)
                         .foregroundStyle(.white)
 
                     Text("Thanks for\nlistening.")
-                        .font(.system(size: 44, weight: .black, design: .rounded))
+                        .scaledFont(size: 44, weight: .black, design: .rounded)
                         .kerning(-1)
                         .foregroundStyle(.white)
                         .multilineTextAlignment(.center)
 
                     Text("Your \(year) Wrapped")
-                        .font(.system(size: 20, weight: .medium, design: .rounded))
+                        .scaledFont(size: 20, weight: .medium, design: .rounded)
                         .foregroundStyle(.white.opacity(0.75))
                 }
 
@@ -56,13 +56,13 @@ struct WrappedClosingSlide: View {
     private func statCard(value: String, label: String) -> some View {
         VStack(spacing: MinidiscSpacing.xs) {
             Text(value)
-                .font(.system(size: 24, weight: .black, design: .rounded))
+                .scaledFont(size: 24, weight: .black, design: .rounded)
                 .kerning(-0.5)
                 .foregroundStyle(.white)
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
             Text(label)
-                .font(.system(size: 12, weight: .medium, design: .rounded))
+                .scaledFont(size: 12, weight: .medium, design: .rounded)
                 .foregroundStyle(.white.opacity(0.7))
         }
         .frame(maxWidth: .infinity)

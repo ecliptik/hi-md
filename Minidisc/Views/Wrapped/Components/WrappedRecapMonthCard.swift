@@ -56,12 +56,12 @@ struct WrappedRecapMonthCard: View {
         VStack(alignment: .leading, spacing: 2) {
             Spacer()
             Text(title)
-                .font(.system(size: 22, weight: .black, design: .rounded))
+                .scaledFont(size: 22, weight: .black, design: .rounded)
                 .foregroundStyle(.white)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
             Text(subtitle)
-                .font(.system(size: 12, weight: .medium, design: .rounded))
+                .scaledFont(size: 12, weight: .medium, design: .rounded)
                 .foregroundStyle(.white.opacity(0.75))
                 .lineLimit(1)
         }

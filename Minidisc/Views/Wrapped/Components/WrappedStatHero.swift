@@ -39,7 +39,7 @@ struct WrappedStatHero: View {
                 Text("·").foregroundStyle(.white.opacity(0.4))
                 Text(data.totalUniqueAlbums.plural("album", "albums"))
             }
-            .font(.system(size: 14, weight: .regular))
+            .scaledFont(size: 14, weight: .regular)
             .foregroundStyle(.white.opacity(0.7))
         }
         .padding(.horizontal, MinidiscSpacing.xl)
@@ -90,13 +90,13 @@ private struct AnimatedHeroText: View, Animatable {
         let (number, unit) = seconds.wrappedHeroMinutesFormat()
         VStack(alignment: .leading, spacing: MinidiscSpacing.xs) {
             Text(number)
-                .font(.system(size: 96, weight: .black, design: .rounded))
+                .scaledFont(size: 96, weight: .black, design: .rounded)
                 .kerning(-2)
                 .foregroundStyle(.white)
                 .lineLimit(1)
                 .minimumScaleFactor(0.5)
             Text(unit)
-                .font(.system(size: 22, weight: .medium, design: .rounded))
+                .scaledFont(size: 22, weight: .medium, design: .rounded)
                 .foregroundStyle(.white.opacity(0.85))
         }
     }

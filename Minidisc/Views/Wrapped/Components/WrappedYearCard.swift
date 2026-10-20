@@ -49,12 +49,12 @@ struct WrappedYearCard: View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
                 Text("Minidisc Wrapped")
-                    .font(.system(size: 22, weight: .bold, design: .rounded))
+                    .scaledFont(size: 22, weight: .bold, design: .rounded)
                     .foregroundStyle(.white)
                 Spacer()
                 if playlistId != nil {
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 14))
+                        .scaledFont(size: 14)
                         .foregroundStyle(.white.opacity(0.5))
                 }
             }
@@ -62,7 +62,7 @@ struct WrappedYearCard: View {
             Spacer()
 
             Text(yearString)
-                .font(.system(size: 140, weight: .black, design: .rounded))
+                .scaledFont(size: 140, weight: .black, design: .rounded)
                 .kerning(-4)
                 .foregroundStyle(.white.opacity(0.95))
                 .lineLimit(1)
@@ -70,7 +70,7 @@ struct WrappedYearCard: View {
                 .frame(maxWidth: .infinity, alignment: .trailing)
 
             subtitleView
-                .font(.system(size: 14, weight: .medium))
+                .scaledFont(size: 14, weight: .medium)
                 .foregroundStyle(.white.opacity(0.7))
                 .lineLimit(2)
                 .padding(.top, MinidiscSpacing.xs)

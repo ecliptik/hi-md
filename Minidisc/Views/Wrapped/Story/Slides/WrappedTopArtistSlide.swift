@@ -16,7 +16,7 @@ struct WrappedTopArtistSlide: View {
                 Spacer(minLength: MinidiscSpacing.xxxxl)
 
                 Text("TOP ARTIST")
-                    .font(.system(size: 13, weight: .heavy, design: .rounded))
+                    .scaledFont(size: 13, weight: .heavy, design: .rounded)
                     .tracking(2.5)
                     .foregroundStyle(.white.opacity(0.7))
 
@@ -24,7 +24,7 @@ struct WrappedTopArtistSlide: View {
 
                 if let artist = topArtist {
                     Text(artist.name)
-                        .font(.system(size: 60, weight: .black, design: .rounded))
+                        .scaledFont(size: 60, weight: .black, design: .rounded)
                         .kerning(-1.5)
                         .foregroundStyle(.white)
                         .lineLimit(3)
@@ -52,7 +52,7 @@ struct WrappedTopArtistSlide: View {
 
     private func statBadge(_ text: String) -> some View {
         Text(text)
-            .font(.system(size: 15, weight: .semibold, design: .rounded))
+            .scaledFont(size: 15, weight: .semibold, design: .rounded)
             .foregroundStyle(.white)
             .padding(.horizontal, MinidiscSpacing.m)
             .padding(.vertical, MinidiscSpacing.s)

@@ -14,7 +14,7 @@ struct WrappedTopGenreSlide: View {
                 Spacer(minLength: MinidiscSpacing.xxxxl)
 
                 Text("YOUR SOUND")
-                    .font(.system(size: 13, weight: .heavy, design: .rounded))
+                    .scaledFont(size: 13, weight: .heavy, design: .rounded)
                     .tracking(2.5)
                     .foregroundStyle(.white.opacity(0.7))
 
@@ -22,17 +22,17 @@ struct WrappedTopGenreSlide: View {
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Your most-played")
-                        .font(.system(size: 22, weight: .medium, design: .rounded))
+                        .scaledFont(size: 22, weight: .medium, design: .rounded)
                         .foregroundStyle(.white.opacity(0.8))
                     Text("genre was")
-                        .font(.system(size: 22, weight: .medium, design: .rounded))
+                        .scaledFont(size: 22, weight: .medium, design: .rounded)
                         .foregroundStyle(.white.opacity(0.8))
                 }
 
                 Spacer(minLength: MinidiscSpacing.l)
 
                 Text(data.dominantGenre ?? "Mixed")
-                    .font(.system(size: 64, weight: .black, design: .rounded))
+                    .scaledFont(size: 64, weight: .black, design: .rounded)
                     .kerning(-1.5)
                     .foregroundStyle(.white)
                     .lineLimit(3)

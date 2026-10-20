@@ -14,7 +14,7 @@ struct WrappedDiscoveriesSlide: View {
                 Spacer(minLength: MinidiscSpacing.xxxxl)
 
                 Text("DISCOVERIES")
-                    .font(.system(size: 13, weight: .heavy, design: .rounded))
+                    .scaledFont(size: 13, weight: .heavy, design: .rounded)
                     .tracking(2.5)
                     .foregroundStyle(.white.opacity(0.7))
 
@@ -22,10 +22,10 @@ struct WrappedDiscoveriesSlide: View {
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text("You explored")
-                        .font(.system(size: 26, weight: .medium, design: .rounded))
+                        .scaledFont(size: 26, weight: .medium, design: .rounded)
                         .foregroundStyle(.white.opacity(0.8))
                     Text("your library.")
-                        .font(.system(size: 26, weight: .medium, design: .rounded))
+                        .scaledFont(size: 26, weight: .medium, design: .rounded)
                         .foregroundStyle(.white.opacity(0.8))
                 }
 
@@ -48,11 +48,11 @@ struct WrappedDiscoveriesSlide: View {
     private func discoveryRow(count: Int, label: LocalizedStringKey) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: MinidiscSpacing.s) {
             Text("\(count)")
-                .font(.system(size: 48, weight: .black, design: .rounded))
+                .scaledFont(size: 48, weight: .black, design: .rounded)
                 .kerning(-1)
                 .foregroundStyle(.white)
             Text(label)
-                .font(.system(size: 20, weight: .medium, design: .rounded))
+                .scaledFont(size: 20, weight: .medium, design: .rounded)
                 .foregroundStyle(.white.opacity(0.75))
         }
     }
