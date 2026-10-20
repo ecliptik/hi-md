@@ -14,6 +14,7 @@ struct ArtistDetailView: View {
 
     @Environment(\.appContainer) private var container
     @Environment(\.dismiss) private var dismiss
+    @ScaledMetric(relativeTo: .title) private var artistNameSize: CGFloat = 30
     @State private var viewModel: ArtistDetailViewModel?
     @State private var selectedOutOfLibraryArtist: SimilarArtistRecommendation?
     @State private var isShowingArtistInformation = false
@@ -271,7 +272,7 @@ struct ArtistDetailView: View {
     private func heroContent(vm: ArtistDetailViewModel, albums: [AlbumID3]) -> some View {
         VStack(spacing: MinidiscSpacing.xl) {
             Text(artist.name)
-                .font(.system(size: 30, weight: .semibold, design: .rounded))
+                .font(.system(size: artistNameSize, weight: .semibold, design: .rounded))
                 .foregroundStyle(headerTextColor)
                 .multilineTextAlignment(.center)
 

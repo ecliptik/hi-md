@@ -9,6 +9,8 @@ struct WrappedStoryPlayerView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.appContainer) private var container
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.accessibilityVoiceOverEnabled) private var voiceOverEnabled
+    @Environment(\.accessibilitySwitchControlEnabled) private var switchControlEnabled
 
     private let slides = WrappedStorySlideKind.allCases
     private let slideDuration: Double = 5.0
@@ -17,6 +19,8 @@ struct WrappedStoryPlayerView: View {
     @State private var currentIndex = 0
     @State private var progress: Double = 0.0
     @State private var isPaused = false
+    /// Timed slides can't be read or operated at an assistive technology's pace, so they hold still.
+    @State private var autoAdvanceDisabled = false
     @State private var timerTask: Task<Void, Never>? = nil
     @State private var longPressTask: Task<Void, Never>? = nil
     @State private var wrappedData: WrappedData? = nil
@@ -54,6 +58,9 @@ struct WrappedStoryPlayerView: View {
             if let image = renderedImage { SystemShareSheet(item: image) }
         }
         .onChange(of: showShareSheet) { _, presented in isPaused = presented }
+        .onChange(of: voiceOverEnabled || switchControlEnabled, initial: true) { _, active in
+            autoAdvanceDisabled = active
+        }
     }
 
     private func loadWrappedData() async {
@@ -87,6 +94,7 @@ struct WrappedStoryPlayerView: View {
                         .background(Color.white.opacity(0.2), in: Circle())
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("Close")
             }
             .padding(.horizontal, MinidiscSpacing.l)
             .padding(.top, MinidiscSpacing.s)
@@ -139,6 +147,18 @@ struct WrappedStoryPlayerView: View {
                 )
         }
         .ignoresSafeArea()
+        // The tap and swipe gestures have no accessible equivalent on their own.
+        .accessibilityElement()
+        .accessibilityLabel(Text("Wrapped story, slide \(currentIndex + 1) of \(slides.count)"))
+        .accessibilityAdjustableAction { direction in
+            switch direction {
+            case .increment: goForward()
+            case .decrement: goBack()
+            @unknown default: break
+            }
+        }
+        .accessibilityAction(named: Text("Next slide")) { goForward() }
+        .accessibilityAction(named: Text("Previous slide")) { goBack() }
     }
 
     // MARK: - Slide content
@@ -232,7 +252,7 @@ struct WrappedStoryPlayerView: View {
         timerTask = Task {
             while !Task.isCancelled {
                 try? await Task.sleep(for: .milliseconds(Int(timerInterval * 1000)))
-                guard !Task.isCancelled, !isPaused else { continue }
+                guard !Task.isCancelled, !isPaused, !autoAdvanceDisabled else { continue }
                 guard currentIndex < slides.count - 1 else { continue }
                 progress += timerInterval / slideDuration
                 if progress >= 1.0 { goForward() }

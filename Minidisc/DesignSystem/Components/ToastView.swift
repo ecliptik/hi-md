@@ -82,6 +82,19 @@ struct ToastOverlay: ViewModifier {
                 }
             }
             .animation(reduceMotion ? nil : .spring(response: 0.4, dampingFraction: 0.8), value: toastService.current)
+            // A toast appears and leaves on its own, so VoiceOver would otherwise never mention it.
+            .onChange(of: toastService.current) { _, toast in
+                guard let toast else { return }
+                var spoken = AttributedString(Self.spokenText(for: toast))
+                if toast.style == .error { spoken.accessibilitySpeechAnnouncementPriority = .high }
+                AccessibilityNotification.Announcement(spoken).post()
+            }
+    }
+
+    static func spokenText(for toast: ToastService.Toast) -> String {
+        let message = String(localized: String.LocalizationValue(toast.message))
+        guard let subtitle = toast.subtitle, !subtitle.isEmpty else { return message }
+        return "\(message). \(subtitle)"
     }
 
     @ViewBuilder

@@ -47,9 +47,11 @@ final class ToastService {
 
     func show(_ message: String, subtitle: String? = nil, style: Style = .info, duration: TimeInterval = 3.0, coverArtId: String? = nil, action: ToastAction? = nil) {
         dismissTask?.cancel()
-        current = Toast(message: message, subtitle: subtitle, style: style, duration: duration, coverArtId: coverArtId, action: action)
+        // VoiceOver users need time to find an action such as Undo before the toast leaves.
+        let dwell = UIAccessibility.isVoiceOverRunning && action != nil ? max(duration, 10) : duration
+        current = Toast(message: message, subtitle: subtitle, style: style, duration: dwell, coverArtId: coverArtId, action: action)
         dismissTask = Task { [weak self] in
-            try? await Task.sleep(for: .seconds(duration))
+            try? await Task.sleep(for: .seconds(dwell))
             guard !Task.isCancelled else { return }
             withAnimation(.easeOut(duration: 0.3)) {
                 self?.current = nil

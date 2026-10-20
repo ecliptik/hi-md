@@ -11,6 +11,7 @@ struct ArtistInformationSheet: View {
     let dominantColor: Color
 
     @Environment(\.dismiss) private var dismiss
+    @ScaledMetric(relativeTo: .largeTitle) private var nameSize: CGFloat = 34
 
     private var albums: [AlbumID3] { artist.album ?? [] }
 
@@ -82,7 +83,7 @@ struct ArtistInformationSheet: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     Text(artist.name)
-                        .font(.system(size: 34, weight: .bold))
+                        .font(.system(size: nameSize, weight: .bold))
                         .foregroundStyle(contentColor)
                         .textSelection(.enabled)
                         .padding(.bottom, 28)

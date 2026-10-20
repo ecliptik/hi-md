@@ -27,6 +27,11 @@ struct ConnectionErrorView: View {
 
             CopyableCodeLabel(code: error.presentation.technicalCode)
         }
+        .onAppear {
+            var spoken = AttributedString("\(error.presentation.title). \(error.presentation.description)")
+            spoken.accessibilitySpeechAnnouncementPriority = .high
+            AccessibilityNotification.Announcement(spoken).post()
+        }
     }
 
     private var iconName: String {

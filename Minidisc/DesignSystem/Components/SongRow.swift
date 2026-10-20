@@ -185,6 +185,19 @@ struct SongRow: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .contentShape(Rectangle())
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(song.title)
+        .accessibilityValue(spokenDetails)
+        .accessibilityAddTraits(isCurrentTrack ? [.isButton, .isSelected] : .isButton)
+    }
+
+    /// Everything the row shows beyond the title, in the order a listener needs it.
+    private var spokenDetails: String {
+        var parts: [String] = []
+        if let secondaryText = secondaryText ?? (showArtist ? song.artist : nil) { parts.append(secondaryText) }
+        if isCurrentTrack { parts.append(isPlaying ? String(localized: "Now playing") : String(localized: "Paused")) }
+        if isFavorite { parts.append(String(localized: "Favorite")) }
+        return parts.joined(separator: ", ")
     }
 
     private var trailingContent: some View {
