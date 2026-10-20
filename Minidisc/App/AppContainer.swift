@@ -307,24 +307,20 @@ extension ModelContainer {
     /// Creates the Minidisc ModelContainer.
     /// - Parameter inMemory: Pass `true` in tests — Swift Testing parallelises tests,
     ///   so each test must create its own in-memory container (never shared).
-    static func minidisc(inMemory: Bool = false) throws -> ModelContainer {
-        let schema = Schema([
-            ServerConfig.self,
-            CachedTrack.self,
-            DownloadedTrack.self,
-            DownloadedAlbum.self,
-            DownloadedPlaylist.self,
-            QueueSnapshot.self,
-            FavoriteRecord.self,
-            PinnedItem.self,
-            PlaybackSession.self, // kept for schema-mismatch migration safety; see session() below
-            PlaybackEvent.self,
-            CachedLyrics.self,
-            SearchHistoryEntry.self,
-            PlaylistCoverChoice.self
-        ])
-        let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: inMemory)
-        return try ModelContainer(for: schema, configurations: config)
+    /// - Parameter url: Stores the database at a specific location instead of the default one.
+    static func minidisc(inMemory: Bool = false, url: URL? = nil) throws -> ModelContainer {
+        let schema = Schema(versionedSchema: MinidiscSchemaV1.self)
+        let config: ModelConfiguration
+        if let url, !inMemory {
+            config = ModelConfiguration(schema: schema, url: url)
+        } else {
+            config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: inMemory)
+        }
+        return try ModelContainer(
+            for: schema,
+            migrationPlan: MinidiscMigrationPlan.self,
+            configurations: config
+        )
     }
 
     /// Keeps frequent position saves out of the main SwiftData observation graph.
