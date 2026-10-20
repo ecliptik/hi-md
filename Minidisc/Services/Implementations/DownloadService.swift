@@ -1039,7 +1039,7 @@ actor DownloadService: DownloadServiceProtocol {
             request.setValue(value, forHTTPHeaderField: key)
         }
 
-        let (data, response) = try await downloadSession.data(for: request)
+        let (data, response) = try await downloadSession.data(for: request, delegate: OriginScopedRedirectDelegate())
         try checkDownloadCancellation()
         guard !ArtworkResponsePolicy.isTransient(response) else { throw URLError(.resourceUnavailable) }
         guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {

@@ -73,8 +73,7 @@ actor AudioMuseClient {
     static let requestTimeout: TimeInterval = 120
 
     init?(urlString: String, token: String?, session: URLSession = .shared) {
-        guard let url = URL(string: urlString.trimmingCharacters(in: .whitespacesAndNewlines)),
-              url.scheme != nil, url.host != nil else { return nil }
+        guard let url = IntegrationEndpoint.validatedURL(urlString) else { return nil }
         self.baseURL = url
         self.token = token
         self.session = session

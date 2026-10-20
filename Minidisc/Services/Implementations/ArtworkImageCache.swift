@@ -146,6 +146,7 @@ final class ArtworkImageCache {
     typealias PersistCoverOperation = @Sendable (Data, String) async -> Void
     typealias RemoveCoverOperation = @Sendable (String) async -> Void
     typealias HTTPDataLoader = @Sendable (URLRequest) async throws -> (Data, URLResponse)
+    typealias RequestHeadersProvider = @Sendable (URL) async -> [String: String]
     typealias ImageDecoder = @Sendable (Data, Int) async -> PlatformImage?
 
     /// Mirrors `CacheSettings.cacheArtwork`: when false, fetched covers stay memory-only and are not
@@ -161,6 +162,7 @@ final class ArtworkImageCache {
     private let persistCoverOperation: PersistCoverOperation
     private let removeCoverOperation: RemoveCoverOperation
     private let dataLoader: HTTPDataLoader
+    private let requestHeadersProvider: RequestHeadersProvider
     private let imageDecoder: ImageDecoder
     private let fetchGate = CoverFetchGate(limit: 4)
     private let decodeGate = CoverFetchGate(limit: 3)
@@ -212,8 +214,11 @@ final class ArtworkImageCache {
             removeCoverOperation: { id in
                 await downloadService.removeCover(forId: id)
             },
+            requestHeadersProvider: { url in
+                await libraryService.coverArtHeaders(for: url)
+            },
             dataLoader: { request in
-                try await session.data(for: request)
+                try await session.data(for: request, delegate: OriginScopedRedirectDelegate())
             },
             imageDecoder: { data, maxDimension in
                 await Task.detached(priority: .utility) {
@@ -232,6 +237,7 @@ final class ArtworkImageCache {
         localCoverURLProvider: @escaping LocalCoverURLProvider = { _ in nil },
         persistCoverOperation: @escaping PersistCoverOperation = { _, _ in },
         removeCoverOperation: @escaping RemoveCoverOperation = { _ in },
+        requestHeadersProvider: @escaping RequestHeadersProvider = { _ in [:] },
         dataLoader: @escaping HTTPDataLoader,
         imageDecoder: @escaping ImageDecoder
     ) {
@@ -241,6 +247,7 @@ final class ArtworkImageCache {
         self.persistCoverOperation = persistCoverOperation
         self.removeCoverOperation = removeCoverOperation
         self.dataLoader = dataLoader
+        self.requestHeadersProvider = requestHeadersProvider
         self.imageDecoder = imageDecoder
     }
 
@@ -505,6 +512,12 @@ final class ArtworkImageCache {
         return serverArtwork.image
     }
 
+    private func coverRequest(for url: URL) async -> URLRequest {
+        var request = URLRequest(url: url)
+        for (name, value) in await requestHeadersProvider(url) { request.setValue(value, forHTTPHeaderField: name) }
+        return request
+    }
+
     private func fetchServerArtwork(coverArtId: String, tier: ArtworkTier) async -> ServerArtwork? {
         let maxDim = tier.decodePixels
         guard !Task.isCancelled,
@@ -514,7 +527,7 @@ final class ArtworkImageCache {
         let data: Data
         let response: URLResponse
         do {
-            (data, response) = try await dataLoader(URLRequest(url: serverURL))
+            (data, response) = try await dataLoader(coverRequest(for: serverURL))
         } catch is CancellationError {
             return nil
         } catch {
@@ -590,7 +603,7 @@ final class ArtworkImageCache {
                coverGeneration: coverGeneration
            ) else { return }
 
-        var request = URLRequest(url: url)
+        var request = await coverRequest(for: url)
         request.httpMethod = "HEAD"
         let response: URLResponse
         do {

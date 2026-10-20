@@ -136,6 +136,16 @@ private nonisolated final class DownloadSessionDelegate: NSObject, URLSessionDow
         lastProgress.withLock { _ = $0.removeValue(forKey: id) }
     }
 
+    func urlSession(
+        _ session: URLSession,
+        task: URLSessionTask,
+        willPerformHTTPRedirection response: HTTPURLResponse,
+        newRequest request: URLRequest,
+        completionHandler: @escaping @Sendable (URLRequest?) -> Void
+    ) {
+        completionHandler(OriginScopedRedirectDelegate.redirectedRequest(request, original: task.originalRequest))
+    }
+
     func urlSession(_ session: URLSession, taskIsWaitingForConnectivity task: URLSessionTask) {
         guard let id = task.taskDescription.flatMap(UUID.init(uuidString:)) else { return }
         continuation.yield(.waiting(id))

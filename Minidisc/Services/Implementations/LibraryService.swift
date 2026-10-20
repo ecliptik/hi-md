@@ -115,6 +115,11 @@ actor LibraryService: LibraryServiceProtocol {
         return c.coverArtURL(id: id, size: size)
     }
 
+    func coverArtHeaders(for url: URL) async -> [String: String] {
+        guard let connection = try? await serverService.activeConnection() else { return [:] }
+        return connection.authorizationHeaders(for: url)
+    }
+
     func streamURL(songId: String) async -> URL? {
         guard let c = try? await client() else { return nil }
         return c.streamURL(id: songId)

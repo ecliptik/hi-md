@@ -187,7 +187,7 @@ private actor OfflineFavoritesTransfer {
         var request = request
         request.allowsExpensiveNetworkAccess = request.allowsCellularAccess
         request.allowsConstrainedNetworkAccess = false
-        let (file, response) = try await session.download(for: request)
+        let (file, response) = try await session.download(for: request, delegate: OriginScopedRedirectDelegate())
         do {
             try Task.checkCancellation()
             guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {

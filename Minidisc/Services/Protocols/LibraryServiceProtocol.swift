@@ -116,6 +116,12 @@ nonisolated protocol PlaybackReporting: AnyObject, Sendable {
 
 nonisolated protocol ArtworkURLResolving: AnyObject, Sendable {
     func coverArtURL(id: String, size: Int?) async -> URL?
+    /// Reverse-proxy headers the server expects for `url`. Empty for any other origin.
+    func coverArtHeaders(for url: URL) async -> [String: String]
+}
+
+extension ArtworkURLResolving {
+    func coverArtHeaders(for url: URL) async -> [String: String] { [:] }
 }
 
 nonisolated protocol LibraryServiceProtocol:

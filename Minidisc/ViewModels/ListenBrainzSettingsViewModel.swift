@@ -139,7 +139,7 @@ final class ListenBrainzSettingsViewModel {
 
         let rawURL = serverURLInput.isEmpty ? ListenBrainzService.defaultScrobblingServerURL : serverURLInput
         let normalized = ListenBrainzService.normalizeServerURL(rawURL)
-        guard let url = URL(string: normalized), url.scheme != nil else {
+        guard let url = IntegrationEndpoint.validatedURL(normalized) else {
             scrobblingConnectionState = .failed(message: "Invalid server URL. Use a full URL, e.g. https://api.listenbrainz.org")
             return
         }

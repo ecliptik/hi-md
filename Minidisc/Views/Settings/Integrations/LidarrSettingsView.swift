@@ -64,6 +64,11 @@ struct LidarrSettingsView: View {
                 .autocorrectionDisabled()
                 .textInputAutocapitalization(.never)
                 .keyboardType(.URL)
+            if IntegrationEndpoint.isCleartext(urlInput) {
+                Label("Unencrypted connection — make sure you are on a trusted network.", systemImage: "exclamationmark.triangle")
+                    .font(.footnote)
+                    .foregroundStyle(.orange)
+            }
             SecureField("API key", text: $apiKeyInput)
                 .textContentType(.password)
                 .autocorrectionDisabled()

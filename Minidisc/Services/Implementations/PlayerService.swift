@@ -3992,7 +3992,7 @@ actor PlayerService: PlayerServiceProtocol {
             url: streamURL, headers: customHeaders, allowCellular: allowCellular
         )
 
-        let (tempURL, response) = try await session.download(for: request)
+        let (tempURL, response) = try await session.download(for: request, delegate: OriginScopedRedirectDelegate())
         defer { try? FileManager.default.removeItem(at: tempURL) }
 
         guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {

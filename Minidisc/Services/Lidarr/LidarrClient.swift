@@ -31,7 +31,7 @@ actor LidarrClient {
 
     init?(urlString: String, apiKey: String, headers: [String: String] = [:], session: URLSession = .shared) {
         let trimmed = urlString.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let url = URL(string: trimmed), url.scheme != nil, url.host != nil else { return nil }
+        guard let url = IntegrationEndpoint.validatedURL(trimmed) else { return nil }
         self.baseURL = url
         self.apiKey = apiKey
         self.headers = headers

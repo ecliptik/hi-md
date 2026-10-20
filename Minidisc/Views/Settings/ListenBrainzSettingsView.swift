@@ -238,6 +238,11 @@ struct ListenBrainzSettingsView: View {
                 .autocorrectionDisabled()
                 .textInputAutocapitalization(.never)
                 .keyboardType(.URL)
+            if IntegrationEndpoint.isCleartext(vm.serverURLInput) {
+                Label("Unencrypted connection — make sure you are on a trusted network.", systemImage: "exclamationmark.triangle")
+                    .font(.footnote)
+                    .foregroundStyle(.orange)
+            }
 
             Button {
                 Task { await vm.validateScrobblingToken() }
