@@ -176,6 +176,16 @@ struct MusicIntentTests {
         }
     }
 
+    @Test func carPlaySongListsStayOnTheActiveAccount() async throws {
+        let container = try makeContainer()
+        let server = configure(container)
+        let other = MusicIntentID(scope: MusicIntentID.scope(baseURL: server.baseURL, username: "other"),
+                                  kind: .album, resourceID: "a").rawValue
+        await #expect(throws: MusicIntentError.differentServer) {
+            _ = try await MusicIntentService(container: container).songs(id: other)
+        }
+    }
+
     private func makeContainer() throws -> AppContainer {
         let defaults = try #require(UserDefaults(suiteName: "MusicIntentTests.\(UUID())"))
         return try AppContainer(inMemory: true, userDefaults: defaults)

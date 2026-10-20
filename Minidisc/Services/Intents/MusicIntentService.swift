@@ -267,6 +267,14 @@ struct MusicIntentService {
         catch { throw MusicIntentError.unavailable }
     }
 
+    /// The songs of a song, album, artist or playlist, from downloads when offline.
+    func songs(id: String) async throws -> [DisplayableSong] {
+        let context = try context()
+        let songs = try await tracks(try scoped(id, context: context), context: context)
+        try validate(context)
+        return songs
+    }
+
     /// Downloads an album or playlist for offline listening and returns its name.
     func download(id: String) async throws -> String {
         let context = try context()
