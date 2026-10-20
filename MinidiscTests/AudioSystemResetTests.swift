@@ -27,7 +27,7 @@ private nonisolated final class ResetTestPlayerFactory: Sendable {
 }
 
 @MainActor
-@Suite("Audio system reset", .serialized)
+@Suite("Audio system reset", .serialized, .timeLimit(.minutes(1)))
 struct AudioSystemResetTests {
     @Test func classifiesMediaServicesResetWithoutConfusingNetworkErrors() {
         let reset = NSError(

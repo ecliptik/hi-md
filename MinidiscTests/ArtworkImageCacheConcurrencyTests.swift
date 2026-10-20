@@ -205,15 +205,16 @@ private actor RevalidationDataLoader {
 private func eventuallyArtwork(
     _ condition: @escaping @MainActor () async -> Bool
 ) async -> Bool {
-    for _ in 0..<200 {
+    let deadline = ContinuousClock.now + .seconds(5)
+    while ContinuousClock.now < deadline {
         if await condition() { return true }
         try? await Task.sleep(for: .milliseconds(2))
     }
-    return false
+    return await condition()
 }
 
 @MainActor
-@Suite("ArtworkImageCache concurrency")
+@Suite("ArtworkImageCache concurrency", .timeLimit(.minutes(1)))
 struct ArtworkImageCacheConcurrencyTests {
     private func store() -> CoverRevalidationStore {
         CoverRevalidationStore(

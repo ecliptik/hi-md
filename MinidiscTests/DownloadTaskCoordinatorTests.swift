@@ -91,7 +91,7 @@ private actor ControlledDownloadOperation {
     }
 }
 
-@Suite("Shared download task coordinator")
+@Suite("Shared download task coordinator", .timeLimit(.minutes(1)))
 struct DownloadTaskCoordinatorTests {
     @Test("Cancelling one waiter does not cancel a transfer needed by another waiter")
     func cancellingOneWaiterKeepsSharedTransferAlive() async throws {

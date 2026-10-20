@@ -107,7 +107,7 @@ private actor ControlledSyncOperation {
     }
 }
 
-@Suite("Background sync coordination")
+@Suite("Background sync coordination", .timeLimit(.minutes(1)))
 struct BackgroundSyncCoordinatorTests {
     @Test("the next request is scheduled before framework completion, exactly once")
     func completionOrderingAndSingleClaim() async {

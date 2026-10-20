@@ -273,7 +273,7 @@ private struct RecoveryHarness {
     }
 }
 
-@Suite("Player recovery integration", .serialized)
+@Suite("Player recovery integration", .serialized, .timeLimit(.minutes(1)))
 @MainActor
 struct PlayerRecoveryIntegrationTests {
     @Test(arguments: [false, true])
@@ -841,7 +841,7 @@ private actor PlaylistPreparationGate {
 }
 
 
-@Suite @MainActor
+@Suite(.timeLimit(.minutes(1))) @MainActor
 struct LocalMusicPlaybackTests {
     @Test func localQueuePlaysAndAdvancesWithoutAServer() async throws {
         let root = URL.temporaryDirectory.appendingPathComponent(UUID().uuidString)

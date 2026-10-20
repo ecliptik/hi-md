@@ -191,8 +191,7 @@ struct LyricsViewModelSeekTests {
         await vm.load()
 
         vm.userTapped(lineIndex: 1) // start=1000ms, offset=0 → 1.0s
-        try await Task.sleep(for: .milliseconds(50))
-        #expect(playerService.seekCalledWith == 1.0)
+        #expect(await pollUntil { playerService.seekCalledWith == 1.0 })
     }
 
     @Test func seekIncludesOffset() async throws {
@@ -201,8 +200,7 @@ struct LyricsViewModelSeekTests {
         await vm.load()
 
         vm.userTapped(lineIndex: 0) // start=0, offset=200 → (0+200)/1000 = 0.2s
-        try await Task.sleep(for: .milliseconds(50))
-        #expect(playerService.seekCalledWith == 0.2)
+        #expect(await pollUntil { playerService.seekCalledWith == 0.2 })
     }
 
     @Test func noSeekOnUnsyncedState() async throws {

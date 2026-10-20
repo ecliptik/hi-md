@@ -156,7 +156,7 @@ private var utc: Calendar {
 
 // MARK: - Cycle
 
-@Suite("Mood playlists — weekly cycle")
+@Suite("Mood playlists — weekly cycle", .timeLimit(.minutes(1)))
 struct MoodCycleTests {
 
     @Test("the cycle starts on the Wednesday of the current week")
@@ -183,7 +183,7 @@ struct MoodCycleTests {
 
 // MARK: - Sync
 
-@Suite("Mood playlists — weekly sync")
+@Suite("Mood playlists — weekly sync", .timeLimit(.minutes(1)))
 struct MoodPlaylistServiceTests {
 
     private let wednesday = date("2026-07-15T12:00:00Z")

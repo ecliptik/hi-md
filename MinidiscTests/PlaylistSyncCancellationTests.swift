@@ -110,7 +110,7 @@ private func cancellationDate() -> Date {
     ISO8601DateFormatter().date(from: "2026-05-04T12:00:00Z")!
 }
 
-@Suite("Playlist sync cancellation")
+@Suite("Playlist sync cancellation", .timeLimit(.minutes(1)))
 struct PlaylistSyncCancellationTests {
     @Test("Wrapped propagates cancellation and leaves cadence markers untouched")
     func wrappedCancellationDoesNotCommitMarkers() async throws {

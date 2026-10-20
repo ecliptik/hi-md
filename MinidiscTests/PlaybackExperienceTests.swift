@@ -14,8 +14,8 @@ struct PlaybackPresentationTests {
         #expect(state.playbackStatusMessage == nil)
 
         state.playbackState = .loading
-        try await Task.sleep(for: .milliseconds(100))
-        #expect(state.playbackStatusMessage == PlaybackWaitingReason.loading.title)
+        // The message appears after the delay; poll for it, since a loaded run can postpone the timer.
+        #expect(await pollUntil { state.playbackStatusMessage == PlaybackWaitingReason.loading.title })
         state.playbackState = .paused
         #expect(state.playbackStatusMessage == nil)
         state.playbackState = .loading

@@ -38,7 +38,7 @@ private actor HomeFeedSource: PlaylistBrowsing, RecentlyAddedAlbumBrowsing, List
     func release() { genreWaiter?.resume(); genreWaiter = nil }
 }
 
-@Suite @MainActor
+@Suite(.timeLimit(.minutes(1))) @MainActor
 struct HomeFeedContinuityTests {
     @Test func aSlowGenreDoesNotBlockAlbumsAndAHistoryFailureKeepsOtherSections() async throws {
         let source = HomeFeedSource(failHistory: true, waitForGenres: true)

@@ -80,7 +80,7 @@ private nonisolated final class FailureRecorder: AudioEngineDelegate, Sendable {
     }
 }
 
-@Suite("FLAC streaming", .serialized)
+@Suite("FLAC streaming", .serialized, .timeLimit(.minutes(1)))
 struct FlacStreamingTests {
     /// Eight seconds of silence encoded as FLAC by the system encoder.
     private static func silentFLAC() throws -> Data {

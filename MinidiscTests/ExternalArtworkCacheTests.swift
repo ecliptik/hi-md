@@ -111,16 +111,17 @@ private func makeCache(
 private func eventually(
     _ condition: @escaping @Sendable () async -> Bool
 ) async -> Bool {
-    for _ in 0..<200 {
+    let deadline = ContinuousClock.now + .seconds(5)
+    while ContinuousClock.now < deadline {
         if await condition() { return true }
         try? await Task.sleep(for: .milliseconds(2))
     }
-    return false
+    return await condition()
 }
 
 // MARK: - Tests
 
-@Suite("ExternalArtworkCache")
+@Suite("ExternalArtworkCache", .timeLimit(.minutes(1)))
 struct ExternalArtworkCacheTests {
 
     // MARK: Memory cache

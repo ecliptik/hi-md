@@ -53,7 +53,7 @@ private actor QueueTestStorage {
     func releaseLookup() { lookupWaiter?.resume(); lookupWaiter = nil; blockLookup = false }
 }
 
-@Suite @MainActor
+@Suite(.timeLimit(.minutes(1))) @MainActor
 struct DownloadQueuePersistenceTests {
     private func connection(serverID: UUID) throws -> ServerConnection {
         let snapshot = ServerSnapshot(from: ServerConfig(id: serverID, displayName: "Test", baseURL: "https://download.invalid", username: "test"))

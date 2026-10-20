@@ -242,7 +242,7 @@ private func removeReentrancyArtifacts(queueFileURL: URL, defaultsSuiteName: Str
 }
 
 @MainActor
-@Suite("ListenBrainzService — reentrancy and account identity")
+@Suite("ListenBrainzService — reentrancy and account identity", .timeLimit(.minutes(1)))
 struct ListenBrainzReentrancyTests {
     @Test("clearCredentials wins over an older username validation")
     func clearCredentialsInvalidatesPendingEnable() async throws {

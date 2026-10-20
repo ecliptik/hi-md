@@ -3,7 +3,7 @@ import Testing
 import SwiftSonic
 @testable import Minidisc
 
-@Suite("Library search relevance and continuity")
+@Suite("Library search relevance and continuity", .timeLimit(.minutes(1)))
 @MainActor
 struct LibrarySearchExperienceTests {
     @Test("An exact song title outranks an artist prefix and an album substring")
