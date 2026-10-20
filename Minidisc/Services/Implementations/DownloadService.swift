@@ -176,6 +176,9 @@ actor DownloadService: DownloadServiceProtocol {
     private let modelContainer: ModelContainer
     private let downloadsDirectory: URL
     private let coverArtsDirectory: URL
+    /// Holds user-chosen playlist covers. Kept apart from `coverArtsDirectory` because every
+    /// cache wipe removes that directory wholesale.
+    private let userCoversDirectory: URL
     private let offlineLibraryReader: OfflineLibraryReader
     private let offlineRemovalCoordinator: OfflineLibraryRemovalCoordinator
     private var progressContinuation: AsyncStream<[DownloadProgress]>.Continuation?
@@ -216,6 +219,7 @@ actor DownloadService: DownloadServiceProtocol {
         let downloadsDirectory = base.appendingPathComponent("downloads", isDirectory: true)
         self.downloadsDirectory = downloadsDirectory
         self.coverArtsDirectory = base.appendingPathComponent("coverarts", isDirectory: true)
+        self.userCoversDirectory = base.appendingPathComponent("playlistcovers", isDirectory: true)
         self.offlineLibraryReader = OfflineLibraryReader(
             modelContainer: modelContainer,
             downloadsDirectory: downloadsDirectory
@@ -338,6 +342,8 @@ actor DownloadService: DownloadServiceProtocol {
     }
 
     func localCoverArtURL(forId coverArtId: String) async -> URL? {
+        let userURL = userCoversDirectory.appendingPathComponent(coverArtId)
+        if FileManager.default.fileExists(atPath: userURL.path) { return userURL }
         let url = coverArtsDirectory.appendingPathComponent(coverArtId)
         let exists = FileManager.default.fileExists(atPath: url.path)
         Logger.download.debug("localCoverArtURL id='\(coverArtId, privacy: .public)' path='\(url.path, privacy: .public)' exists=\(exists)")
@@ -352,6 +358,30 @@ actor DownloadService: DownloadServiceProtocol {
             try data.write(to: url, options: .atomic)
         } catch {
             Logger.download.debug("Failed to persist cover '\(coverArtId, privacy: .public)': \(error, privacy: .public)")
+        }
+    }
+
+    func persistUserCover(_ data: Data, forId coverArtId: String) async {
+        let url = userCoversDirectory.appendingPathComponent(coverArtId)
+        do {
+            try FileManager.default.createDirectory(at: userCoversDirectory, withIntermediateDirectories: true)
+            try data.write(to: url, options: .atomic)
+        } catch {
+            Logger.download.error("Failed to persist user cover '\(coverArtId, privacy: .public)': \(error, privacy: .public)")
+        }
+    }
+
+    func adoptLegacyUserCover(forId coverArtId: String) async {
+        let fm = FileManager.default
+        let destination = userCoversDirectory.appendingPathComponent(coverArtId)
+        guard !fm.fileExists(atPath: destination.path) else { return }
+        let source = coverArtsDirectory.appendingPathComponent(coverArtId)
+        guard fm.fileExists(atPath: source.path) else { return }
+        do {
+            try fm.createDirectory(at: userCoversDirectory, withIntermediateDirectories: true)
+            try fm.moveItem(at: source, to: destination)
+        } catch {
+            Logger.download.error("Failed to adopt legacy cover '\(coverArtId, privacy: .public)': \(error, privacy: .public)")
         }
     }
 

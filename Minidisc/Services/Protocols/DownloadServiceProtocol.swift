@@ -55,6 +55,14 @@ protocol DownloadServiceProtocol: AnyObject, Sendable {
 
     func removeCover(forId coverArtId: String) async
 
+    /// Persists a user-chosen cover outside the purgeable cover cache, so "Clear artwork" and
+    /// cache-version bumps never delete it. `localCoverArtURL` prefers these files.
+    func persistUserCover(_ data: Data, forId coverArtId: String) async
+
+    /// Moves a cover stored in the purgeable cache by an earlier version into the user-cover
+    /// directory. No-op when there is nothing to move or a user cover already exists.
+    func adoptLegacyUserCover(forId coverArtId: String) async
+
     /// Deletes orphaned cover files whose name is not in `referencedIds`. Returns count deleted.
     @discardableResult
     func garbageCollectOrphanedCovers(referencedIds: Set<String>) async -> Int
@@ -101,4 +109,12 @@ extension DownloadServiceProtocol {
     func cancelDownloads(playlistId: String, serverId: UUID) async throws {}
     func restorePendingDownloads() async {}
     func retryDownload(songId: String, serverId: UUID) async throws {}
+}
+
+extension DownloadServiceProtocol {
+    func persistUserCover(_ data: Data, forId coverArtId: String) async {
+        await persistCover(data, forId: coverArtId)
+    }
+
+    func adoptLegacyUserCover(forId coverArtId: String) async {}
 }

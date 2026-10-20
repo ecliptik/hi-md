@@ -19,6 +19,11 @@ struct PlaylistCoverManager {
     static func localCoverId(playlistId: String, downloadService: any DownloadServiceProtocol) async -> String? {
         let tieredId = "\(playlistId)@\(ArtworkTier.thumb.rawValue)"
         guard await downloadService.localCoverArtURL(forId: tieredId) != nil else { return nil }
+        // Earlier versions kept these covers in the purgeable cache. A tier file named after the
+        // playlist is treated as the user's cover, so move it somewhere cache wipes cannot reach.
+        for tier in [ArtworkTier.thumb, .hero] {
+            await downloadService.adoptLegacyUserCover(forId: "\(playlistId)@\(tier.rawValue)")
+        }
         return playlistId
     }
 
@@ -43,7 +48,7 @@ struct PlaylistCoverManager {
             // Invalidate before persisting so the new tier files survive.
             await artworkImageCache.invalidate(for: id)
             for tier in [ArtworkTier.thumb, .hero] {
-                await downloadService.persistCover(data, forId: "\(id)@\(tier.rawValue)")
+                await downloadService.persistUserCover(data, forId: "\(id)@\(tier.rawValue)")
             }
         }
         let key = "coverArtUploadVersion"
