@@ -5,16 +5,25 @@ struct MeshGradientBackground: View {
     let palette: [Color]
     let animated: Bool
 
+    @Environment(\.systemPrefersReducedResourceUsage) private var prefersReducedResourceUsage
     @State private var animationPhase: CGFloat = 0
 
     var body: some View {
         gradient
-            .onAppear {
-                guard animated else { return }
-                withAnimation(.easeInOut(duration: 8).repeatForever(autoreverses: true)) {
-                    animationPhase = 1
-                }
-            }
+            .onAppear { updateAnimation() }
+            .onChange(of: prefersReducedResourceUsage) { updateAnimation() }
+    }
+
+    /// Drifts slowly unless motion is reduced or iOS asks apps to save resources.
+    private func updateAnimation() {
+        guard animated, !prefersReducedResourceUsage else {
+            // A non-animated change replaces the repeating animation.
+            withTransaction(Transaction(animation: nil)) { animationPhase = 0 }
+            return
+        }
+        withAnimation(.easeInOut(duration: 8).repeatForever(autoreverses: true)) {
+            animationPhase = 1
+        }
     }
 
     private var gradient: some View {

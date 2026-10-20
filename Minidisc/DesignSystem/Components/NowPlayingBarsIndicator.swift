@@ -4,6 +4,7 @@ struct NowPlayingBarsIndicator: View {
     let isPlaying: Bool
 
     @Environment(\.minidiscPlayingAccent) private var playingAccent
+    @Environment(\.systemPrefersReducedResourceUsage) private var prefersReducedResourceUsage
     private let delays: [Double] = [0.0, 0.15, 0.30]
     @State private var heights: [CGFloat] = [4, 8, 4]
 
@@ -20,9 +21,17 @@ struct NowPlayingBarsIndicator: View {
         .onChange(of: isPlaying) { _, playing in
             if playing { startAnimating() } else { stopAnimating() }
         }
+        .onChange(of: prefersReducedResourceUsage) {
+            if isPlaying { startAnimating() }
+        }
     }
 
     private func startAnimating() {
+        // Still bars when iOS asks apps to save resources; they still read as "playing".
+        guard !prefersReducedResourceUsage else {
+            withTransaction(Transaction(animation: nil)) { heights = [6, 12, 8] }
+            return
+        }
         for i in 0..<3 {
             withAnimation(
                 .easeInOut(duration: 0.45)

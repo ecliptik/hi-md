@@ -231,6 +231,7 @@ struct AnimatedGradientHeroView: View {
     let spec: PlaylistGradientSpec
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.systemPrefersReducedResourceUsage) private var prefersReducedResourceUsage
     @State private var isVisible = false
 
     var body: some View {
@@ -245,7 +246,8 @@ struct AnimatedGradientHeroView: View {
         .onDisappear { isVisible = false }
     }
 
-    private var isAnimating: Bool { isVisible && !reduceMotion }
+    /// The drift redraws every frame, so it also stops when iOS asks apps to save resources.
+    private var isAnimating: Bool { isVisible && !reduceMotion && !prefersReducedResourceUsage }
 
     @ViewBuilder
     private func presetMesh(_ palette: PlaylistMeshPalette) -> some View {
