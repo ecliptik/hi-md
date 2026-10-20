@@ -1,4 +1,5 @@
 import Foundation
+import SwiftData
 import SwiftSonic
 import Testing
 @testable import Minidisc
@@ -107,6 +108,58 @@ struct MusicIntentTests {
         } catch MusicIntentError.unavailable {}
         #expect(try await runtime.container() === expected)
         #expect(attempts == 2)
+    }
+
+    // MARK: - Library actions
+
+    @Test func favoritesThatAlreadyMatchNeedNoServer() async throws {
+        let container = try makeContainer()
+        let server = configure(container)
+        let scope = MusicIntentID.scope(baseURL: server.baseURL, username: server.username)
+        container.modelContainer.mainContext.insert(
+            FavoriteRecord(itemType: .song, itemId: "loved", starredDate: Date(), serverId: server.id)
+        )
+        try container.modelContainer.mainContext.save()
+        let service = MusicIntentService(container: container)
+        // Both return before contacting the (unreachable) fixture server.
+        try await service.setFavorite(id: MusicIntentID(scope: scope, kind: .song, resourceID: "loved").rawValue, true)
+        try await service.setFavorite(id: MusicIntentID(scope: scope, kind: .album, resourceID: "plain").rawValue, false)
+    }
+
+    @Test func playlistsCannotBeFavorited() async throws {
+        let container = try makeContainer()
+        let server = configure(container)
+        let scope = MusicIntentID.scope(baseURL: server.baseURL, username: server.username)
+        await #expect(throws: MusicIntentError.unsupported) {
+            try await MusicIntentService(container: container)
+                .setFavorite(id: MusicIntentID(scope: scope, kind: .playlist, resourceID: "p").rawValue, true)
+        }
+    }
+
+    @Test func addingToPlaylistChecksTheTarget() async throws {
+        let container = try makeContainer()
+        let server = configure(container)
+        let scope = MusicIntentID.scope(baseURL: server.baseURL, username: server.username)
+        let song = MusicIntentID(scope: scope, kind: .song, resourceID: "one").rawValue
+        let service = MusicIntentService(container: container)
+        await #expect(throws: MusicIntentError.unsupported) {
+            try await service.add(id: song, toPlaylist: MusicIntentID(scope: scope, kind: .album, resourceID: "a").rawValue)
+        }
+        let otherAccount = MusicIntentID(scope: MusicIntentID.scope(baseURL: server.baseURL, username: "other"),
+                                         kind: .playlist, resourceID: "p").rawValue
+        await #expect(throws: MusicIntentError.differentServer) {
+            try await service.add(id: song, toPlaylist: otherAccount)
+        }
+    }
+
+    @Test func stationNeedsAPlayingLibrarySong() async throws {
+        let container = try makeContainer()
+        _ = configure(container)
+        let service = MusicIntentService(container: container)
+        await #expect(throws: MusicIntentError.nothingPlaying) { try await service.startStation(from: nil) }
+        await #expect(throws: MusicIntentError.noServer) {
+            try await MusicIntentService(container: try makeContainer()).startStation(from: nil)
+        }
     }
 
     private func makeContainer() throws -> AppContainer {

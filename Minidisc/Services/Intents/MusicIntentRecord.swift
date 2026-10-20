@@ -83,7 +83,7 @@ nonisolated struct MusicIntentRecord: Sendable, Identifiable {
 }
 
 nonisolated enum MusicIntentError: Error, CustomLocalizedStringResourceConvertible {
-    case noServer, differentServer, unavailable, empty, moodUnavailable, nothingToResume
+    case noServer, differentServer, unavailable, empty, moodUnavailable, nothingToResume, nothingPlaying, unsupported
 
     var localizedStringResource: LocalizedStringResource {
         switch self {
@@ -93,6 +93,8 @@ nonisolated enum MusicIntentError: Error, CustomLocalizedStringResourceConvertib
         case .empty: "There are no playable tracks in this selection."
         case .moodUnavailable: "This Mood playlist is unavailable. Open Discover in Minidisc to check your Moods."
         case .nothingToResume: "There is no music to resume. Choose music in Minidisc first."
+        case .nothingPlaying: "Nothing from your library is playing in Minidisc."
+        case .unsupported: "Minidisc can't do that with this item."
         }
     }
 }

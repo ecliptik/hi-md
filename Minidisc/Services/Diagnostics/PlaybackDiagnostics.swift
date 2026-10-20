@@ -23,6 +23,7 @@ nonisolated final class PlaybackDiagnostics: Sendable {
         case searchStarted
         case searchCompleted(count: Int)
         case selectionPlayback
+        case libraryAction
     }
 
     enum PlaybackCommand: Sendable, Equatable {
@@ -316,6 +317,7 @@ nonisolated final class PlaybackDiagnostics: Sendable {
             case .searchStarted: "music-intent search-started"
             case .searchCompleted(let count): "music-intent search-completed count=\(count)"
             case .selectionPlayback: "music-intent selection-play"
+            case .libraryAction: "music-intent library-action"
             }
         case .application(.launchStarted(let attempt)):
             "app launch-started attempt=\(attempt)"

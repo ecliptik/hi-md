@@ -198,6 +198,82 @@ struct MusicIntentService {
         })
     }
 
+    // MARK: - Library actions
+
+    /// Stars or unstars a song, album or artist ("add this to my library", "I love this song").
+    func setFavorite(id: String, _ favorite: Bool) async throws {
+        let context = try context()
+        let reference = try scoped(id, context: context)
+        let type: FavoriteType
+        switch reference.kind {
+        case .song: type = .song
+        case .album: type = .album
+        case .artist: type = .artist
+        case .playlist: throw MusicIntentError.unsupported
+        }
+        let favorites = container.favoritesService
+        guard favorites.isFavorite(itemType: type, itemId: reference.resourceID) != favorite else { return }
+        do {
+            if favorite { try await favorites.star(itemType: type, itemId: reference.resourceID) }
+            else { try await favorites.unstar(itemType: type, itemId: reference.resourceID) }
+        } catch is CancellationError { throw CancellationError() }
+        catch { throw MusicIntentError.unavailable }
+    }
+
+    /// Appends a song, album, artist or playlist to a playlist, skipping songs it already contains.
+    func add(id: String, toPlaylist playlistID: String) async throws {
+        let context = try context()
+        let reference = try scoped(id, context: context)
+        let playlist = try scoped(playlistID, context: context)
+        guard playlist.kind == .playlist else { throw MusicIntentError.unsupported }
+        let songs = try await tracks(reference, context: context).filter { !$0.isLocalFile }
+        try validate(context)
+        guard !songs.isEmpty else { throw MusicIntentError.empty }
+        do {
+            let existing = Set(try await container.playlistService.getPlaylist(id: playlist.resourceID).entry?.map(\.id) ?? [])
+            try validate(context)
+            var seen = existing
+            let remaining = songs.filter { seen.insert($0.id).inserted }
+            guard !remaining.isEmpty else { return }
+            try await container.playlistService.addTracks(playlistId: playlist.resourceID, songs: remaining.map { $0.asSong() })
+        } catch is CancellationError { throw CancellationError() }
+        catch let error as MusicIntentError { throw error }
+        catch { throw MusicIntentError.unavailable }
+    }
+
+    /// Starts an Instant Mix seeded by the given item, or by the playing song when there is none.
+    func startStation(from id: String?) async throws {
+        let seed: InstantMixSeed
+        var seedTrack: DisplayableSong?
+        if let id {
+            let reference = try scoped(id, context: try context())
+            switch reference.kind {
+            case .song: seed = .song(id: reference.resourceID)
+            case .album: seed = .album(id: reference.resourceID)
+            case .artist: seed = .artist(id: reference.resourceID)
+            case .playlist: throw MusicIntentError.unsupported
+            }
+        } else {
+            _ = try context()
+            guard !container.playerState.isLiveStream, let track = container.playerState.currentTrack,
+                  !track.isLocalFile else { throw MusicIntentError.nothingPlaying }
+            seed = .song(id: track.id)
+            seedTrack = track
+        }
+        do {
+            try await container.playerService.playInstantMix(from: seed, startingWith: seedTrack)
+        } catch is CancellationError { throw CancellationError() }
+        catch MinidiscError.instantMixEmpty { throw MusicIntentError.empty }
+        catch { throw MusicIntentError.unavailable }
+    }
+
+    private func scoped(_ id: String, context: Context) throws -> MusicIntentID {
+        guard let reference = MusicIntentID(rawValue: id), reference.scope == context.scope else {
+            throw MusicIntentError.differentServer
+        }
+        return reference
+    }
+
     private func moodReference(_ mood: Mood, context: Context) async throws -> MusicIntentID {
         let service = container.moodPlaylistService
         let playlists: [MoodPlaylist]
