@@ -163,23 +163,9 @@ struct InlineQueueList: View {
                            subtitle: "Tracks you add to the queue appear here.")
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
-            // Xcode 27 ships Swift 6.4. Runtime availability alone cannot hide these
-            // SDK 27 declarations from the older Xcode used by an archive workflow.
-            #if compiler(>=6.4)
-            if #available(iOS 27, *) {
-                ReorderableQueueList(entries: entries, queueCount: playerState.queue.count,
-                                     contentColor: contentColor, secondaryContentColor: secondaryContentColor,
-                                     loadArtwork: loadArtwork)
-            } else {
-                LegacyQueueList(entries: entries, queueCount: playerState.queue.count,
-                                contentColor: contentColor, secondaryContentColor: secondaryContentColor,
-                                loadArtwork: loadArtwork)
-            }
-            #else
-            LegacyQueueList(entries: entries, queueCount: playerState.queue.count,
-                            contentColor: contentColor, secondaryContentColor: secondaryContentColor,
-                            loadArtwork: loadArtwork)
-            #endif
+            ReorderableQueueList(entries: entries, queueCount: playerState.queue.count,
+                                 contentColor: contentColor, secondaryContentColor: secondaryContentColor,
+                                 loadArtwork: loadArtwork)
         }
     }
 }
@@ -246,8 +232,6 @@ private struct QueueEntryRow: View {
     }
 }
 
-#if compiler(>=6.4)
-@available(iOS 27, *)
 private struct ReorderableQueueList: View {
     let entries: [QueueRowSnapshot]
     let queueCount: Int
@@ -285,35 +269,5 @@ private struct ReorderableQueueList: View {
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
-    }
-}
-
-#endif
-
-private struct LegacyQueueList: View {
-    let entries: [QueueRowSnapshot]
-    let queueCount: Int
-    let contentColor: Color
-    let secondaryContentColor: Color
-    let loadArtwork: Bool
-    @Environment(\.appContainer) private var container
-
-    var body: some View {
-        List {
-            ForEach(entries) { entry in
-                QueueEntryRow(entry: entry, contentColor: contentColor, secondaryContentColor: secondaryContentColor,
-                              loadArtwork: loadArtwork)
-            }
-            .onMove { sources, destination in
-                guard let source = sources.first, entries.indices.contains(source) else { return }
-                let entry = entries[source]
-                let target = entries.indices.contains(destination) ? entries[destination].selection.destinationIndex : queueCount
-                HapticFeedback.light.trigger()
-                Task { await container?.playerService.moveQueueTrack(entry.selection, toIndex: target) }
-            }
-        }
-        .listStyle(.plain)
-        .scrollContentBackground(.hidden)
-        .environment(\.editMode, .constant(.active))
     }
 }

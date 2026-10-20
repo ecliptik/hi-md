@@ -13,7 +13,10 @@ Status: proposed, 2026-10-20. Tracked on the Minidisc Player card and its phase 
 
 Every API named below was checked against the iPhoneOS 27.1 SDK in Xcode 27.1 unless it is marked *(Axiom)*. Those items are documented in the Axiom 27 skills but were not found as symbols.
 
-## Phase 0: require iOS 27 (prerequisite)
+## Phase 0: require iOS 27 (prerequisite) — done 2026-10-20
+
+Outcome: the deployment target is 27.0 and the app builds with warnings as errors. The compiler only flagged `BGTaskScheduler.submit`, `AVPlayerItem.errorLog()` and the interruption notification and keys; the notification-name and `#ImplicitStrongCapture` items below never came up. Interruptions now come from `didBecomeInactiveNotification`, counting only deactivations by the system, and `resumptionRecommendationNotification`, mapped onto the existing began/ended events, so the recovery logic and its tests are unchanged. The new notifications' context objects have no public initializer, so the mapping itself can only be confirmed on a device: take a phone call or start another audio app mid-song. The error log is fetched asynchronously before a failure is reported. The two runtime fallbacks were removed (the queue list and the song swipe container). Upstream's `@available(iOS 27.0, *)` annotations and `#if compiler` guards stay, because they are inert at a 27 target and removing them would conflict with upstream edits.
+
 
 The project builds with `-warnings-as-errors`. iOS 27 deprecates APIs the player uses today, so raising the target and replacing those calls have to land in the same change.
 
@@ -55,7 +58,7 @@ Done when: the full test suite and `./Scripts/doctor.sh --build` pass with the 2
 1. **Player presentation.** Try `NavigationTransition.crossFade` against the current zoom for opening the full player.
 2. **Vertical space.** With a mini player and a minimising tab bar, use `toolbarVerticalCompressionBehavior(.prefersTabBar)` (27.1), `toolbarMinimizationBehavior(_:for:)` and `toolbarMinimizationRestoration(.atScrollEdge)` so the mini player and tab bar stop competing on scroll.
 3. **Toolbars.** Use `ToolbarOverflowMenu` with `visibilityPriority(_:)` on screens with several actions (album, playlist, the player's More menu), and `topBarPinnedTrailing` for actions that must stay visible.
-4. **Queue editing.** Use `ForEach.reorderable()` with `reorderContainer(for:move:)` so the queue can be reordered outside a `List`. Song rows already use `swipeActionsContainer()`, which is now unconditional after Phase 0.
+4. **Queue editing.** Already done upstream: `ReorderableQueueList` uses the iOS 27 reordering API, and it became the only queue list in Phase 0. Song rows use `swipeActionsContainer()` unconditionally since Phase 0.
 5. **Tabs.** Consider `TabRole.prominent` if a dedicated Now Playing or Library tab should stand out. Search already uses the search role.
 6. **Sheets.** Place sheets with `presentationPlacement(_:)` (Add to Playlist, Settings), which matters in resizable windows.
 7. **Lighter rendering.** Honour `systemPrefersReducedResourceUsage` by stopping the Wrapped mesh-gradient animation and the player's colour-band background animation. This also closes an energy item from the audit.

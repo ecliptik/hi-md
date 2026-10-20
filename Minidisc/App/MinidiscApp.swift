@@ -57,7 +57,9 @@ struct MinidiscApp: App {
         let request = BGProcessingTaskRequest(identifier: "app.minidisc.wrapped.monthly-update")
         request.requiresNetworkConnectivity = true
         request.earliestBeginDate = Date().addingTimeInterval(24 * 3600)
-        try? BGTaskScheduler.shared.submit(request)
+        BGTaskScheduler.shared.submitTaskRequest(request) { error in
+            if let error { Logger.wrapped.warning("Could not schedule the Wrapped update: \(error, privacy: .public)") }
+        }
     }
 
     var body: some Scene {

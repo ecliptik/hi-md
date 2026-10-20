@@ -952,13 +952,13 @@ nonisolated final class AVPlayerEngine: AudioEngine, @unchecked Sendable {
         clearItemObservers()
         statusObserver = item.observe(\.status, options: [.new]) { [weak self] item, _ in
             guard let self, item.status == .failed else { return }
-            let failure = Self.failure(item: item, error: item.error)
+            let failure = AudioEngineFailure(error: item.error)
             if self.retryUnidentifiedMedia(failedItem: item, failure: failure) { return }
             let playbackToken = self.lock.withLock {
                 item === self.currentItem ? self.currentPlaybackToken : nil
             }
             guard let playbackToken else { return }
-            self.delegate?.audioEngineDidError(failure, playbackToken: playbackToken)
+            self.reportFailure(failure, of: item, playbackToken: playbackToken)
         }
         endObserver = NotificationCenter.default.addObserver(
             forName: AVPlayerItem.didPlayToEndTimeNotification,
@@ -985,13 +985,13 @@ nonisolated final class AVPlayerEngine: AudioEngine, @unchecked Sendable {
         ) { [weak self, weak item] note in
             guard let self else { return }
             let error = note.userInfo?[AVPlayerItemFailedToPlayToEndTimeErrorKey] as? Error
-            let failure = Self.failure(item: item, error: error)
+            let failure = AudioEngineFailure(error: error)
             let playbackToken: AudioEnginePlaybackToken? = self.lock.withLock {
                 guard let item, item === self.currentItem else { return nil }
                 return self.currentPlaybackToken
             }
-            guard let playbackToken else { return }
-            self.delegate?.audioEngineDidError(failure, playbackToken: playbackToken)
+            guard let item, let playbackToken else { return }
+            self.reportFailure(failure, of: item, playbackToken: playbackToken)
         }
     }
 
@@ -1075,11 +1075,16 @@ nonisolated final class AVPlayerEngine: AudioEngine, @unchecked Sendable {
         return AudioContainer.sniff(magic: prefix)?.mimeType
     }
 
-    private static func failure(item: AVPlayerItem?, error: (any Error)?) -> AudioEngineFailure {
-        let logCode = item?.errorLog()?.events.last.map {
-            AudioEngineFailure.Code(domain: $0.errorDomain, value: $0.errorStatusCode)
+    /// Adds the item's last error-log code, which often carries the HTTP or CoreMedia status, then
+    /// reports the failure. iOS 27 only offers the log asynchronously, so the delegate is called from
+    /// AVFoundation's completion queue rather than the notification queue.
+    private func reportFailure(_ failure: AudioEngineFailure, of item: AVPlayerItem, playbackToken: AudioEnginePlaybackToken) {
+        item.fetchErrorLog { [weak self] log in
+            let logCode = log?.events.last.map {
+                AudioEngineFailure.Code(domain: $0.errorDomain, value: $0.errorStatusCode)
+            }
+            self?.delegate?.audioEngineDidError(failure.adding(logCode: logCode), playbackToken: playbackToken)
         }
-        return AudioEngineFailure(error: error, logCode: logCode)
     }
 
     private func clearItemObservers() {

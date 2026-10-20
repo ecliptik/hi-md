@@ -7,28 +7,27 @@ import Synchronization
 import AVFAudio
 
 /// Extract interruption values on the notification queue; Notification itself is not Sendable.
+///
+/// iOS 27 split the old interruption notification in two: the system deactivating the session
+/// marks the start, and its resumption recommendation marks the end.
 nonisolated enum AudioSessionInterruptionEvent: Sendable {
     case began(routeDisconnected: Bool)
     case ended(shouldResume: Bool)
 
-    init?(notification: Notification) {
-        guard let typeValue = notification.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt,
-              let type = AVAudioSession.InterruptionType(rawValue: typeValue) else { return nil }
+    /// From `AVAudioSession.didBecomeInactiveNotification`. Only a deactivation by the system is an
+    /// interruption; the app deactivating its own session is not.
+    init?(deactivation notification: Notification) {
+        guard let context = notification.userInfo?[AVAudioSession.deactivationContextKey]
+                as? AVAudioSession.DeactivationContext,
+              context.source == .system else { return nil }
+        self = .began(routeDisconnected: context.interruptionContext?.reason == .routeDisconnected)
+    }
 
-        switch type {
-        case .began:
-            let reason = (notification.userInfo?[AVAudioSessionInterruptionReasonKey] as? UInt)
-                .flatMap(AVAudioSession.InterruptionReason.init(rawValue:))
-            self = .began(routeDisconnected: reason == .routeDisconnected)
-
-        case .ended:
-            let options = (notification.userInfo?[AVAudioSessionInterruptionOptionKey] as? UInt)
-                .map(AVAudioSession.InterruptionOptions.init(rawValue:))
-            self = .ended(shouldResume: options?.contains(.shouldResume) == true)
-
-        @unknown default:
-            return nil
-        }
+    /// From `AVAudioSession.resumptionRecommendationNotification`.
+    init?(resumption notification: Notification) {
+        guard let context = notification.userInfo?[AVAudioSession.resumptionContextKey]
+                as? AVAudioSession.ResumptionContext else { return nil }
+        self = .ended(shouldResume: context.recommendation == .shouldResume)
     }
 }
 
@@ -138,6 +137,7 @@ actor PlayerService: PlayerServiceProtocol {
     private var audioSystemRecoveryGeneration: UInt64 = 0
     private var lastKnownAudioOutputs: [AudioRouteOutputSnapshot] = []
     private var interruptionObserver: NSObjectProtocol?
+    private var resumptionObserver: NSObjectProtocol?
     private var routeChangeObserver: NSObjectProtocol?
     private var mediaServicesResetObserver: NSObjectProtocol?
     private var sessionActivationRetryTask: Task<Void, Never>?
@@ -4148,11 +4148,23 @@ extension PlayerService {
         }
         if interruptionObserver == nil {
             interruptionObserver = NotificationCenter.default.addObserver(
-                forName: AVAudioSession.interruptionNotification,
+                forName: AVAudioSession.didBecomeInactiveNotification,
                 object: AVAudioSession.sharedInstance(),
                 queue: .main
             ) { [weak self] notification in
-                guard let self, let event = AudioSessionInterruptionEvent(notification: notification) else {
+                guard let self, let event = AudioSessionInterruptionEvent(deactivation: notification) else {
+                    return
+                }
+                Task { await self.handleAudioSessionInterruption(event) }
+            }
+        }
+        if resumptionObserver == nil {
+            resumptionObserver = NotificationCenter.default.addObserver(
+                forName: AVAudioSession.resumptionRecommendationNotification,
+                object: AVAudioSession.sharedInstance(),
+                queue: .main
+            ) { [weak self] notification in
+                guard let self, let event = AudioSessionInterruptionEvent(resumption: notification) else {
                     return
                 }
                 Task { await self.handleAudioSessionInterruption(event) }

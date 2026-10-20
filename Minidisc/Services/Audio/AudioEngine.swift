@@ -45,7 +45,7 @@ nonisolated struct AudioEngineFailure: Sendable, Equatable {
         }
     }
 
-    let codes: [Code]
+    private(set) var codes: [Code]
 
     init(error: (any Error)?, logCode: Code? = nil) {
         var codes: [Code] = []
@@ -58,6 +58,14 @@ nonisolated struct AudioEngineFailure: Sendable, Equatable {
         }
         if let logCode, !codes.contains(logCode) { codes.append(logCode) }
         self.codes = codes
+    }
+
+    /// The same failure with the item's last error-log code added, when it is new.
+    func adding(logCode: Code?) -> AudioEngineFailure {
+        guard let logCode, !codes.contains(logCode) else { return self }
+        var copy = self
+        copy.codes.append(logCode)
+        return copy
     }
 
     /// AVFoundation could not identify the container. Servers and proxies often label FLAC
