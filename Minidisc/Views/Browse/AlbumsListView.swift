@@ -9,10 +9,35 @@ struct AlbumsListView: View {
     @AppStorage("minidisc.albumSort") private var albumSort: AlbumSort = .recentlyAdded
     @AppStorage("minidisc.albumListGrid") private var gridLayout = false
 
+    @State private var derivation = DerivedValueCache<DerivationKey, Derivation>()
+
+    private struct DerivationKey: Equatable {
+        let albums: [AlbumID3]
+        let sort: AlbumSort
+    }
+
+    private struct Derivation {
+        let sorted: [AlbumID3]
+        let index: [AlphabetScrollEntry]
+    }
+
     private func displayedAlbums(_ vm: AlbumListViewModel) -> [AlbumID3] {
         container?.serverState.isOnline == false ? container?.offlineLibrary.snapshot.albums ?? [] : vm.albums
     }
-    private func sortedAlbums(_ vm: AlbumListViewModel) -> [AlbumID3] { albumSort.sorted(displayedAlbums(vm)) }
+
+    /// Sorting a large library is far costlier than the body that needs the result, so the sorted
+    /// rows and the alphabet index are recomputed only when the albums or the sort change.
+    private func derived(_ vm: AlbumListViewModel) -> Derivation {
+        let key = DerivationKey(albums: displayedAlbums(vm), sort: albumSort)
+        return derivation.value(for: key) {
+            let sorted = key.sort.sorted(key.albums)
+            let byName = key.sort == .name ? sorted : AlbumSort.name.sorted(key.albums)
+            return Derivation(
+                sorted: sorted,
+                index: byName.map { AlphabetScrollEntry(id: $0.id, name: $0.sortName ?? $0.name) }
+            )
+        }
+    }
 
     var body: some View {
         Group {
@@ -81,9 +106,9 @@ struct AlbumsListView: View {
     /// A letter jump also selects name ordering, keeping the index and rows consistent.
     @ViewBuilder
     private func albumsList(_ vm: AlbumListViewModel) -> some View {
-        let albums = sortedAlbums(vm)
-        AlphabetIndexedContent(entries: albumIndex(vm), prepareJump: { albumSort = .name }) {
-            List(albums) { album in
+        let derived = derived(vm)
+        AlphabetIndexedContent(entries: derived.index, prepareJump: { albumSort = .name }) {
+            List(derived.sorted) { album in
                 NavigationLink(value: HomeDestination.album(album)) {
                     AlbumRow(
                         albumId: album.id,
@@ -103,10 +128,11 @@ struct AlbumsListView: View {
 
     @ViewBuilder
     private func albumsGrid(_ vm: AlbumListViewModel) -> some View {
-        AlphabetIndexedContent(entries: albumIndex(vm), prepareJump: { albumSort = .name }) {
+        let derived = derived(vm)
+        AlphabetIndexedContent(entries: derived.index, prepareJump: { albumSort = .name }) {
             ScrollView {
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 110, maximum: 180), spacing: MinidiscSpacing.l)], spacing: MinidiscSpacing.l) {
-                    ForEach(sortedAlbums(vm)) { album in
+                    ForEach(derived.sorted) { album in
                         NavigationLink(value: HomeDestination.album(album)) {
                             AlbumGridCell(album: album)
                         }
@@ -119,10 +145,6 @@ struct AlbumsListView: View {
             }
             .refreshable { await refresh(vm) }
         }
-    }
-
-    private func albumIndex(_ vm: AlbumListViewModel) -> [AlphabetScrollEntry] {
-        AlbumSort.name.sorted(displayedAlbums(vm)).map { AlphabetScrollEntry(id: $0.id, name: $0.sortName ?? $0.name) }
     }
 
     private var loadID: ServerAccessSnapshot? {

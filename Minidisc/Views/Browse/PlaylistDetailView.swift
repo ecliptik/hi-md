@@ -959,7 +959,8 @@ struct PlaylistSongRows: View {
     let trailingAccessory: SongRowTrailingAccessory
 
     @Query private var downloadedTracks: [DownloadedTrack]
-    @Query private var allFavorites: [FavoriteRecord]
+    @Query(filter: #Predicate<FavoriteRecord> { $0.itemType == "song" })
+    private var allFavorites: [FavoriteRecord]
 
     private var favoriteSongIds: Set<String> {
         Set(allFavorites.map(\.id))
@@ -992,9 +993,12 @@ struct PlaylistSongRows: View {
     }
 
     var body: some View {
+        // Built once per body: the row builder runs for every song.
+        let favoriteIds = favoriteSongIds
+        let downloadedIds = downloadedSongIds
         if let removeAction = onRemove {
             ForEach(Array(songs.enumerated()), id: \.element.id) { index, song in
-                makeRow(index: index, song: song)
+                makeRow(index: index, song: song, favoriteIds: favoriteIds, downloadedIds: downloadedIds)
                     .listRowBackground(rowBackground)
             }
             .onDelete { indexSet in
@@ -1005,15 +1009,15 @@ struct PlaylistSongRows: View {
             }
         } else {
             ForEach(Array(songs.enumerated()), id: \.element.id) { index, song in
-                makeRow(index: index, song: song)
+                makeRow(index: index, song: song, favoriteIds: favoriteIds, downloadedIds: downloadedIds)
                     .listRowBackground(rowBackground)
             }
         }
     }
 
     @ViewBuilder
-    private func makeRow(index: Int, song: DisplayableSong) -> some View {
-        let liveDownloaded = downloadedSongIds.contains(song.id)
+    private func makeRow(index: Int, song: DisplayableSong, favoriteIds: Set<String>, downloadedIds: Set<String>) -> some View {
+        let liveDownloaded = downloadedIds.contains(song.id)
         let liveSong = song.withDownloaded(liveDownloaded)
         let isDownloading = downloadingIds.contains(song.id)
         let downloadAction: (() -> Void)? = (liveDownloaded || isDownloading) ? nil : onDownload.map { action in { action(song.id) } }
@@ -1025,7 +1029,7 @@ struct PlaylistSongRows: View {
             coverArtSize: trailingAccessory == .menu ? 48 : 44,
             coverArtCornerRadius: trailingAccessory == .menu ? MinidiscCornerRadius.xs : MinidiscCornerRadius.standard,
             primaryContentSpacing: trailingAccessory == .menu ? MinidiscSpacing.m : MinidiscSpacing.s,
-            isFavorite: favoriteSongIds.contains("song:\(song.id)"),
+            isFavorite: favoriteIds.contains("song:\(song.id)"),
             titleColor: titleColor,
             secondaryColor: secondaryColor,
             trailingAccessory: trailingAccessory,

@@ -44,39 +44,67 @@ struct ArtistListView: View {
         }
     }
 
+    @State private var derivation = DerivedValueCache<DerivationKey, Derivation>()
+
+    private struct DerivationKey: Equatable {
+        let artists: [ArtistID3]
+        let sort: ArtistSort
+    }
+
+    private struct Derivation {
+        let sorted: [ArtistID3]
+        let index: [AlphabetScrollEntry]
+    }
+
     private func displayedArtists(_ vm: ArtistListViewModel) -> [ArtistID3] {
         container?.serverState.isOnline == false ? container?.offlineLibrary.snapshot.artists ?? [] : vm.indexes.flatMap(\.artist)
     }
 
+    /// Sorting a large library is far costlier than the body that needs the result, so the sorted
+    /// rows and the alphabet index are recomputed only when the artists or the sort change.
+    private func derived(_ artists: [ArtistID3]) -> Derivation {
+        let key = DerivationKey(artists: artists, sort: artistSort)
+        return derivation.value(for: key) {
+            let sorted = key.sort.sorted(key.artists)
+            let byName = key.sort == .name ? sorted : ArtistSort.name.sorted(key.artists)
+            return Derivation(
+                sorted: sorted,
+                index: byName.map { AlphabetScrollEntry(id: $0.id, name: $0.sortName ?? $0.name) }
+            )
+        }
+    }
+
     @ViewBuilder
     private func browseContent(_ vm: ArtistListViewModel) -> some View {
-        if container?.serverState.isOnline != false && vm.isLoading && displayedArtists(vm).isEmpty {
+        let artists = displayedArtists(vm)
+        if container?.serverState.isOnline != false && vm.isLoading && artists.isEmpty {
             LoadingStateView()
-        } else if container?.serverState.isOnline == false && displayedArtists(vm).isEmpty {
+        } else if container?.serverState.isOnline == false && artists.isEmpty {
             OfflineBrowsingEmptyView()
-        } else if let error = vm.error, displayedArtists(vm).isEmpty {
+        } else if let error = vm.error, artists.isEmpty {
             EmptyStateView(
                 systemImage: "exclamationmark.triangle",
                 title: "Unable to Load Artists",
                 subtitle: LocalizedStringKey(error.displayMessage),
                 action: .init(label: "Retry") { Task { await vm.load() } }
             )
-        } else if displayedArtists(vm).isEmpty {
+        } else if artists.isEmpty {
             EmptyStateView(
                 systemImage: "music.mic",
                 title: "No Artists",
                 subtitle: "Your library appears to be empty."
             )
         } else if gridLayout {
-            artistsGrid(vm)
+            artistsGrid(vm, artists: artists)
         } else {
-            flatList(vm)
+            flatList(vm, artists: artists)
         }
     }
 
-    private func flatList(_ vm: ArtistListViewModel) -> some View {
-        AlphabetIndexedContent(entries: artistIndex(vm), prepareJump: { artistSort = .name }) {
-            List(artistSort.sorted(displayedArtists(vm))) { artist in
+    private func flatList(_ vm: ArtistListViewModel, artists: [ArtistID3]) -> some View {
+        let derived = derived(artists)
+        return AlphabetIndexedContent(entries: derived.index, prepareJump: { artistSort = .name }) {
+            List(derived.sorted) { artist in
                 NavigationLink(value: HomeDestination.artist(artist)) {
                     ArtistRow(artist: artist)
                 }
@@ -88,11 +116,12 @@ struct ArtistListView: View {
         }
     }
 
-    private func artistsGrid(_ vm: ArtistListViewModel) -> some View {
-        AlphabetIndexedContent(entries: artistIndex(vm), prepareJump: { artistSort = .name }) {
+    private func artistsGrid(_ vm: ArtistListViewModel, artists: [ArtistID3]) -> some View {
+        let derived = derived(artists)
+        return AlphabetIndexedContent(entries: derived.index, prepareJump: { artistSort = .name }) {
             ScrollView {
                 LazyVGrid(columns: gridColumns, spacing: MinidiscSpacing.l) {
-                    ForEach(artistSort.sorted(displayedArtists(vm))) { artist in
+                    ForEach(derived.sorted) { artist in
                         NavigationLink(value: HomeDestination.artist(artist)) {
                             ArtistGridCard(artist: artist)
                         }
@@ -105,10 +134,6 @@ struct ArtistListView: View {
             }
             .refreshable { await refresh(vm) }
         }
-    }
-
-    private func artistIndex(_ vm: ArtistListViewModel) -> [AlphabetScrollEntry] {
-        ArtistSort.name.sorted(displayedArtists(vm)).map { AlphabetScrollEntry(id: $0.id, name: $0.sortName ?? $0.name) }
     }
 
     private var loadID: ServerAccessSnapshot? {

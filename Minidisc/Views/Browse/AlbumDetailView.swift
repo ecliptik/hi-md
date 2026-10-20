@@ -941,7 +941,8 @@ struct AlbumSongRows: View {
     let onAddToPlaylist: ((DisplayableSong) -> Void)?
 
     @Query private var downloadedTracks: [DownloadedTrack]
-    @Query private var allFavorites: [FavoriteRecord]
+    @Query(filter: #Predicate<FavoriteRecord> { $0.itemType == "song" })
+    private var allFavorites: [FavoriteRecord]
 
     private var favoriteSongIds: Set<String> {
         Set(allFavorites.map(\.id))
@@ -971,14 +972,17 @@ struct AlbumSongRows: View {
     }
 
     var body: some View {
+        // Built once per body: the row builder runs for every song.
+        let favoriteIds = favoriteSongIds
+        let downloadedIds = downloadedSongIds
         ForEach(Array(songs.enumerated()), id: \.element.id) { index, song in
-            let liveDownloaded = downloadedSongIds.contains(song.id)
+            let liveDownloaded = downloadedIds.contains(song.id)
             let liveSong = song.withDownloaded(liveDownloaded)
             let isDownloading = downloadingIds.contains(song.id)
             let downloadAction: (() -> Void)? = (liveDownloaded || isDownloading) ? nil : onDownload.map { action in { action(song.id) } }
             let removeAction: (() -> Void)? = liveDownloaded ? onRemoveDownload.map { action in { action(song.id) } } : nil
             VStack(spacing: 0) {
-                SongRow(song: liveSong, index: index + 1, showArtist: showArtists, isFavorite: favoriteSongIds.contains("song:\(song.id)"), titleColor: titleColor, secondaryColor: secondaryColor, trailingAccessory: .menu, onDownload: downloadAction, onRemoveDownload: removeAction, isDownloading: isDownloading, onAddToPlaylist: onAddToPlaylist, onTap: { onTap(index) })
+                SongRow(song: liveSong, index: index + 1, showArtist: showArtists, isFavorite: favoriteIds.contains("song:\(song.id)"), titleColor: titleColor, secondaryColor: secondaryColor, trailingAccessory: .menu, onDownload: downloadAction, onRemoveDownload: removeAction, isDownloading: isDownloading, onAddToPlaylist: onAddToPlaylist, onTap: { onTap(index) })
                     .padding(.vertical, MinidiscSpacing.xs)
                     .padding(.horizontal, MinidiscSpacing.l)
                 if index < songs.count - 1 {

@@ -88,3 +88,22 @@ func firstAlphabetItemID<T: Identifiable>(
 ) -> T.ID? {
     items.first { alphabetFirstLetter(of: $0[keyPath: keyPath]) == letter }?.id
 }
+
+/// Letter availability and first-item lookup computed in one pass, so a drag across the jump bar
+/// does not rescan the whole collection for every letter it crosses.
+struct AlphabetIndex<ID: Hashable> {
+    let availableLetters: Set<String>
+    private let firstIDs: [String: ID]
+
+    init<Item: Identifiable>(_ items: [Item], keyPath: KeyPath<Item, String>) where Item.ID == ID {
+        var firstIDs: [String: ID] = [:]
+        for item in items {
+            let letter = alphabetFirstLetter(of: item[keyPath: keyPath])
+            if firstIDs[letter] == nil { firstIDs[letter] = item.id }
+        }
+        self.firstIDs = firstIDs
+        availableLetters = Set(firstIDs.keys)
+    }
+
+    func firstID(forLetter letter: String) -> ID? { firstIDs[letter] }
+}

@@ -327,13 +327,15 @@ struct SearchView: View {
         let onAddToPlaylist: (DisplayableSong) -> Void
 
         @Environment(\.appContainer) private var container
-        @Query private var allFavorites: [FavoriteRecord]
+        @Query(filter: #Predicate<FavoriteRecord> { $0.itemType == "song" })
+        private var allFavorites: [FavoriteRecord]
 
         private var favoriteSongIds: Set<String> {
             Set(allFavorites.map(\.id))
         }
 
         var body: some View {
+            let favoriteIds = favoriteSongIds
             if !songs.isEmpty {
                 Section("Songs") {
                     ForEach(Array(songs.enumerated()), id: \.element.id) { index, song in
@@ -341,7 +343,7 @@ struct SearchView: View {
                             song: song,
                             index: index + 1,
                             showCoverArt: true,
-                            isFavorite: favoriteSongIds.contains("song:\(song.id)"),
+                            isFavorite: favoriteIds.contains("song:\(song.id)"),
                             onAddToPlaylist: { s in onAddToPlaylist(s) }
                         )
                         .contentShape(Rectangle())

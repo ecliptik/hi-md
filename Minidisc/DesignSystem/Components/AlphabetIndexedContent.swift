@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// IDs match the rows' explicit scroll anchors, including their type in mixed collections.
-struct AlphabetScrollEntry: Identifiable {
+struct AlphabetScrollEntry: Identifiable, Equatable {
     let id: String
     let name: String
 }
@@ -13,15 +13,17 @@ struct AlphabetIndexedContent<Content: View>: View {
     var prepareJump: (() -> Void)? = nil
     @ViewBuilder let content: () -> Content
     @State private var destination: String?
+    @State private var indexCache = DerivedValueCache<[AlphabetScrollEntry], AlphabetIndex<String>>()
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
+        let index = indexCache.value(for: entries) { AlphabetIndex(entries, keyPath: \.name) }
         ScrollViewReader { proxy in
             content()
                 .safeAreaInset(edge: .trailing, spacing: 0) {
                     if !entries.isEmpty {
-                        AlphabetJumpBar(availableLetters: entries.availableAlphabetLetters(keyPath: \.name)) { letter in
-                            guard let id = firstAlphabetItemID(forLetter: letter, in: entries, keyPath: \.name) else { return }
+                        AlphabetJumpBar(availableLetters: index.availableLetters) { letter in
+                            guard let id = index.firstID(forLetter: letter) else { return }
                             prepareJump?()
                             destination = id
                         }

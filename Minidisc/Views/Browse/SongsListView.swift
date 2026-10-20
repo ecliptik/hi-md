@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 import SwiftSonic
 import OSLog
 
@@ -7,6 +8,15 @@ struct SongsListView: View {
     @State private var songSelection: SongSelectionRequest?
     @State private var viewModel: SongsListViewModel?
     @AppStorage("minidisc.songSort") private var songSort: SongSort = .title
+    @Query(filter: #Predicate<FavoriteRecord> { $0.itemType == "song" })
+    private var songFavorites: [FavoriteRecord]
+    @State private var offlineSongs = DerivedValueCache<OfflineKey, [DisplayableSong]>()
+    @State private var alphabetIndex = DerivedValueCache<[DisplayableSong], AlphabetIndex<String>>()
+
+    private struct OfflineKey: Equatable {
+        let songs: [DisplayableSong]
+        let sort: SongSort
+    }
 
     var body: some View {
         Group {
@@ -44,9 +54,11 @@ struct SongsListView: View {
 
     private func displayedSongs(_ vm: SongsListViewModel) -> [DisplayableSong] {
         guard container?.serverState.isOnline == false else { return vm.displaySongs }
-        let songs = container?.offlineLibrary.snapshot.songs ?? []
-        let byID = Dictionary(songs.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
-        return songSort.sorted(songs.map { $0.asSong() }).compactMap { byID[$0.id] }
+        let key = OfflineKey(songs: container?.offlineLibrary.snapshot.songs ?? [], sort: songSort)
+        return offlineSongs.value(for: key) {
+            let byID = Dictionary(key.songs.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+            return key.sort.sorted(key.songs.map { $0.asSong() }).compactMap { byID[$0.id] }
+        }
     }
 
     @ViewBuilder
@@ -87,6 +99,8 @@ struct SongsListView: View {
 
     private func songList(_ vm: SongsListViewModel) -> some View {
         let songs = displayedSongs(vm)
+        // One Set per body instead of a database lookup per row.
+        let favoriteIDs = Set(songFavorites.map(\.itemId))
         return ScrollViewReader { proxy in
             List {
                 if container?.serverState.isOnline != false && vm.didTruncate {
@@ -98,7 +112,7 @@ struct SongsListView: View {
                 }
                 playShuffleHeader(songs)
                 ForEach(Array(songs.enumerated()), id: \.element.id) { index, song in
-                    SongRow(song: song, index: index + 1, showCoverArt: true, isFavorite: isFavorite(song))
+                    SongRow(song: song, index: index + 1, showCoverArt: true, isFavorite: favoriteIDs.contains(song.id))
                         .contentShape(Rectangle())
                         .onTapGesture { play(songs, at: index) }
                         .id(song.id)
@@ -109,10 +123,11 @@ struct SongsListView: View {
             .safeAreaInset(edge: .trailing, spacing: 0) {
                 // The A–Z jump bar only makes sense when sorted by title.
                 if songSort == .title && songs.count >= 20 {
+                    let letters = alphabetIndex.value(for: songs) { AlphabetIndex(songs, keyPath: \.title) }
                     AlphabetJumpBar(
-                        availableLetters: songs.availableAlphabetLetters(keyPath: \.title),
+                        availableLetters: letters.availableLetters,
                         onLetterTap: { letter in
-                            if let id = firstAlphabetItemID(forLetter: letter, in: songs, keyPath: \.title) {
+                            if let id = letters.firstID(forLetter: letter) {
                                 withAnimation(.easeInOut(duration: 0.2)) {
                                     proxy.scrollTo(id, anchor: .top)
                                 }
@@ -162,10 +177,6 @@ struct SongsListView: View {
         .listRowSeparator(.hidden)
         .listRowBackground(Color.clear)
         .padding(.vertical, 4)
-    }
-
-    private func isFavorite(_ song: DisplayableSong) -> Bool {
-        container?.favoritesService.isFavorite(itemType: .song, itemId: song.id) == true
     }
 
     private func play(_ songs: [DisplayableSong], at index: Int) {

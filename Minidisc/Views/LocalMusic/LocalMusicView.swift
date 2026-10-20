@@ -16,7 +16,16 @@ nonisolated struct LocalMusicGroup: Identifiable {
     let id: [String]
     let name: String
     let tracks: [LocalMusicTrack]
+    /// Stored because sorting groups by recency would otherwise rescan every track on each comparison.
+    let addedAt: Date
     var artworkID: String { tracks.first?.song.coverArtId ?? tracks.first?.id ?? "local:" }
+
+    init(id: [String], name: String, tracks: [LocalMusicTrack]) {
+        self.id = id
+        self.name = name
+        self.tracks = tracks
+        addedAt = tracks.map(\.recency).max() ?? .distantPast
+    }
 
     static func key(for track: LocalMusicTrack, category: LocalMusicCategory) -> [String] {
         category == .albums
@@ -36,10 +45,31 @@ nonisolated struct LocalMusicGroup: Identifiable {
 struct LocalMusicView: View {
     @Environment(\.appContainer) private var container
     @State private var showingSettings = false
+    @State private var derivation = DerivedValueCache<[LocalMusicTrack], Derivation>()
 
-    private var tracks: [LocalMusicTrack] {
-        (container?.localMusic.snapshot.tracks ?? []).sorted(by: LocalMusicTrack.mostRecentFirst)
+    private struct Derivation {
+        let tracks: [LocalMusicTrack]
+        let shelves: [LocalMusicCategory: [LocalMusicGroup]]
     }
+
+    /// Sorting and grouping the whole library is repeated work for a body that reads it many times,
+    /// so it is redone only when the scanned tracks change.
+    private var derived: Derivation {
+        let scanned = container?.localMusic.snapshot.tracks ?? []
+        return derivation.value(for: scanned) {
+            let tracks = scanned.sorted(by: LocalMusicTrack.mostRecentFirst)
+            var shelves: [LocalMusicCategory: [LocalMusicGroup]] = [:]
+            for category in [LocalMusicCategory.albums, .artists] {
+                shelves[category] = LocalMusicGroup.groups(in: tracks, category: category).sorted {
+                    if $0.addedAt != $1.addedAt { return $0.addedAt > $1.addedAt }
+                    return $0.name.localizedStandardCompare($1.name) == .orderedAscending
+                }
+            }
+            return Derivation(tracks: tracks, shelves: shelves)
+        }
+    }
+
+    private var tracks: [LocalMusicTrack] { derived.tracks }
 
     var body: some View {
         Group {
@@ -113,10 +143,7 @@ struct LocalMusicView: View {
     }
 
     private func collectionShelf(_ category: LocalMusicCategory) -> some View {
-        let groups = LocalMusicGroup.groups(in: tracks, category: category).sorted {
-            if $0.addedAt != $1.addedAt { return $0.addedAt > $1.addedAt }
-            return $0.name.localizedStandardCompare($1.name) == .orderedAscending
-        }
+        let groups = derived.shelves[category] ?? []
         return MinidiscShelf {
             sectionHeader(category)
         } content: {
@@ -145,7 +172,6 @@ extension LocalMusicTrack {
 }
 
 extension LocalMusicGroup {
-    nonisolated var addedAt: Date { tracks.map(\.recency).max() ?? .distantPast }
     nonisolated var scrollID: String { id.description }
 }
 
