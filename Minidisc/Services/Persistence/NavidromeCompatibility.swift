@@ -80,8 +80,9 @@ actor NavidromeCompatibility {
     nonisolated private static func fetchCapabilities(_ connection: ServerConnection) async throws -> ServerCapabilities {
         let client = SwiftSonicClient(
             configuration: ServerConfiguration(serverURL: connection.baseURL,
-                username: connection.server.username, password: connection.credentials.password, requestTimeout: 3),
-            transport: CustomHeadersTransport(headers: connection.credentials.customHeaders, timeout: 3),
+                username: connection.server.username, password: connection.credentials.password, requestTimeout: 10),
+            // Generous enough for a VPN such as Tailscale that is still setting up its path.
+            transport: CustomHeadersTransport(headers: connection.credentials.customHeaders, timeout: 10),
             retryPolicy: .none
         )
         return try await client.loadCapabilities()

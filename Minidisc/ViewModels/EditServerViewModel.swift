@@ -22,7 +22,7 @@ final class EditServerViewModel {
     }
 
     var canSave: Bool {
-        !serverURL.trimmingCharacters(in: .whitespaces).isEmpty &&
+        !serverURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
         !username.isEmpty &&
         !password.isEmpty
     }
@@ -72,7 +72,7 @@ final class EditServerViewModel {
         isSaving = true
         defer { isSaving = false }
 
-        let trimmedURL = serverURL.trimmingCharacters(in: .whitespaces)
+        let trimmedURL = serverURL.trimmingCharacters(in: .whitespacesAndNewlines)
         let headers = headersDict()
 
         do {

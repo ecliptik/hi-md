@@ -3,6 +3,8 @@ import SwiftSonic
 
 nonisolated enum ConnectionTestError: Error, Sendable, Equatable {
     case invalidURL
+    /// The address is an IPv6 literal, which SwiftSonic cannot build request URLs for.
+    case ipv6Unsupported
     /// DNS resolution failed — or iOS Local Network Privacy blocked the lookup.
     case dnsFailure
     case cannotConnect
@@ -33,10 +35,16 @@ extension ConnectionTestError {
                 description: "Check the format (e.g. https://music.example.com).",
                 technicalCode: "invalid-url"
             )
+        case .ipv6Unsupported:
+            return ConnectionErrorPresentation(
+                title: "IPv6 Address Not Supported",
+                description: "Use the server's host name or IPv4 address instead. With Tailscale, use the MagicDNS name or the 100.x address.",
+                technicalCode: "ipv6-literal"
+            )
         case .dnsFailure:
             return ConnectionErrorPresentation(
                 title: "Server Not Found",
-                description: "The hostname could not be resolved. Check the URL, DNS settings, and local network access in iOS Settings \u{203A} Privacy \u{203A} Local Network.",
+                description: "The hostname could not be resolved. Check the URL, that your VPN (such as Tailscale) is connected, and local network access in iOS Settings \u{203A} Privacy \u{203A} Local Network.",
                 technicalCode: "dns-failure"
             )
         case .cannotConnect:
@@ -115,6 +123,7 @@ extension ConnectionTestError: LocalizedError {
     nonisolated var errorDescription: String? {
         switch self {
         case .invalidURL:        return String(localized: "Invalid server URL.")
+        case .ipv6Unsupported:   return String(localized: "IPv6 addresses are not supported.")
         case .dnsFailure:        return String(localized: "DNS resolution failed or local network access denied.")
         case .cannotConnect:     return String(localized: "Cannot connect to server.")
         case .timeout:           return String(localized: "Connection timed out.")

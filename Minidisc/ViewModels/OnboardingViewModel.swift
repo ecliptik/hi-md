@@ -12,11 +12,11 @@ final class OnboardingViewModel {
     var connectionError: ConnectionTestError?
 
     var derivedDisplayName: String {
-        URL(string: serverURL.trimmingCharacters(in: .whitespaces))?.host ?? serverURL
+        URL(string: serverURL.trimmingCharacters(in: .whitespacesAndNewlines))?.host ?? serverURL
     }
 
     var canSubmit: Bool {
-        !serverURL.trimmingCharacters(in: .whitespaces).isEmpty &&
+        !serverURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
         !username.isEmpty &&
         !password.isEmpty
     }
@@ -58,7 +58,7 @@ final class OnboardingViewModel {
         isLoading = true
         defer { isLoading = false }
 
-        let trimmedURL = serverURL.trimmingCharacters(in: .whitespaces)
+        let trimmedURL = serverURL.trimmingCharacters(in: .whitespacesAndNewlines)
         let headers = headersDict()
 
         do {

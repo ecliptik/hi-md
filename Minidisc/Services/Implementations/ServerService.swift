@@ -298,10 +298,12 @@ actor ServerService: ServerServiceProtocol {
         password: String,
         customHeaders: [String: String]
     ) async throws {
-        guard let serverURL = URL(string: url.trimmingCharacters(in: .whitespaces)),
-              serverURL.scheme != nil, serverURL.host != nil else {
+        guard let serverURL = URL(string: url.trimmingCharacters(in: .whitespacesAndNewlines)),
+              serverURL.scheme != nil, let host = serverURL.host else {
             throw ConnectionTestError.invalidURL
         }
+        // SwiftSonic rebuilds every request from URL.host, which drops an IPv6 literal's brackets.
+        guard !host.contains(":") else { throw ConnectionTestError.ipv6Unsupported }
         let transport = CustomHeadersTransport(headers: customHeaders)
         let client = SwiftSonicClient(
             configuration: ServerConfiguration(serverURL: serverURL, username: username, password: password),

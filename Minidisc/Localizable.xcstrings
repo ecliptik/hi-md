@@ -45601,6 +45601,214 @@
           }
         }
       }
+    },
+    "IPv6 Address Not Supported" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "IPv6-Adresse nicht unterstützt"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Η διεύθυνση IPv6 δεν υποστηρίζεται"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dirección IPv6 no compatible"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adresse IPv6 non prise en charge"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Indirizzo IPv6 non supportato"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "IPv6アドレスには対応していません"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不支持 IPv6 地址"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不支援 IPv6 位址"
+          }
+        }
+      }
+    },
+    "Use the server's host name or IPv4 address instead. With Tailscale, use the MagicDNS name or the 100.x address." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stattdessen den Hostnamen oder die IPv4-Adresse des Servers verwenden. Bei Tailscale den MagicDNS-Namen oder die 100.x-Adresse verwenden."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Χρησιμοποιήστε αντί γι' αυτό το όνομα κεντρικού υπολογιστή ή τη διεύθυνση IPv4 του διακομιστή. Με το Tailscale, χρησιμοποιήστε το όνομα MagicDNS ή τη διεύθυνση 100.x."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usa en su lugar el nombre de host o la dirección IPv4 del servidor. Con Tailscale, usa el nombre de MagicDNS o la dirección 100.x."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utilisez plutôt le nom d'hôte ou l'adresse IPv4 du serveur. Avec Tailscale, utilisez le nom MagicDNS ou l'adresse 100.x."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usa invece il nome host o l'indirizzo IPv4 del server. Con Tailscale, usa il nome MagicDNS o l'indirizzo 100.x."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "代わりにサーバのホスト名またはIPv4アドレスを使用してください。Tailscaleの場合は、MagicDNS名または100.xアドレスを使用してください。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请改用服务器的主机名或 IPv4 地址。使用 Tailscale 时，请使用 MagicDNS 名称或 100.x 地址。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "請改用伺服器的主機名稱或 IPv4 位址。使用 Tailscale 時，請使用 MagicDNS 名稱或 100.x 位址。"
+          }
+        }
+      }
+    },
+    "IPv6 addresses are not supported." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "IPv6-Adressen werden nicht unterstützt."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Οι διευθύνσεις IPv6 δεν υποστηρίζονται."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se admiten direcciones IPv6."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les adresses IPv6 ne sont pas prises en charge."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gli indirizzi IPv6 non sono supportati."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "IPv6アドレスには対応していません。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不支持 IPv6 地址。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不支援 IPv6 位址。"
+          }
+        }
+      }
+    },
+    "The hostname could not be resolved. Check the URL, that your VPN (such as Tailscale) is connected, and local network access in iOS Settings › Privacy › Local Network." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Hostname konnte nicht aufgelöst werden. URL, die Verbindung des VPN (z. B. Tailscale) und lokalen Netzwerkzugriff in iOS Einstellungen › Datenschutz › Lokales Netzwerk prüfen."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Δεν ήταν δυνατή η ανάλυση του ονόματος κεντρικού υπολογιστή. Ελέγξτε το URL, ότι το VPN σας (όπως το Tailscale) είναι συνδεδεμένο και την πρόσβαση στο τοπικό δίκτυο στο iOS Ρυθμίσεις › Απόρρητο › Τοπικό δίκτυο."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo resolver el nombre de host. Comprueba la URL, que tu VPN (como Tailscale) esté conectada y el acceso a la red local en Ajustes de iOS › Privacidad › Red local."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le nom d'hôte n'a pas pu être résolu. Vérifiez l'URL, que votre VPN (comme Tailscale) est connecté et l'accès au réseau local dans Réglages iOS › Confidentialité › Réseau local."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile risolvere l'hostname. Controlla l'URL, che la VPN (come Tailscale) sia connessa e l'accesso alla rete locale in Impostazioni iOS › Privacy › Rete locale."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ホスト名を解決できませんでした。URL、VPN（Tailscaleなど）が接続されていること、およびiOSの設定 › プライバシー › ローカルネットワークでのローカルネットワークアクセスを確認してください。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法解析主机名。请检查 URL、VPN（如 Tailscale）是否已连接，以及 iOS 设置 › 隐私 › 本地网络 中的本地网络访问权限。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法解析主機名稱。請檢查 URL、VPN（例如 Tailscale）是否已連線，以及 iOS「設定」›「隱私權」›「區域網路」中的區域網路存取權限。"
+          }
+        }
+      }
     }
   },
   "version" : "1.1"
