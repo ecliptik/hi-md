@@ -162,3 +162,14 @@ final class ServerState {
         )
     }
 }
+
+extension NetworkPathDescriptor {
+    /// The same path with a different online state, for folding in server reachability.
+    nonisolated func withOnline(_ isOnline: Bool) -> NetworkPathDescriptor {
+        NetworkPathDescriptor(
+            isOnline: isOnline, isExpensive: isExpensive, isConstrained: isConstrained,
+            supportsDNS: supportsDNS, supportsIPv4: supportsIPv4, supportsIPv6: supportsIPv6,
+            interfaces: interfaces, gateways: gateways
+        )
+    }
+}

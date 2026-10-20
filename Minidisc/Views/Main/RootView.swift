@@ -17,6 +17,14 @@ struct RootView: View {
 
     var body: some View {
         content
+            // The server may have become reachable or unreachable while the app was away, or a
+            // different server may now be active; neither always changes the network path.
+            .onChange(of: scenePhase) { _, phase in
+                if phase == .active { container?.networkMonitor.checkServerReachability() }
+            }
+            .onChange(of: container?.serverState.activeConnectionVersion) {
+                container?.networkMonitor.checkServerReachability()
+            }
             .task(id: LocalMusicPollingKey(scenePhase: scenePhase, hasFolders: container?.localMusic.snapshot.folders.isEmpty == false)) {
                 guard scenePhase == .active, let library = container?.localMusic else { return }
                 await library.refresh()

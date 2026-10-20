@@ -197,7 +197,10 @@ struct MinidiscApp: App {
         newContainer.networkMonitor.start(
             serverState: newContainer.serverState,
             streamSettings: newContainer.streamSettings,
-            playerService: newContainer.playerService
+            playerService: newContainer.playerService,
+            serverProbe: { [serverService = newContainer.serverService] in
+                await ServerReachability.probe(serverService)
+            }
         )
         await newContainer.nowPlayingService.start()
         AppContainer.invalidateCoverArtCacheIfNeeded(artworkCache: newContainer.artworkImageCache)
