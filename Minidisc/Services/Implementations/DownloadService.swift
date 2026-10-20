@@ -283,14 +283,44 @@ actor DownloadService: DownloadServiceProtocol {
         try await downloadsQueue().retry(songID: songId, serverID: serverId)
     }
 
+    /// Recounts every album and playlist of a server. Used when collection membership changes.
     @MainActor
     private static func refreshCollectionCounts(context: ModelContext, serverID: UUID) throws {
         let tracks = try context.fetch(FetchDescriptor<DownloadedTrack>(predicate: #Predicate { $0.serverId == serverID }))
+        var countsByAlbum: [String: Int] = [:]
+        for track in tracks {
+            if let albumId = track.albumId { countsByAlbum[albumId, default: 0] += 1 }
+        }
         let ids = Set(tracks.map(\.songId))
         let albums = try context.fetch(FetchDescriptor<DownloadedAlbum>(predicate: #Predicate { $0.serverId == serverID }))
-        for album in albums { album.tracksCount = tracks.filter { $0.albumId == album.albumId }.count }
+        for album in albums { album.tracksCount = countsByAlbum[album.albumId] ?? 0 }
         let playlists = try context.fetch(FetchDescriptor<DownloadedPlaylist>(predicate: #Predicate { $0.serverId == serverID }))
         for playlist in playlists { playlist.tracksCount = playlist.songIds.filter { ids.contains($0) }.count }
+    }
+
+    /// Recounts only the collections a newly committed track can change, so a batch download
+    /// does not rescan the whole library once per song.
+    @MainActor
+    private static func refreshCollectionCounts(context: ModelContext, serverID: UUID, committedSongId: String, albumId: String?) throws {
+        if let albumId {
+            let albums = try context.fetch(FetchDescriptor<DownloadedAlbum>(
+                predicate: #Predicate { $0.serverId == serverID && $0.albumId == albumId }
+            ))
+            if !albums.isEmpty {
+                let count = try context.fetchCount(FetchDescriptor<DownloadedTrack>(
+                    predicate: #Predicate { $0.serverId == serverID && $0.albumId == albumId }
+                ))
+                for album in albums { album.tracksCount = count }
+            }
+        }
+        let playlists = try context.fetch(FetchDescriptor<DownloadedPlaylist>(predicate: #Predicate { $0.serverId == serverID }))
+        for playlist in playlists where playlist.songIds.contains(committedSongId) {
+            let memberIds = playlist.songIds
+            let present = Set(try context.fetch(FetchDescriptor<DownloadedTrack>(
+                predicate: #Predicate { $0.serverId == serverID && memberIds.contains($0.songId) }
+            )).map(\.songId))
+            playlist.tracksCount = memberIds.filter { present.contains($0) }.count
+        }
     }
 
     private func persistAlbumIntent(_ album: AlbumID3, serverID: UUID, intent: DownloadIntentRegistry.Token) async throws {
@@ -592,7 +622,10 @@ actor DownloadService: DownloadServiceProtocol {
                 replayGainFallbackGain: rgFallbackGain
             )
             context.insert(record)
-            try Self.refreshCollectionCounts(context: context, serverID: serverId)
+            // The new record is not saved yet, so the fetchCount queries inside the targeted
+            // recount would miss it; saving first keeps them accurate.
+            try context.save()
+            try Self.refreshCollectionCounts(context: context, serverID: serverId, committedSongId: songId, albumId: albumId)
             try context.save()
         }
         incompleteFileURL = nil
