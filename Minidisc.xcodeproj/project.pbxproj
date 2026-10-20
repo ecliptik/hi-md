@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		8785D13D3012A3A500208269 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 8785D13C3012A3A500208269 /* AppIcon.icon */; };
 		DBA4A77D2F9BE3C8008BC5A9 /* SwiftSonic in Frameworks */ = {isa = PBXBuildFile; productRef = DBA4A77C2F9BE3C8008BC5A9 /* SwiftSonic */; };
+		EC1D2700000000000000000D /* MinidiscWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = EC1D27000000000000000001 /* MinidiscWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -26,13 +27,35 @@
 			remoteGlobalIDString = DBA4A7502F9BBFCB008BC5A9;
 			remoteInfo = Minidisc;
 		};
+		EC1D2700000000000000000E /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = DBA4A7492F9BBFCB008BC5A9 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = EC1D27000000000000000005;
+			remoteInfo = MinidiscWidgets;
+		};
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		EC1D2700000000000000000C /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				EC1D2700000000000000000D /* MinidiscWidgets.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		8785D13C3012A3A500208269 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIcon.icon; sourceTree = "<group>"; };
 		DBA4A7512F9BBFCB008BC5A9 /* Minidisc.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Minidisc.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		DBA4A75E2F9BBFCC008BC5A9 /* MinidiscTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MinidiscTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		DBA4A7682F9BBFCC008BC5A9 /* MinidiscUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MinidiscUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		EC1D27000000000000000001 /* MinidiscWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = MinidiscWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -42,6 +65,13 @@
 				Info.plist,
 			);
 			target = DBA4A7502F9BBFCB008BC5A9 /* Minidisc */;
+		};
+		EC1D27000000000000000004 /* Exceptions for "MinidiscWidgets" folder in "MinidiscWidgets" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = EC1D27000000000000000005 /* MinidiscWidgets */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -62,6 +92,19 @@
 		DBA4A76B2F9BBFCC008BC5A9 /* MinidiscUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = MinidiscUITests;
+			sourceTree = "<group>";
+		};
+		EC1D27000000000000000003 /* Shared */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		EC1D27000000000000000002 /* MinidiscWidgets */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				EC1D27000000000000000004 /* Exceptions for "MinidiscWidgets" folder in "MinidiscWidgets" target */,
+			);
+			path = MinidiscWidgets;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -89,6 +132,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		EC1D27000000000000000007 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -96,6 +146,8 @@
 			isa = PBXGroup;
 			children = (
 				DBA4A7532F9BBFCB008BC5A9 /* Minidisc */,
+				EC1D27000000000000000003 /* Shared */,
+				EC1D27000000000000000002 /* MinidiscWidgets */,
 				DBA4A7612F9BBFCC008BC5A9 /* MinidiscTests */,
 				DBA4A76B2F9BBFCC008BC5A9 /* MinidiscUITests */,
 				DBA4A7522F9BBFCB008BC5A9 /* Products */,
@@ -109,6 +161,7 @@
 				DBA4A7512F9BBFCB008BC5A9 /* Minidisc.app */,
 				DBA4A75E2F9BBFCC008BC5A9 /* MinidiscTests.xctest */,
 				DBA4A7682F9BBFCC008BC5A9 /* MinidiscUITests.xctest */,
+				EC1D27000000000000000001 /* MinidiscWidgets.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -123,13 +176,16 @@
 				DBA4A74D2F9BBFCB008BC5A9 /* Sources */,
 				DBA4A74E2F9BBFCB008BC5A9 /* Frameworks */,
 				DBA4A74F2F9BBFCB008BC5A9 /* Resources */,
+				EC1D2700000000000000000C /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				EC1D2700000000000000000F /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				DBA4A7532F9BBFCB008BC5A9 /* Minidisc */,
+				EC1D27000000000000000003 /* Shared */,
 			);
 			name = Minidisc;
 			packageProductDependencies = (
@@ -185,6 +241,27 @@
 			productReference = DBA4A7682F9BBFCC008BC5A9 /* MinidiscUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
+		EC1D27000000000000000005 /* MinidiscWidgets */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = EC1D27000000000000000009 /* Build configuration list for PBXNativeTarget "MinidiscWidgets" */;
+			buildPhases = (
+				EC1D27000000000000000006 /* Sources */,
+				EC1D27000000000000000007 /* Frameworks */,
+				EC1D27000000000000000008 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				EC1D27000000000000000002 /* MinidiscWidgets */,
+				EC1D27000000000000000003 /* Shared */,
+			);
+			name = MinidiscWidgets;
+			productName = MinidiscWidgets;
+			productReference = EC1D27000000000000000001 /* MinidiscWidgets.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -205,6 +282,9 @@
 					DBA4A7672F9BBFCC008BC5A9 = {
 						CreatedOnToolsVersion = 26.4.1;
 						TestTargetID = DBA4A7502F9BBFCB008BC5A9;
+					};
+					EC1D27000000000000000005 = {
+						CreatedOnToolsVersion = 27.1;
 					};
 				};
 			};
@@ -236,6 +316,7 @@
 				DBA4A7502F9BBFCB008BC5A9 /* Minidisc */,
 				DBA4A75D2F9BBFCC008BC5A9 /* MinidiscTests */,
 				DBA4A7672F9BBFCC008BC5A9 /* MinidiscUITests */,
+				EC1D27000000000000000005 /* MinidiscWidgets */,
 			);
 		};
 /* End PBXProject section */
@@ -257,6 +338,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		DBA4A7662F9BBFCC008BC5A9 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EC1D27000000000000000008 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -287,6 +375,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		EC1D27000000000000000006 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -299,6 +394,11 @@
 			isa = PBXTargetDependency;
 			target = DBA4A7502F9BBFCB008BC5A9 /* Minidisc */;
 			targetProxy = DBA4A7692F9BBFCC008BC5A9 /* PBXContainerItemProxy */;
+		};
+		EC1D2700000000000000000F /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = EC1D27000000000000000005 /* MinidiscWidgets */;
+			targetProxy = EC1D2700000000000000000E /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -443,6 +543,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = Minidisc;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.music";
+				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Minidisc needs to access your camera to take pictures for playlist artworks";
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Minidisc needs access to your local network to connect to your Navidrome or Subsonic server.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Minidisc needs to access your library to upload pictures for playlists";
@@ -493,6 +594,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = Minidisc;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.music";
+				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Minidisc needs to access your camera to take pictures for playlist artworks";
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Minidisc needs access to your local network to connect to your Navidrome or Subsonic server.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Minidisc needs to access your library to upload pictures for playlists";
@@ -635,6 +737,76 @@
 			};
 			name = Release;
 		};
+		EC1D2700000000000000000A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = MinidiscWidgets/MinidiscWidgets.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 27;
+				DEVELOPMENT_TEAM = JG6P86C33U;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MinidiscWidgets/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Minidisc;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 26.9.5;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ecliptik.minidisc.widgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_TREAT_WARNINGS_AS_ERRORS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		EC1D2700000000000000000B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = MinidiscWidgets/MinidiscWidgets.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 27;
+				DEVELOPMENT_TEAM = JG6P86C33U;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MinidiscWidgets/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Minidisc;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 26.9.5;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ecliptik.minidisc.widgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_TREAT_WARNINGS_AS_ERRORS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -670,6 +842,15 @@
 			buildConfigurations = (
 				DBA4A7792F9BBFCC008BC5A9 /* Debug */,
 				DBA4A77A2F9BBFCC008BC5A9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		EC1D27000000000000000009 /* Build configuration list for PBXNativeTarget "MinidiscWidgets" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				EC1D2700000000000000000A /* Debug */,
+				EC1D2700000000000000000B /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

@@ -119,6 +119,13 @@ struct MainTabView: View {
             guard container?.serverState.isOnline == true else { return }
             try? await container?.favoritesService.syncFromServer()
         }
+        // Widgets open albums, playlists and artists through minidisc:// links.
+        .onOpenURL { url in
+            guard container?.serverState.activeServer != nil, let destination = HomeDestination(url: url) else { return }
+            playerPresentation.reset()
+            selectedTab = .home
+            homePath = NavigationPath([destination])
+        }
         .onReceive(NotificationCenter.default.publisher(for: .minidiscNavigateToArtist)) { note in
             guard let id   = note.userInfo?["artistId"]   as? String,
                   let name = note.userInfo?["artistName"] as? String else { return }

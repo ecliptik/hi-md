@@ -56,6 +56,12 @@ final class AppContainer {
     let streamSettings: StreamSettings
     let lidarrSettings: LidarrSettings
     private var lifecycleTasks: [Task<Void, Never>] = []
+    private(set) lazy var widgetArtwork = WidgetArtworkWriter(artworkImageCache: artworkImageCache)
+    private(set) lazy var downloadActivities = DownloadActivityController(artwork: widgetArtwork)
+    private(set) lazy var widgetSnapshotPublisher = WidgetSnapshotPublisher(
+        playerState: playerState, serverState: serverState, modelContainer: modelContainer,
+        moodPlaylistService: moodPlaylistService, artwork: widgetArtwork
+    )
 
     init(
         inMemory: Bool = false,
@@ -280,6 +286,13 @@ final class AppContainer {
         await _player.setNowPlayingService(nowPlayingService)
         await nowPlayingService.setFavoritesService(favoritesService)
         await _player.crossfadeSettingsDidChange()
+        if let downloads = downloadService as? DownloadService {
+            await downloads.setActivityReporter(downloadActivities)
+        }
+        WidgetCommandRelay.shared.handler = { [weak self] command in
+            try await self?.handleWidgetCommand(command)
+        }
+        widgetSnapshotPublisher.start()
     }
 
     func makePlaybackDiagnosticsReport() -> String {

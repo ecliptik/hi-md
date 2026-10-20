@@ -193,6 +193,11 @@ actor DownloadService: DownloadServiceProtocol {
     private let journalURL: URL
     private let diagnostics: PlaybackDiagnostics?
     private var queueController: DownloadQueueController?
+    private var activityReporter: (any DownloadActivityReporting)?
+
+    func setActivityReporter(_ reporter: any DownloadActivityReporting) {
+        activityReporter = reporter
+    }
 
     nonisolated let progressStream: AsyncStream<[DownloadProgress]>
 
@@ -654,6 +659,13 @@ actor DownloadService: DownloadServiceProtocol {
         try await downloadsQueue().enqueue(songs, serverID: serverId, owner: .album(aid), isCurrent: { intent.isCurrent })
         try intent.check()
         await toastService.show(String(localized: "Downloads queued"), subtitle: album.name, action: .navigateToDownloads)
+        let reporter = activityReporter
+        await reporter?.started(collectionID: aid, kind: "album", title: album.name, coverArtId: album.coverArt, total: total)
+        var processed = 0
+        defer {
+            let completed = succeeded
+            Task { await reporter?.finished(collectionID: aid, completed: completed, total: total) }
+        }
 
         let maxConcurrent = 3
         try await withThrowingTaskGroup(of: Bool.self) { group in
@@ -675,6 +687,8 @@ actor DownloadService: DownloadServiceProtocol {
             while let didSucceed = try await group.next() {
                 try checkDownloadCancellation()
                 if didSucceed { succeeded += 1 }
+                processed += 1
+                await reporter?.progressed(collectionID: aid, completed: processed, total: total)
                 if let song = iterator.next() {
                     group.addTask {
                         try await self.downloadAlbumTrackBestEffort(
@@ -759,6 +773,13 @@ actor DownloadService: DownloadServiceProtocol {
         try await downloadsQueue().enqueue(songs, serverID: serverId, owner: .playlist(pid), isCurrent: { intent.isCurrent })
         try intent.check()
         await toastService.show(String(localized: "Downloads queued"), subtitle: playlist.name, action: .navigateToDownloads)
+        let reporter = activityReporter
+        await reporter?.started(collectionID: pid, kind: "playlist", title: playlist.name, coverArtId: playlist.coverArt, total: total)
+        var processed = 0
+        defer {
+            let completed = processed
+            Task { await reporter?.finished(collectionID: pid, completed: completed, total: total) }
+        }
 
         let maxConcurrent = 3
         try await withThrowingTaskGroup(of: Void.self) { group in
@@ -779,6 +800,8 @@ actor DownloadService: DownloadServiceProtocol {
 
             while try await group.next() != nil {
                 try checkDownloadCancellation()
+                processed += 1
+                await reporter?.progressed(collectionID: pid, completed: processed, total: total)
                 if let song = iterator.next() {
                     group.addTask {
                         try await self.downloadPlaylistTrackBestEffort(

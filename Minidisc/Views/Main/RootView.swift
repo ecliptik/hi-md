@@ -21,6 +21,9 @@ struct RootView: View {
             // different server may now be active; neither always changes the network path.
             .onChange(of: scenePhase) { _, phase in
                 if phase == .active { container?.networkMonitor.checkServerReachability() }
+                // Pick up anything widgets show that changed while the app was open, such as the
+                // recently played albums Home just loaded.
+                if phase == .background { container?.widgetSnapshotPublisher.setNeedsPublish() }
             }
             .onChange(of: container?.serverState.activeConnectionVersion) {
                 container?.networkMonitor.checkServerReachability()
