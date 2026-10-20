@@ -68,6 +68,34 @@ struct CreateStationSiriIntent: AudioPlaybackIntent {
     }
 }
 
+/// "Download my Road Trip playlist". A long-running intent keeps the app running until the
+/// download finishes; the download's Live Activity shows its progress meanwhile.
+@available(iOS 27.0, *)
+struct DownloadMinidiscMusicIntent: LongRunningIntent {
+    static let title: LocalizedStringResource = "Download for Offline Listening"
+    static let description = IntentDescription("Downloads an album or playlist from your music server to this iPhone.")
+    static var supportedModes: IntentModes { .background }
+    static var allowedExecutionTargets: IntentExecutionTargets { .main }
+    @Parameter(title: "Album or Playlist") var item: SiriMusicItem
+    @Dependency private var runtime: MinidiscRuntime
+
+    // Not main-actor isolated: the background task closure must be created in the same
+    // isolation as performBackgroundTask, and the download hops to the main actor itself.
+    func perform() async throws -> some IntentResult & ProvidesDialog {
+        let id = item.id, runtime = runtime
+        progress.totalUnitCount = 1
+        let name = try await performBackgroundTask { try await Self.download(id, runtime: runtime) }
+        progress.completedUnitCount = 1
+        return .result(dialog: "Downloaded \(name).")
+    }
+
+    @MainActor
+    private static func download(_ id: String, runtime: MinidiscRuntime) async throws -> String {
+        runtime.diagnostics.record(.musicIntent(.libraryAction))
+        return try await MusicIntentService(container: try await runtime.container()).download(id: id)
+    }
+}
+
 /// "I love this song" stars it; "I don't like this song" and clearing the rating unstar it.
 /// Subsonic has no dislike, so removing the star is the closest match.
 @available(iOS 27.0, *)

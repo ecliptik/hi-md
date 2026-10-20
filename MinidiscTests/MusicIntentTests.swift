@@ -162,6 +162,20 @@ struct MusicIntentTests {
         }
     }
 
+    @Test func downloadsOnlyAlbumsAndPlaylistsWhileOnline() async throws {
+        let container = try makeContainer()
+        let server = configure(container)
+        let scope = MusicIntentID.scope(baseURL: server.baseURL, username: server.username)
+        let service = MusicIntentService(container: container)
+        await #expect(throws: MusicIntentError.unsupported) {
+            _ = try await service.download(id: MusicIntentID(scope: scope, kind: .song, resourceID: "s").rawValue)
+        }
+        // The fixture server is offline.
+        await #expect(throws: MusicIntentError.unavailable) {
+            _ = try await service.download(id: MusicIntentID(scope: scope, kind: .playlist, resourceID: "p").rawValue)
+        }
+    }
+
     private func makeContainer() throws -> AppContainer {
         let defaults = try #require(UserDefaults(suiteName: "MusicIntentTests.\(UUID())"))
         return try AppContainer(inMemory: true, userDefaults: defaults)

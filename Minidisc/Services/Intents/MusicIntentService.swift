@@ -267,6 +267,28 @@ struct MusicIntentService {
         catch { throw MusicIntentError.unavailable }
     }
 
+    /// Downloads an album or playlist for offline listening and returns its name.
+    func download(id: String) async throws -> String {
+        let context = try context()
+        let reference = try scoped(id, context: context)
+        guard reference.kind == .album || reference.kind == .playlist else { throw MusicIntentError.unsupported }
+        guard container.serverState.isOnline else { throw MusicIntentError.unavailable }
+        do {
+            if reference.kind == .album {
+                let album = try await container.libraryService.album(id: reference.resourceID)
+                try validate(context)
+                try await container.downloadService.download(album: album, serverId: context.server.id)
+                return album.name
+            }
+            let playlist = try await container.libraryService.playlist(id: reference.resourceID)
+            try validate(context)
+            try await container.downloadService.download(playlist: playlist, serverId: context.server.id)
+            return playlist.name
+        } catch is CancellationError { throw CancellationError() }
+        catch let error as MusicIntentError { throw error }
+        catch { throw MusicIntentError.unavailable }
+    }
+
     private func scoped(_ id: String, context: Context) throws -> MusicIntentID {
         guard let reference = MusicIntentID(rawValue: id), reference.scope == context.scope else {
             throw MusicIntentError.differentServer
