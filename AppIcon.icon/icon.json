@@ -1,21 +1,21 @@
 {
   "fill" : {
-    "automatic-gradient" : "srgb:0.90980,0.25882,0.05490,1.00000"
+    "automatic-gradient" : "srgb:0.91373,0.70196,0.21569,1.00000"
   },
   "groups" : [
     {
       "layers" : [
         {
-          "image-name" : "svgviewer-output(10).svg",
-          "name" : "svgviewer-output(10)"
+          "image-name" : "minidisc.png",
+          "name" : "minidisc"
         }
       ],
       "shadow" : {
         "kind" : "neutral",
-        "opacity" : 0.6
+        "opacity" : 0.5
       },
       "translucency" : {
-        "enabled" : true,
+        "enabled" : false,
         "value" : 0.2
       }
     }
