@@ -208,6 +208,8 @@ actor LocalMusicStore {
         }
         guard generation == revision else { return snapshot }
         updated.tracks = tracks.sorted { $0.song.title.localizedStandardCompare($1.song.title) == .orderedAscending }
+        // A periodic scan usually finds nothing new; rewriting the index then only costs I/O.
+        if updated == snapshot { return snapshot }
         try persist(updated)
         let removedIDs = Set(snapshot.tracks.map(\.id)).subtracting(updated.tracks.map(\.id))
         snapshot = updated
@@ -342,8 +344,13 @@ final class LocalMusicLibrary {
                 Task { await refresh() }
             }
         }
-        snapshot = await store.current()
-        do { snapshot = try await store.refresh() }
+        // Assign only on change: every write invalidates the views that read the snapshot.
+        let stored = await store.current()
+        if snapshot != stored { snapshot = stored }
+        do {
+            let scanned = try await store.refresh()
+            if snapshot != scanned { snapshot = scanned }
+        }
         catch is CancellationError { }
         catch { errorMessage = error.localizedDescription }
     }

@@ -141,3 +141,29 @@ nonisolated enum LocalMusicFixture {
         #expect(try JSONDecoder().decode(DisplayableSong.self, from: JSONEncoder().encode(song)).localFile == song.localFile)
     }
 }
+
+extension LocalMusicTests {
+    @Test func aRescanThatFindsNothingNewDoesNotRewriteTheIndex() async throws {
+        let root = URL.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let folder = root.appendingPathComponent("Music")
+        let index = root.appendingPathComponent("Index")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        try LocalMusicFixture.wav(at: folder.appendingPathComponent("First.wav"))
+        let store = LocalMusicStore(directory: index)
+        try await store.add([folder])
+        let first = try await store.refresh()
+        let indexFile = index.appendingPathComponent("index.json")
+        #expect(FileManager.default.fileExists(atPath: indexFile.path))
+
+        try FileManager.default.removeItem(at: indexFile)
+        let second = try await store.refresh()
+
+        #expect(second == first)
+        #expect(!FileManager.default.fileExists(atPath: indexFile.path))
+
+        try LocalMusicFixture.wav(at: folder.appendingPathComponent("Second.wav"))
+        #expect(try await store.refresh().tracks.count == 2)
+        #expect(FileManager.default.fileExists(atPath: indexFile.path))
+    }
+}
