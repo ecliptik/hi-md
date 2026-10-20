@@ -62,7 +62,10 @@ Outcome: the four remaining audio schemas are adopted. Add to library and Love s
 4. **On-device intelligence (Foundation Models).** Candidates, each behind `SystemLanguageModel.default.availability`: names and one-line descriptions for generated Mood playlists, and natural-language library search ("mellow 90s rock I haven't played lately") turned into structured filters over the local index. Pick one for a first spike. Tag-based mood matching already exists, so the model only adds wording and query parsing.
 5. **Tests.** Use AppIntentsTesting to exercise the intents without Siri.
 
-## Phase 4: UI refresh
+## Phase 4: UI refresh — partly done 2026-10-20
+
+Outcome so far: `systemPrefersReducedResourceUsage` pauses the playlist hero's per-frame gradient, the Wrapped mesh backgrounds and the now-playing bars (item 7), and Wrapped text follows Dynamic Type through a capped `scaledFont` helper (item 8). Corrections to the items below: `toolbarVerticalCompressionBehavior` only offers `.automatic` and `.prefersToolbarItems`, and `presentationPlacement` only chooses leading, center or trailing for wide windows, so it belongs with the iPad work. Items 1, 2, 3 and 5 change how the app looks and feels, so they wait until the app can be tried on a device.
+
 
 1. **Player presentation.** Try `NavigationTransition.crossFade` against the current zoom for opening the full player.
 2. **Vertical space.** With a mini player and a minimising tab bar, use `toolbarVerticalCompressionBehavior(.prefersTabBar)` (27.1), `toolbarMinimizationBehavior(_:for:)` and `toolbarMinimizationRestoration(.atScrollEdge)` so the mini player and tab bar stop competing on scroll.
