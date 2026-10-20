@@ -20,6 +20,14 @@ struct MainTabView: View {
         container?.playerState.currentTrack != nil || container?.playerState.isLiveStream == true
     }
 
+    /// Widgets, Spotlight and Shortcuts open albums, playlists and artists through minidisc:// links.
+    private func open(_ url: URL) {
+        guard container?.serverState.activeServer != nil, let destination = HomeDestination(url: url) else { return }
+        playerPresentation.reset()
+        selectedTab = .home
+        homePath = NavigationPath([destination])
+    }
+
     var body: some View {
         @Bindable var playlistAddition = playlistAddition
 
@@ -119,12 +127,10 @@ struct MainTabView: View {
             guard container?.serverState.isOnline == true else { return }
             try? await container?.favoritesService.syncFromServer()
         }
-        // Widgets open albums, playlists and artists through minidisc:// links.
-        .onOpenURL { url in
-            guard container?.serverState.activeServer != nil, let destination = HomeDestination(url: url) else { return }
-            playerPresentation.reset()
-            selectedTab = .home
-            homePath = NavigationPath([destination])
+        .onOpenURL { url in open(url) }
+        // Spotlight results and Shortcuts "Open" actions, which can arrive during launch.
+        .onChange(of: container?.linkRouter.pending, initial: true) {
+            if let url = container?.linkRouter.take() { open(url) }
         }
         .onReceive(NotificationCenter.default.publisher(for: .minidiscNavigateToArtist)) { note in
             guard let id   = note.userInfo?["artistId"]   as? String,

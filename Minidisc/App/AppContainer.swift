@@ -62,6 +62,10 @@ final class AppContainer {
         playerState: playerState, serverState: serverState, modelContainer: modelContainer,
         moodPlaylistService: moodPlaylistService, artwork: widgetArtwork
     )
+    let linkRouter = LinkRouter()
+    /// Nil for in-memory test containers, which must not touch the device's Spotlight index.
+    private(set) var spotlightIndexer: SpotlightIndexer?
+    private let spotlightDefaults: UserDefaults?
 
     init(
         inMemory: Bool = false,
@@ -73,6 +77,7 @@ final class AppContainer {
             : URL.applicationSupportDirectory.appendingPathComponent("minidisc-local-music"))
         localMusic = LocalMusicLibrary(store: localStore)
         serverState = ServerState(defaults: userDefaults)
+        spotlightDefaults = inMemory ? nil : userDefaults
         let playbackPreferences = PlaybackPreferences(defaults: userDefaults)
         self.playbackPreferences = playbackPreferences
         playerState = PlayerState(isAutoExtendEnabled: playbackPreferences.isAutoExtendEnabled)
@@ -293,6 +298,10 @@ final class AppContainer {
             try await self?.handleWidgetCommand(command)
         }
         widgetSnapshotPublisher.start()
+        if let spotlightDefaults, spotlightIndexer == nil {
+            spotlightIndexer = SpotlightIndexer(serverState: serverState, store: libraryIndexStore, defaults: spotlightDefaults)
+        }
+        spotlightIndexer?.start()
     }
 
     func makePlaybackDiagnosticsReport() -> String {
