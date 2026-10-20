@@ -155,15 +155,6 @@ struct SettingsView: View {
 
     private func aboutSection() -> some View {
         Section {
-            Link(destination: MinidiscURLs.appStoreReview) {
-                Label("Leave a Review", systemImage: "star.fill")
-            }
-            .foregroundStyle(.primary)
-            .accessibilityIdentifier("settings-leave-review")
-            ShareLink(item: MinidiscURLs.appStore) {
-                Label("Share the App", systemImage: "square.and.arrow.up")
-            }
-            .foregroundStyle(.primary)
             Link(destination: MinidiscURLs.repoIssues) {
                 Label("Report an Issue", systemImage: "exclamationmark.bubble")
             }
@@ -171,7 +162,7 @@ struct SettingsView: View {
             Button {
                 ExternalLinkOpener.open(MinidiscURLs.repo)
             } label: {
-                Label("View on GitHub", systemImage: "link")
+                Label("View Source", systemImage: "link")
             }
             .foregroundStyle(.primary)
             NavigationLink {

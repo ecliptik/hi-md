@@ -22,6 +22,12 @@ struct AcknowledgementsView: View {
 
             Section {
                 Button {
+                    ExternalLinkOpener.open(MinidiscURLs.upstream)
+                } label: {
+                    Text(verbatim: "Minidisc (Loriage)")
+                }
+                .foregroundStyle(.primary)
+                Button {
                     ExternalLinkOpener.open(MinidiscURLs.cassette)
                 } label: {
                     Text("Cassette")
