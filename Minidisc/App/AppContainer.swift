@@ -211,10 +211,14 @@ final class AppContainer {
         _player = player
         playerService = player
 
+        let nowPlayingPresenter = NowPlayingCenterPresenter()
+        nowPlayingPresenter.entityScope = { [serverState] in
+            serverState.activeServer.map { MusicIntentID.scope(baseURL: $0.baseURL, username: $0.username) }
+        }
         let nowPlaying = NowPlayingService(
             playerService: player,
             artworkImageCache: artworkImageCache,
-            presenter: NowPlayingCenterPresenter()
+            presenter: nowPlayingPresenter
         )
         nowPlayingService = nowPlaying
 

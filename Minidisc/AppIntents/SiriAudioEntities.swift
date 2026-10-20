@@ -113,6 +113,16 @@ struct SiriSongEntity {
         albumTitle = record.song?.albumName
         composers = []
     }
+
+    /// The song currently playing, for Now Playing and Siri's relevant entities.
+    init(id: String, title: String, artistName: String, albumTitle: String?) {
+        self.id = id
+        self.title = title
+        self.artistName = artistName
+        artists = []
+        self.albumTitle = albumTitle
+        composers = []
+    }
 }
 
 @available(iOS 27.0, *)

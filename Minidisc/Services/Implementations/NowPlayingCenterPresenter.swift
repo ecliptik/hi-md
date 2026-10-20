@@ -1,112 +1,85 @@
+import AppIntents
 import Foundation
-import MediaPlayer
+import NowPlaying
 import OSLog
-
 import UIKit
 
-/// Keeps MediaPlayer objects on MainActor; only snapshots and artwork bytes cross actors.
+/// What the system shows for Minidisc on the Lock Screen, in Control Center, in the Dynamic Island
+/// and in CarPlay. A `MediaSession` observes this model, so changing it is the whole update.
+@MainActor
+@Observable
+final class NowPlayingSessionModel: MediaSessionRepresentable {
+    nonisolated let id = "app.minidisc.player"
+    var content: (any MediaContentRepresentable)?
+    var playbackSnapshot: MediaPlaybackSnapshot?
+    var commands: [MediaCommand] = []
+}
+
+/// Translates playback snapshots into the iOS 27 NowPlaying framework.
+///
+/// The interface matches the MediaPlayer-based presenter it replaced, so `NowPlayingService` and
+/// `PlayerService` send the same updates at the same moments, including the hand-off between the
+/// engine's two decks during gapless playback and crossfades.
 @MainActor
 final class NowPlayingCenterPresenter {
-    private struct RegisteredTarget {
-        let command: MPRemoteCommand
-        let token: Any
-    }
-
-    private var registeredTargets: [RegisteredTarget] = []
+    let model = NowPlayingSessionModel()
+    private var session: MediaSession<NowPlayingSessionModel>?
     private var contentGeneration: UInt64 = 0
+    private var current: NowPlayingSnapshot?
+    private var duration: TimeInterval = 0
+    private var artworkData: Data?
+    private weak var playerService: (any PlayerServiceProtocol)?
+    private var likeAction: (@Sendable () async -> Void)?
+    private var isLiveStream = false
+    private var canFavorite = false
+    private var isFavorite = false
+
+    /// Identifies the active server and account for Siri entity IDs; nil without a server.
+    var entityScope: @MainActor () -> String? = { nil }
 
     func start(
         playerService: any PlayerServiceProtocol,
         likeAction: @escaping @Sendable () async -> Void
     ) {
-        guard registeredTargets.isEmpty else { return }
-
-        let center = MPRemoteCommandCenter.shared()
-
-        register(center.playCommand) { [weak playerService] _ in
-            Logger.nowPlaying.info("[AUDIO-INTENT] play origin=remote-command")
-            Task(priority: .userInitiated) {
-                await playerService?.resume()
-            }
-            return .success
-        }
-
-        register(center.pauseCommand) { [weak playerService] _ in
-            Logger.nowPlaying.info("[AUDIO-INTENT] pause origin=remote-command")
-            Task(priority: .userInitiated) {
-                await playerService?.pause()
-            }
-            return .success
-        }
-
-        register(center.togglePlayPauseCommand) { [weak playerService] _ in
-            Logger.nowPlaying.info("[AUDIO-INTENT] toggle origin=remote-command")
-            Task(priority: .userInitiated) {
-                await playerService?.togglePlayPause()
-            }
-            return .success
-        }
-
-        register(center.nextTrackCommand) { [weak playerService] _ in
-            Task(priority: .userInitiated) {
-                do {
-                    try await playerService?.skipToNext()
-                } catch {
-                    Logger.nowPlaying.error("[PLAYBACK] skipToNext failed: \(error, privacy: .public)")
-                }
-            }
-            return .success
-        }
-
-        register(center.previousTrackCommand) { [weak playerService] _ in
-            Task(priority: .userInitiated) {
-                do {
-                    try await playerService?.skipToPrevious()
-                } catch {
-                    Logger.nowPlaying.error("[PLAYBACK] skipToPrevious failed: \(error, privacy: .public)")
-                }
-            }
-            return .success
-        }
-
-        center.likeCommand.localizedTitle = String(localized: "Add to Favorites")
-        register(center.likeCommand) { _ in
-            Task(priority: .userInitiated) {
-                await likeAction()
-            }
-            return .success
-        }
-
-        register(center.changePlaybackPositionCommand) { [weak playerService] event in
-            guard let seekEvent = event as? MPChangePlaybackPositionCommandEvent else {
-                return .commandFailed
-            }
-            let position = seekEvent.positionTime
-            Task(priority: .userInitiated) {
-                await playerService?.seek(to: position)
-            }
-            return .success
+        guard session == nil else { return }
+        self.playerService = playerService
+        self.likeAction = likeAction
+        rebuildCommands()
+        let session = MediaSession(model)
+        self.session = session
+        Task {
+            do { try await session.requestToBecomeApplicationPrimary() }
+            catch { Logger.nowPlaying.warning("Now Playing session did not become primary: \(error, privacy: .public)") }
         }
     }
 
     func shutdown() {
-        for target in registeredTargets {
-            target.command.removeTarget(target.token)
-        }
-        registeredTargets.removeAll()
-        MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
+        model.content = nil
+        model.playbackSnapshot = nil
+        model.commands = []
+        session = nil
+        clearRelevantEntities()
     }
 
     func clear(generation: UInt64) {
         guard generation >= contentGeneration else { return }
         contentGeneration = generation
-        MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
+        current = nil
+        artworkData = nil
+        model.content = nil
+        model.playbackSnapshot = nil
+        clearRelevantEntities()
     }
 
     func setBaseInfo(for snapshot: NowPlayingSnapshot, generation: UInt64) {
         guard generation >= contentGeneration else { return }
         contentGeneration = generation
-        MPNowPlayingInfoCenter.default().nowPlayingInfo = makeBaseInfo(for: snapshot)
+        current = snapshot
+        duration = snapshot.duration
+        artworkData = nil
+        rebuildContent()
+        model.playbackSnapshot = Self.playbackSnapshot(position: snapshot.position, rate: snapshot.playbackRate)
+        publishRelevantEntity(for: snapshot)
     }
 
     func mergePosition(
@@ -116,28 +89,19 @@ final class NowPlayingCenterPresenter {
         generation: UInt64
     ) {
         guard generation == contentGeneration else { return }
-        var info = MPNowPlayingInfoCenter.default().nowPlayingInfo ?? [:]
-        info[MPNowPlayingInfoPropertyElapsedPlaybackTime] = elapsed
-        info[MPNowPlayingInfoPropertyPlaybackRate] = rate
-        info[MPMediaItemPropertyPlaybackDuration] = duration
-        MPNowPlayingInfoCenter.default().nowPlayingInfo = info
+        if duration != self.duration {
+            self.duration = duration
+            rebuildContent()
+        }
+        model.playbackSnapshot = Self.playbackSnapshot(position: elapsed, rate: rate)
     }
 
     func mergeSnapshot(_ snapshot: NowPlayingSnapshot, generation: UInt64) {
         guard generation == contentGeneration else { return }
-        var info = MPNowPlayingInfoCenter.default().nowPlayingInfo ?? [:]
-        info[MPMediaItemPropertyTitle] = snapshot.title
-        info[MPNowPlayingInfoPropertyElapsedPlaybackTime] = snapshot.position
-        info[MPMediaItemPropertyPlaybackDuration] = snapshot.duration
-        info[MPNowPlayingInfoPropertyPlaybackRate] = snapshot.playbackRate
-        info[MPNowPlayingInfoPropertyDefaultPlaybackRate] = 1.0
-        if let artist = snapshot.artist {
-            info[MPMediaItemPropertyArtist] = artist
-        }
-        if let album = snapshot.album {
-            info[MPMediaItemPropertyAlbumTitle] = album
-        }
-        MPNowPlayingInfoCenter.default().nowPlayingInfo = info
+        current = snapshot
+        duration = snapshot.duration
+        rebuildContent()
+        model.playbackSnapshot = Self.playbackSnapshot(position: snapshot.position, rate: snapshot.playbackRate)
     }
 
     func setArtwork(
@@ -145,92 +109,132 @@ final class NowPlayingCenterPresenter {
         fallback snapshot: NowPlayingSnapshot,
         generation: UInt64
     ) {
-        guard generation == contentGeneration else { return }
-        let artwork = Self.makeArtwork(image: image)
-        var info = MPNowPlayingInfoCenter.default().nowPlayingInfo ?? makeBaseInfo(for: snapshot)
-        info[MPMediaItemPropertyArtwork] = artwork
-        MPNowPlayingInfoCenter.default().nowPlayingInfo = info
+        guard generation == contentGeneration, let data = image.jpegData(compressionQuality: 0.9) else { return }
+        if current == nil { current = snapshot }
+        artworkData = data
+        rebuildContent()
     }
 
     func setArtwork(data: Data, fallback snapshot: NowPlayingSnapshot, generation: UInt64) {
         guard generation == contentGeneration else { return }
-        guard let image = PlatformImage(data: data) else {
+        guard PlatformImage(data: data) != nil else {
             Logger.artworkCache.warning("NowPlayingCenterPresenter: downloaded artwork could not be decoded")
             return
         }
-        setArtwork(image: image, fallback: snapshot, generation: generation)
+        if current == nil { current = snapshot }
+        artworkData = data
+        rebuildContent()
     }
 
     func updateLikeCommand(songAvailable: Bool, isFavorite: Bool) {
-        let command = MPRemoteCommandCenter.shared().likeCommand
-        command.isEnabled = songAvailable
-        command.isActive = isFavorite
+        canFavorite = songAvailable
+        self.isFavorite = isFavorite
+        rebuildCommands()
     }
 
     func updateCommandAvailability(isLiveStream: Bool) {
-        let center = MPRemoteCommandCenter.shared()
-        center.nextTrackCommand.isEnabled = !isLiveStream
-        center.previousTrackCommand.isEnabled = !isLiveStream
-        center.changePlaybackPositionCommand.isEnabled = !isLiveStream
+        self.isLiveStream = isLiveStream
+        rebuildCommands()
     }
 
-    private func register(
-        _ command: MPRemoteCommand,
-        handler: @escaping (MPRemoteCommandEvent) -> MPRemoteCommandHandlerStatus
-    ) {
-        let token = command.addTarget(handler: handler)
-        registeredTargets.append(RegisteredTarget(command: command, token: token))
+    // MARK: - Model
+
+    nonisolated static func playbackSnapshot(position: TimeInterval, rate: Float) -> MediaPlaybackSnapshot {
+        MediaPlaybackSnapshot(
+            state: rate > 0 ? .playing(rate: rate) : .paused,
+            elapsedTime: max(0, position),
+            timestamp: Date()
+        )
     }
 
-    private func makeBaseInfo(for snapshot: NowPlayingSnapshot) -> [String: Any] {
-        if snapshot.isLiveStream {
-            var info: [String: Any] = [
-                MPMediaItemPropertyTitle: snapshot.title,
-                MPNowPlayingInfoPropertyIsLiveStream: true,
-                MPNowPlayingInfoPropertyPlaybackRate: snapshot.playbackRate,
-                MPNowPlayingInfoPropertyDefaultPlaybackRate: 1.0,
-            ]
-            if let artist = snapshot.artist {
-                info[MPMediaItemPropertyArtist] = artist
+    private func rebuildContent() {
+        guard let snapshot = current else {
+            model.content = nil
+            return
+        }
+        let artwork = artworkData.map { data in
+            Artwork(id: snapshot.coverArtId ?? snapshot.songId ?? snapshot.title) { _ in
+                try ArtworkRepresentation(data: data)
             }
-            return info
         }
+        if snapshot.isLiveStream {
+            let station = snapshot.radioStationName ?? snapshot.title
+            model.content = RadioContent(
+                id: "radio:\(station)",
+                stationName: station,
+                programName: snapshot.radioStationName == nil ? nil : snapshot.title,
+                artwork: artwork
+            )
+            return
+        }
+        var content = MusicContent(
+            id: snapshot.songId ?? snapshot.title,
+            songTitle: snapshot.title,
+            artistName: snapshot.artist ?? "",
+            albumName: snapshot.album ?? "",
+            type: .audio,
+            duration: duration > 0 ? .finite(duration) : nil,
+            artwork: artwork
+        )
+        if let identifier = songEntityID(for: snapshot) {
+            content.appEntityIdentifiers = [EntityIdentifier(for: SiriSongEntity.self, identifier: identifier)]
+        }
+        model.content = content
+    }
 
-        var info: [String: Any] = [
-            MPMediaItemPropertyTitle: snapshot.title,
-            MPNowPlayingInfoPropertyElapsedPlaybackTime: snapshot.position,
-            MPMediaItemPropertyPlaybackDuration: snapshot.duration,
-            MPNowPlayingInfoPropertyPlaybackRate: snapshot.playbackRate,
-            MPNowPlayingInfoPropertyDefaultPlaybackRate: 1.0,
+    private func rebuildCommands() {
+        let likeAction = likeAction
+        model.commands = [
+            .play { [weak playerService] in
+                Logger.nowPlaying.info("[AUDIO-INTENT] play origin=remote-command")
+                await playerService?.resume()
+            },
+            .pause { [weak playerService] in
+                Logger.nowPlaying.info("[AUDIO-INTENT] pause origin=remote-command")
+                await playerService?.pause()
+            },
+            .togglePlayPause { [weak playerService] in
+                Logger.nowPlaying.info("[AUDIO-INTENT] toggle origin=remote-command")
+                await playerService?.togglePlayPause()
+            },
+            .next { [weak playerService] in
+                try await playerService?.skipToNext()
+            }.enabled(!isLiveStream),
+            .previous { [weak playerService] in
+                try await playerService?.skipToPrevious()
+            }.enabled(!isLiveStream),
+            .seekToPosition { [weak playerService] position in
+                await playerService?.seek(to: position)
+            }.enabled(!isLiveStream),
+            .feedback(title: String(localized: "Add to Favorites"), status: isFavorite ? .positive : .neutral) { _ in
+                await likeAction?()
+            }.enabled(canFavorite),
         ]
-        if let artist = snapshot.artist {
-            info[MPMediaItemPropertyArtist] = artist
-        }
-        if let album = snapshot.album {
-            info[MPMediaItemPropertyAlbumTitle] = album
-        }
-        return info
     }
 
-    /// MediaPlayer invokes this request handler on its own callout queue. Keep the factory
-    /// explicitly nonisolated: a closure created in this `@MainActor` type would otherwise inherit
-    /// MainActor and trap in `_dispatch_assert_queue_fail` as soon as Now Playing serializes artwork.
-    nonisolated static func makeArtwork(image: PlatformImage) -> MPMediaItemArtwork {
-        let snapshot = SendableArtworkImage(image)
-        return MPMediaItemArtwork(boundsSize: CGSize(width: 600, height: 600)) { _ in
-            snapshot.image
+    // MARK: - Siri context
+
+    /// The Siri song entity for a server song; local files and radio have none.
+    private func songEntityID(for snapshot: NowPlayingSnapshot) -> String? {
+        guard !snapshot.isLiveStream, let songId = snapshot.songId, !songId.hasPrefix("local:"),
+              let scope = entityScope() else { return nil }
+        return MusicIntentID(scope: scope, kind: .song, resourceID: songId).rawValue
+    }
+
+    /// Tells Siri which song is playing, so requests about "this song" resolve to it.
+    private func publishRelevantEntity(for snapshot: NowPlayingSnapshot) {
+        guard let identifier = songEntityID(for: snapshot) else {
+            clearRelevantEntities()
+            return
+        }
+        let entity = SiriSongEntity(id: identifier, title: snapshot.title, artistName: snapshot.artist ?? "", albumTitle: snapshot.album)
+        Task {
+            do { try await RelevantEntities.shared.updateEntities([entity], for: .audio(.nowPlaying)) }
+            catch { Logger.nowPlaying.debug("Could not publish the now-playing entity: \(error, privacy: .public)") }
         }
     }
-}
 
-/// `UIImage` is immutable for the lifetime of a Now Playing artwork request. MediaPlayer's API is
-/// specifically designed to retain the image provider and call it from an internal serial queue,
-/// but UIKit does not declare `UIImage` as Sendable. This wrapper documents and narrowly contains
-/// that framework boundary without making the presenter or arbitrary UIKit values unchecked.
-private nonisolated struct SendableArtworkImage: @unchecked Sendable {
-    let image: PlatformImage
-
-    init(_ image: PlatformImage) {
-        self.image = image
+    private func clearRelevantEntities() {
+        Task { try? await RelevantEntities.shared.removeAllEntities(for: .audio(.nowPlaying)) }
     }
 }
