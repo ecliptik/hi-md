@@ -23,7 +23,7 @@
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>CFBundleURLName</key>
-			<string>com.nohitdev.minidisc.url-scheme</string>
+			<string>com.ecliptik.minidisc.url-scheme</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>minidisc</string>

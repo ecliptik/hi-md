@@ -93,7 +93,7 @@ app_setting() {
             sub(";[[:space:]]*$", "", line)
             value = line
         }
-        in_settings && /PRODUCT_BUNDLE_IDENTIFIER = com\.nohitdev\.minidisc;/ {
+        in_settings && /PRODUCT_BUNDLE_IDENTIFIER = com\.ecliptik\.minidisc;/ {
             is_app = 1
         }
         in_settings && /^[[:space:]]*};[[:space:]]*$/ {
