@@ -249,7 +249,9 @@ struct NavidromeCompatibilityTests {
             try? FileManager.default.removeItem(at: directory)
         }
         let journal = directory.appendingPathComponent("queue.json")
-        try Data("broken journal".utf8).write(to: journal)
+        // A journal that cannot be read at all (an I/O failure, not bad contents) must hold the
+        // migration back instead of marking it complete.
+        try FileManager.default.createDirectory(at: journal, withIntermediateDirectories: true)
         let compatibility = NavidromeCompatibility(modelContainer: container, sessionService: sessions,
             indexStore: index, defaults: defaults, homeCache: HomeFeedCache(directory: directory),
             coversDirectory: directory, journalURL: journal, probe: { _ in
@@ -273,6 +275,7 @@ struct NavidromeCompatibilityTests {
         }
         #expect(!defaults.dictionaryRepresentation().keys.contains { $0.hasPrefix("minidisc.navidrome.canonicalIDs") })
         #expect(try await index.counts(for: config.id).tracks == 1)
+        try FileManager.default.removeItem(at: journal)
         try Data("[]".utf8).write(to: journal)
         let keychain = MockKeychain()
         try await keychain.store(credentials, forKey: ServerCredentials.keychainKey(for: config.id))
@@ -285,6 +288,21 @@ struct NavidromeCompatibilityTests {
         let restored = try #require(await sessions.loadRestoredSession())
         #expect(restored.queue.first?.id == canonical)
         #expect(restored.currentPosition == 47)
+    }
+}
+
+extension NavidromeCompatibilityTests {
+    @Test func aJournalWithUnreadableContentsDoesNotBlockTheMigration() throws {
+        let directory = URL.temporaryDirectory.appendingPathComponent("journal-\(UUID())")
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let journal = directory.appendingPathComponent("queue.json")
+        let broken = Data("broken journal".utf8)
+        try broken.write(to: journal)
+
+        try NavidromeCompatibility.migrateDownloadJournal(at: journal, serverID: UUID())
+
+        #expect(try Data(contentsOf: journal) == broken)
     }
 }
 

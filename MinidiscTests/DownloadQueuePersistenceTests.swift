@@ -252,3 +252,40 @@ struct DownloadQueuePersistenceTests {
         #expect(try JSONDecoder().decode([QueuedDownload].self, from: Data(contentsOf: journal)).first?.status == .failed)
     }
 }
+
+extension DownloadQueuePersistenceTests {
+    @Test func unreadableJournalIsKeptAsideAndTheQueueStillStarts() async throws {
+        let root = URL.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        let journal = root.appendingPathComponent("queue.json")
+        try Data("{ not a journal".utf8).write(to: journal)
+        let server = UUID()
+        let queue = try controller(at: journal, transport: QueueTestTransport(), storage: QueueTestStorage(), serverID: server)
+
+        try await queue.start()
+
+        #expect(await queue.snapshot().isEmpty)
+        let kept = try FileManager.default.contentsOfDirectory(atPath: root.path).filter { $0.hasPrefix("queue.unreadable-") }
+        #expect(kept.count == 1)
+    }
+
+    @Test func oneUnreadableJournalEntryDoesNotDiscardTheRest() async throws {
+        let root = URL.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let journal = root.appendingPathComponent("queue.json")
+        let server = UUID(), transport = QueueTestTransport(), storage = QueueTestStorage()
+        let first = try controller(at: journal, transport: transport, storage: storage, serverID: server)
+        try await first.enqueue(try songs(["a", "b", "c"]), serverID: server, owner: .playlist("p"))
+
+        var entries = try #require(JSONSerialization.jsonObject(with: Data(contentsOf: journal)) as? [[String: Any]])
+        entries[1].removeValue(forKey: "song")
+        try JSONSerialization.data(withJSONObject: entries).write(to: journal)
+
+        let restored = try controller(at: journal, transport: QueueTestTransport(active: Set(await first.snapshot().map(\.id))),
+                                      storage: storage, serverID: server)
+        try await restored.start()
+
+        #expect(await restored.snapshot().count == 2)
+    }
+}

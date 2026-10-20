@@ -190,7 +190,14 @@ actor NavidromeCompatibility {
 
     nonisolated static func migrateDownloadJournal(at url: URL, serverID: UUID) throws {
         guard FileManager.default.fileExists(atPath: url.path) else { return }
-        let jobs = try JSONDecoder().decode([QueuedDownload].self, from: Data(contentsOf: url))
+        // An unreadable journal is quarantined and reset by the download queue on start. Failing
+        // here would stop the whole server activation over data that is recoverable elsewhere.
+        let data = try Data(contentsOf: url)
+        guard let decoded = try? JSONStoreRecovery.decodeArray(QueuedDownload.self, from: data), decoded.dropped == 0 else {
+            Logger.migration.error("Download journal unreadable during ID migration; leaving it for the queue to recover")
+            return
+        }
+        let jobs = decoded.elements
         var changed = false
         let migrated = try jobs.map { job -> QueuedDownload in
             guard job.serverID == serverID else { return job }

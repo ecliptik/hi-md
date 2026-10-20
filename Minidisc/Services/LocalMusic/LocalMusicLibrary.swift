@@ -1,6 +1,7 @@
 import AVFoundation
 import CryptoKit
 import Foundation
+import OSLog
 import Observation
 import UniformTypeIdentifiers
 
@@ -91,8 +92,22 @@ actor LocalMusicStore {
 
     init(directory: URL) {
         self.directory = directory
-        snapshot = (try? Data(contentsOf: directory.appendingPathComponent("index.json")))
-            .flatMap { try? JSONDecoder().decode(LocalMusicSnapshot.self, from: $0) } ?? LocalMusicSnapshot()
+        snapshot = Self.loadSnapshot(in: directory)
+    }
+
+    /// A missing index is a first run. An unreadable one must not silently become an empty index
+    /// that the next scan overwrites, because the folder bookmarks live in the same file: the
+    /// bytes are kept aside and the bookmarks are recovered even when the track list no longer decodes.
+    private static func loadSnapshot(in directory: URL) -> LocalMusicSnapshot {
+        let url = directory.appendingPathComponent("index.json")
+        guard let data = try? Data(contentsOf: url) else { return LocalMusicSnapshot() }
+        if let snapshot = try? JSONDecoder().decode(LocalMusicSnapshot.self, from: data) { return snapshot }
+
+        JSONStoreRecovery.quarantine(url, logger: Logger.library)
+        struct FoldersOnly: Decodable { let folders: [LocalMusicFolder] }
+        let folders = (try? JSONDecoder().decode(FoldersOnly.self, from: data))?.folders ?? []
+        Logger.library.error("Local music index unreadable; recovered \(folders.count, privacy: .public) folder(s), tracks will be rescanned")
+        return LocalMusicSnapshot(folders: folders, tracks: [])
     }
 
     func current() -> LocalMusicSnapshot { snapshot }

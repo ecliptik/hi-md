@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 import SwiftSonic
 
 nonisolated enum DownloadOwner: Hashable, Sendable, Codable {
@@ -71,7 +72,22 @@ actor DownloadQueueController {
 
     private func restore() async throws {
         if FileManager.default.fileExists(atPath: journalURL.path) {
-            let saved = try JSONDecoder().decode([QueuedDownload].self, from: Data(contentsOf: journalURL))
+            let data = try Data(contentsOf: journalURL)
+            // An unreadable journal must not block every download operation forever, including
+            // removing downloads. Entries that no longer decode are dropped and a copy is kept.
+            let saved: [QueuedDownload]
+            do {
+                let decoded = try JSONStoreRecovery.decodeArray(QueuedDownload.self, from: data)
+                saved = decoded.elements
+                if decoded.dropped > 0 {
+                    Logger.download.error("Download journal: dropped \(decoded.dropped, privacy: .public) unreadable entr\(decoded.dropped == 1 ? "y" : "ies")")
+                    JSONStoreRecovery.quarantine(journalURL, logger: Logger.download)
+                }
+            } catch {
+                Logger.download.error("Download journal unreadable, starting empty: \(error, privacy: .public)")
+                JSONStoreRecovery.quarantine(journalURL, logger: Logger.download)
+                saved = []
+            }
             jobs = Dictionary(saved.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         }
         let active = await transport.activeJobIDs()

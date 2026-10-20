@@ -56,6 +56,9 @@ actor ListenBrainzService {
     /// intents wait before changing their generation, so an in-progress commit remains
     /// current until it has either completed or rolled back.
     private var credentialMutationInProgress = false
+    private static let maxScrobblingStateRetries = 5
+    private var scrobblingStateRetryAttempts = 0
+    private var scrobblingStateRetryTask: Task<Void, Never>?
     private var credentialMutationWaiters: [CheckedContinuation<Void, Never>] = []
     /// Stable, non-secret ownership marker persisted alongside the offline queue.
     private var scrobblingAccountFingerprint: String?
@@ -141,8 +144,22 @@ actor ListenBrainzService {
 
         let persistedUsername = try? await keychain.retrieve(String.self, forKey: Self.scrobblingUsernameKeychainKey)
         guard isCurrentScrobblingOperation(operation) else { return }
-        let storedToken = try? await keychain.retrieve(String.self, forKey: Self.scrobblingTokenKeychainKey)
+        let storedToken: String?
+        do {
+            storedToken = try await keychain.retrieve(String.self, forKey: Self.scrobblingTokenKeychainKey)
+        } catch {
+            guard isCurrentScrobblingOperation(operation) else { return }
+            // A failed read does not mean there is no token. Treating it that way would switch
+            // scrobbling off and delete the offline queue, so persisted state is left alone and
+            // the load is retried.
+            Logger.listenBrainz.error(
+                "Keychain read failed while restoring scrobbling; keeping persisted state and retrying: \(error, privacy: .public)"
+            )
+            scheduleScrobblingStateRetry()
+            return
+        }
         guard isCurrentScrobblingOperation(operation) else { return }
+        scrobblingStateRetryAttempts = 0
 
         scrobblingEnabled = persistedEnabled && storedToken != nil
         scrobblingUsername = persistedUsername
@@ -161,6 +178,17 @@ actor ListenBrainzService {
 
         loadQueue()
         await flushOfflineQueue()
+    }
+
+    private func scheduleScrobblingStateRetry() {
+        guard scrobblingStateRetryAttempts < Self.maxScrobblingStateRetries else { return }
+        scrobblingStateRetryAttempts += 1
+        scrobblingStateRetryTask?.cancel()
+        scrobblingStateRetryTask = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(30))
+            guard !Task.isCancelled else { return }
+            await self?.loadScrobblingState()
+        }
     }
 
     // MARK: - Recommendations public interface
