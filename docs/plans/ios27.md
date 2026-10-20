@@ -51,7 +51,10 @@ Outcome: the `MinidiscWidgets` extension and App Group are in place with the Now
 3. **Controls.** `ControlWidget` buttons for Control Center, the Lock Screen and the Action button: Play/Pause, Smart Shuffle and Play Mood, all backed by the existing `PlayMinidiscMoodIntent`, `MinidiscSmartShuffleIntent` and `ResumeMinidiscIntent`/`PauseMinidiscIntent`.
 4. **Lock Screen accessory widgets** (`accessoryRectangular` and `accessoryCircular`) for the current track or a quick Smart Shuffle.
 
-## Phase 3: Siri, App Intents and Apple Intelligence
+## Phase 3: Siri, App Intents and Apple Intelligence — done 2026-10-20
+
+Outcome: the four remaining audio schemas are adopted. Add to library and Love star the item, Dislike and clearing the rating unstar it (Subsonic has no dislike), add to playlist skips songs already there, and a station is an Instant Mix from the playing song (the createStation schema has no item parameter). The SDK has no download schema, so downloads use a custom `LongRunningIntent`. Spotlight indexes artists, albums and playlists from the local index as `IndexedEntity`s, with Open actions and a `LinkRouter` for links that arrive during launch. Natural-language search was the Foundation Models spike: the model only fills `LibraryQuery` filters and matching stays local. The SiriKit entitlement was dropped because the personal team cannot use it. AppIntentsTesting was not adopted; the services behind the intents have unit tests instead. Siri phrasing, Spotlight results and the model's interpretations still need checking on a device.
+
 
 1. **Finish the iOS 27 audio schema.** `.audio.playAudio` and the entities are already adopted. Add `addToLibrary` (star or favourite), `addToPlaylist`, `createStation` (Instant Mix from a song, artist or album) and `updateAudioAffinity` (love or dislike, mapped to star and unstar). Use `MediaIntents.AudioSearch` where Siri passes a search. *(Axiom)* Schemas carry their own authentication policy and confirmation behaviour, and Xcode fails the build when a related schema is missing, so expect some required companions.
 2. **Download intent.** A `LongRunningIntent` that downloads an album or playlist in the background ("download my Road Trip playlist"), reporting through the Phase 1 Live Activity.
