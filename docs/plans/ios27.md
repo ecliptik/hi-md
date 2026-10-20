@@ -32,13 +32,19 @@ The project builds with `-warnings-as-errors`. iOS 27 deprecates APIs the player
 
 Done when: the full test suite and `./Scripts/doctor.sh --build` pass with the 27.0 target.
 
-## Phase 1: Lock Screen, Now Playing and Siri context
+## Phase 1: Lock Screen, Now Playing and Siri context — done 2026-10-20
+
+Outcome: Now Playing moved to the NowPlaying framework behind the presenter's unchanged interface, so the engine and its gapless and crossfade hand-offs are untouched. The current server song carries its Siri entity identifier and is published to `RelevantEntities` for `.audio(.nowPlaying)`. Album and playlist downloads show a Live Activity. Lock Screen, Dynamic Island and crossfade behaviour still need checking on a device.
+
 
 1. **Tie Now Playing to app entities.** Set `MPNowPlayingInfoPropertyAppEntityIdentifiers` (`MPAppEntityIdentifier`) on the current item in `NowPlayingCenterPresenter`, and publish `RelevantEntities.shared.updateEntities(_:for: .audio(.nowPlaying))` when the track changes. Siri and the system can then act on "this song", for example "add this to my Road Trip playlist".
 2. **Evaluate the NowPlaying framework.** `MediaSession`, `MediaSessionRepresentable`, `MusicContent` (ISRC, genre, animated artwork), `MediaPlaybackSnapshot` and `MediaCommand` are the declarative successor to `MPNowPlayingInfoCenter` and `MPRemoteCommandCenter`. MediaPlayer is not deprecated, so start with a spike: model one track and the transport commands. Migrate only if it simplifies the presenter and handles gapless and crossfade hand-offs correctly. `requestToBecomeSystemPrimary()` is worth checking when another app takes audio focus.
 3. **Live Activity for downloads.** The system already shows audio Now Playing on the Lock Screen and in the Dynamic Island, so a playback Live Activity would duplicate it. Downloading an album or playlist is a good fit: progress, current song, and a cancel button. This needs the widget extension from Phase 2 (build Phase 2's target first, or together). Use `isDynamicIslandLimitedInWidth` for the compact presentation.
 
-## Phase 2: widgets and controls
+## Phase 2: widgets and controls — done 2026-10-20
+
+Outcome: the `MinidiscWidgets` extension and App Group are in place with the Now Playing, Recently Played, Pinned and Moods widgets and the Play or Pause, Next Track, Smart Shuffle and Play a Mood controls. Lock Screen support comes from the Now Playing widget's accessory families. Widget appearance still needs checking on a device or in Xcode previews.
+
 
 1. **Widget extension and App Group.** Add a WidgetKit extension target (`com.ecliptik.minidisc.widgets`) and the App Group `group.com.ecliptik.minidisc` for both targets. Don't move the SwiftData store. Have the app write a small JSON snapshot and pre-rendered thumbnails into the group container: recent albums, pinned playlists, mood playlists and the current track. The extension then needs neither SwiftData nor the network.
 2. **Home Screen widgets.** "Recently played" and "pinned and mood playlists", in small, medium, large and the new `systemExtraLargePortrait`, which iOS 27 also brings to the iPhone Home Screen *(Axiom)*. Tapping one opens the item through the shared `HomeDestination` resolver, which finally gives the `minidisc://` scheme a handler (an open item from the audit). Buttons in the widgets reuse the existing `AudioPlaybackIntent`s.
