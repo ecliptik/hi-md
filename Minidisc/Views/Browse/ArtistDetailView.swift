@@ -700,6 +700,7 @@ private struct ArtistTopSongsList: View {
                     albumName: album.name,
                     coverArtId: album.coverArtId
                 )
+                .resolvesHomeDestinations()
             }
         }
     }

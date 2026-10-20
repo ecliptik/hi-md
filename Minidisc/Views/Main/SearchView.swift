@@ -108,7 +108,7 @@ struct SearchView: View {
             case .artistBestOf(let id, let name, let coverArtId):
                 ArtistBestOfView(artistId: id, artistName: name, coverArtId: coverArtId)
             default:
-                EmptyView()
+                HomeDestinationView(destination: destination)
             }
         }
         .navigationDestination(for: SearchHistoryNavTarget.self) { entry in

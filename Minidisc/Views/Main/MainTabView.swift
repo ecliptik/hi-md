@@ -56,6 +56,7 @@ struct MainTabView: View {
                 Tab("Discover", systemImage: "square.grid.2x2.fill", value: AppTab.discover) {
                     NavigationStack(path: $discoverPath) {
                         DiscoverView()
+                            .resolvesHomeDestinations()
                     }
                 }
 

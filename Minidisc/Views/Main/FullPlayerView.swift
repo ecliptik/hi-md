@@ -514,6 +514,7 @@ private struct TrackInfoSection: View {
                let albumName = track.albumName {
                 NavigationStack {
                     AlbumDetailView(albumId: albumId, albumName: albumName, coverArtId: track.coverArtId)
+                        .resolvesHomeDestinations()
                 }
             }
         }
