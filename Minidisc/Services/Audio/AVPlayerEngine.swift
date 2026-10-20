@@ -58,6 +58,9 @@ nonisolated final class AVPlayerEngine: AudioEngine, @unchecked Sendable {
     private var currentItem: AVPlayerItem?
     private var currentAsset: AVAsset?
     private var currentTrackID: String?
+    private var currentSourceHeaders: [String: String] = [:]
+    /// The load for which an unidentified container was already retried. One retry per load.
+    private var mimeRecoveryToken: AudioEnginePlaybackToken?
     private var currentPlaybackToken: AudioEnginePlaybackToken?
     private var preloadedItem: AVPlayerItem?
     private var preloadedAsset: AVAsset?
@@ -184,10 +187,13 @@ nonisolated final class AVPlayerEngine: AudioEngine, @unchecked Sendable {
     // MARK: - Asset construction
 
     /// Precise timing is required for reliable seeks in lossless streams.
-    private static func assetOptions(headers: [String: String]) -> [String: Any] {
+    private static func assetOptions(headers: [String: String], mimeType: String? = nil) -> [String: Any] {
         var options: [String: Any] = [AVURLAssetPreferPreciseDurationAndTimingKey: true]
         if !headers.isEmpty {
             options["AVURLAssetHTTPHeaderFieldsKey"] = headers
+        }
+        if let mimeType {
+            options[AVURLAssetOverrideMIMETypeKey] = mimeType
         }
         return options
     }
@@ -229,6 +235,7 @@ nonisolated final class AVPlayerEngine: AudioEngine, @unchecked Sendable {
         currentItem = item
         currentAsset = asset
         currentTrackID = trackID
+        currentSourceHeaders = headers
         let playbackToken = makePlaybackToken()
         currentPlaybackToken = playbackToken
         activePlayer.replaceCurrentItem(with: item)
@@ -833,6 +840,7 @@ nonisolated final class AVPlayerEngine: AudioEngine, @unchecked Sendable {
         currentItem = preloadedItem
         currentAsset = preloadedAsset
         currentTrackID = preloadedTrackID
+        currentSourceHeaders = preloadedSourceHeaders
         currentPlaybackToken = preloadedPlaybackToken
         preloadedItem = nil
         preloadedAsset = nil
@@ -884,6 +892,7 @@ nonisolated final class AVPlayerEngine: AudioEngine, @unchecked Sendable {
         currentItem = nil
         currentAsset = nil
         currentTrackID = nil
+        currentSourceHeaders = [:]
         currentPlaybackToken = nil
         preloadedItem = nil
         preloadedAsset = nil
@@ -944,6 +953,7 @@ nonisolated final class AVPlayerEngine: AudioEngine, @unchecked Sendable {
         statusObserver = item.observe(\.status, options: [.new]) { [weak self] item, _ in
             guard let self, item.status == .failed else { return }
             let failure = Self.failure(item: item, error: item.error)
+            if self.retryUnidentifiedMedia(failedItem: item, failure: failure) { return }
             let playbackToken = self.lock.withLock {
                 item === self.currentItem ? self.currentPlaybackToken : nil
             }
@@ -983,6 +993,86 @@ nonisolated final class AVPlayerEngine: AudioEngine, @unchecked Sendable {
             guard let playbackToken else { return }
             self.delegate?.audioEngineDidError(failure, playbackToken: playbackToken)
         }
+    }
+
+    // MARK: - Unidentified container recovery
+
+    /// Reopens a stream AVFoundation could not identify, naming its container from the bytes.
+    ///
+    /// AVFoundation picks a decoder from the server's Content-Type and the URL's file extension.
+    /// Subsonic stream URLs have no extension, and some servers send FLAC as `audio/x-flac` or
+    /// `application/octet-stream`, so the load fails at once. The retry runs only after that
+    /// specific failure, so streams that already work are never touched.
+    /// Returns true when the failure is being handled and must not be reported yet.
+    private func retryUnidentifiedMedia(failedItem: AVPlayerItem, failure: AudioEngineFailure) -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        guard failure.isUnidentifiedMedia,
+              failedItem === currentItem,
+              let token = currentPlaybackToken,
+              mimeRecoveryToken != token,
+              let url = (currentAsset as? AVURLAsset)?.url,
+              ["http", "https"].contains(url.scheme?.lowercased()) else { return false }
+        mimeRecoveryToken = token
+        let headers = currentSourceHeaders
+        Task.detached { [weak self] in
+            let mimeType = await Self.sniffedMIMEType(of: url, headers: headers)
+            self?.finishUnidentifiedMediaRetry(
+                token: token, url: url, headers: headers, mimeType: mimeType, failure: failure
+            )
+        }
+        return true
+    }
+
+    private func finishUnidentifiedMediaRetry(
+        token: AudioEnginePlaybackToken,
+        url: URL,
+        headers: [String: String],
+        mimeType: String?,
+        failure: AudioEngineFailure
+    ) {
+        lock.lock()
+        guard token == currentPlaybackToken, let failedItem = currentItem, let trackID = currentTrackID else {
+            lock.unlock()
+            return
+        }
+        guard let mimeType else {
+            lock.unlock()
+            Logger.player.warning("[ENGINE] stream container could not be identified; reporting the original failure")
+            delegate?.audioEngineDidError(failure, playbackToken: token)
+            return
+        }
+        Logger.player.info("[ENGINE] reopening stream as \(mimeType, privacy: .public) after an unidentified container")
+        let asset = AVURLAsset(url: url, options: Self.assetOptions(headers: headers, mimeType: mimeType))
+        let item = AVPlayerItem(asset: asset)
+        item.forwardPlaybackEndTime = failedItem.forwardPlaybackEndTime
+        attachItemObservers(item)
+        currentItem = item
+        currentAsset = asset
+        activeContext.tapInstalled = false
+        activePlayer.replaceCurrentItem(with: item)
+        applyDeckVolumes()
+        if shouldBePlaying { beginPlaying() }
+        installReplayGainTapIfNeeded(context: activeContext, trackID: trackID)
+        lock.unlock()
+    }
+
+    /// Reads the first bytes of the stream and names its container. Nil when unreachable or unknown.
+    private static func sniffedMIMEType(of url: URL, headers: [String: String]) async -> String? {
+        var request = URLRequest(url: url, timeoutInterval: 10)
+        request.setValue("bytes=0-\(AudioContainer.magicPrefixLength - 1)", forHTTPHeaderField: "Range")
+        for (name, value) in headers { request.setValue(value, forHTTPHeaderField: name) }
+        guard let (bytes, response) = try? await URLSession.shared.bytes(for: request, delegate: OriginScopedRedirectDelegate()),
+              (response as? HTTPURLResponse).map({ (200..<300).contains($0.statusCode) }) ?? false else { return nil }
+        // A server that ignores Range sends the whole file; stop after the prefix either way.
+        var prefix: [UInt8] = []
+        do {
+            for try await byte in bytes {
+                prefix.append(byte)
+                if prefix.count >= AudioContainer.magicPrefixLength { break }
+            }
+        } catch { return nil }
+        return AudioContainer.sniff(magic: prefix)?.mimeType
     }
 
     private static func failure(item: AVPlayerItem?, error: (any Error)?) -> AudioEngineFailure {

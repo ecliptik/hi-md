@@ -60,6 +60,16 @@ nonisolated struct AudioEngineFailure: Sendable, Equatable {
         self.codes = codes
     }
 
+    /// AVFoundation could not identify the container. Servers and proxies often label FLAC
+    /// `audio/x-flac` or `application/octet-stream`, and a URL without a file extension then
+    /// gives it nothing else to go on.
+    var isUnidentifiedMedia: Bool {
+        codes.contains {
+            ($0.domain == .avFoundation && $0.value == AVError.Code.fileFormatNotRecognized.rawValue)
+                || ($0.domain == .osStatus && $0.value == -12847)
+        }
+    }
+
     /// This invalidates the player objects, not the media URL. Network retries on the
     /// same objects cannot recover, even when a different track is selected.
     var isMediaServicesReset: Bool {

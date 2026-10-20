@@ -10,6 +10,20 @@ nonisolated enum AudioContainer: String, Sendable, CaseIterable {
     case wav  = "wav"
     case aiff = "aiff"
 
+    /// MIME type to hand AVFoundation when the server's own label could not be used.
+    /// Nil for containers AVFoundation cannot play, where naming the type would not help.
+    var mimeType: String? {
+        switch self {
+        case .flac: "audio/flac"
+        case .mp4:  "audio/mp4"
+        case .mp3:  "audio/mpeg"
+        case .aac:  "audio/aac"
+        case .wav:  "audio/wav"
+        case .aiff: "audio/aiff"
+        case .ogg:  nil
+        }
+    }
+
     /// Bytes needed to recognise every container below (`FORM`/`RIFF` need the type at offset 8).
     static let magicPrefixLength = 12
 
