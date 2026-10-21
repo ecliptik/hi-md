@@ -139,6 +139,9 @@ final class MinidiscUXVerificationTests: XCTestCase {
     }
 
     func testFixtureSiriSettings() async throws {
+        // The fork's free personal team cannot sign the SiriKit entitlement, so the row is hidden
+        // (SiriKitEntitlement.isPresent in the app). Re-enable this test when it is restored.
+        throw XCTSkip("SiriKit entitlement is not available to the fork's signing team")
         try await launchFixtureApp()
         try tap(app.buttons["Réglages"], named: "siri-settings")
         try tap(app.buttons["Application"], named: "siri-application-settings")

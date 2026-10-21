@@ -1,6 +1,15 @@
 import Intents
 import SwiftUI
 
+/// Whether this build carries `com.apple.developer.siri`. Without it, any INPreferences call
+/// throws an Objective-C exception and terminates the app. The fork's free personal team cannot
+/// use the entitlement (see FORK.md); set this to true when restoring it in Minidisc.entitlements.
+/// App Intents, including the iOS 27 audio actions, do not need it.
+nonisolated enum SiriKitEntitlement {
+    static let isPresent = false
+}
+
+/// The SiriKit authorization row, shown only when the build has the Siri entitlement.
 struct SiriSettingsSection: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.openURL) private var openURL
