@@ -466,8 +466,8 @@ struct PlaylistDetailView: View {
                 }
                 .tint(.primary)
             }
-            ToolbarItem(placement: .primaryAction) {
-                Menu("More options", systemImage: "ellipsis") {
+            // The system "…" menu.
+            ToolbarOverflowMenu {
                     Group {
                         Button("Select Songs", systemImage: "checkmark.circle") {
                             songSelection = SongSelectionRequest(songs: sortedSongs(resolvedSongs(viewModel)))
@@ -504,8 +504,6 @@ struct PlaylistDetailView: View {
                         }
                     }
                     .tint(.primary)
-                }
-                .tint(.primary)
             }
         }
     }

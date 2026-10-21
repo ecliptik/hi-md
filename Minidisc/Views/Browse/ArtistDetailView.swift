@@ -200,15 +200,14 @@ struct ArtistDetailView: View {
                 }
                 .tint(headerTextColor)
             }
+            .visibilityPriority(.high)
 
-            ToolbarItem(placement: .primaryAction) {
-                Menu("More options", systemImage: "ellipsis") {
-                    Button("Automix", systemImage: instantMixSymbol) {
-                        startArtistAutomix()
-                    }
-                    .disabled(!canStartArtistAutomix)
+            // The system "…" menu, which also takes Share when space runs out.
+            ToolbarOverflowMenu {
+                Button("Automix", systemImage: instantMixSymbol) {
+                    startArtistAutomix()
                 }
-                .tint(headerTextColor)
+                .disabled(!canStartArtistAutomix)
             }
         }
         .task(id: container?.serverState.isOnline) {

@@ -363,8 +363,9 @@ struct AlbumDetailView: View {
                 .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isAlbumFavorite)
                 .disabled(!isOnline)
             }
-            ToolbarItem(placement: .primaryAction) {
-                Menu("More options", systemImage: "ellipsis") {
+            .visibilityPriority(.high)
+            // The system "…" menu, which also takes the favourite button when space runs out.
+            ToolbarOverflowMenu {
                     Group {
                         Button("Select Songs", systemImage: "checkmark.circle") {
                             songSelection = SongSelectionRequest(songs: displaySongs())
@@ -388,8 +389,6 @@ struct AlbumDetailView: View {
                         }
                     }
                     .tint(palette.contentColor)
-                }
-                .tint(palette.contentColor)
             }
         }
         .sheet(item: $songSelection) { SongSelectionSheet(request: $0) }
