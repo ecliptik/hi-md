@@ -13,6 +13,9 @@ final class OfflineFavoritesSync {
         let isOnline: Bool
         let observedNetwork: Bool
         let enabled: Bool
+        let keepFavorites: Bool
+        let keepRecentlyPlayed: Bool
+        let keepPinned: Bool
         let allowsCellular: Bool
         let format: CacheFormat
         let streamQuality: StreamQuality
@@ -36,6 +39,13 @@ final class OfflineFavoritesSync {
     private let transfer: OfflineFavoritesTransfer
     private let fetchFavorites: @Sendable (ServerConnection) async throws -> Starred2
     private let fetchAlbum: @Sendable (ServerConnection, String) async throws -> AlbumID3
+    private let fetchPlaylist: @Sendable (ServerConnection, String) async throws -> PlaylistWithSongs
+    /// Album IDs from Recently Played, most recent first.
+    var recentAlbumIDs: @MainActor (UUID) async -> [String] = { _ in [] }
+    /// Pinned albums and playlists for a server, as (kind, id) with kind "album" or "playlist".
+    var pinnedItems: @MainActor (UUID) -> [(kind: String, id: String)] = { _ in [] }
+    /// How many recently played albums auto-caching keeps.
+    static let recentAlbumLimit = 12
     private var runID = UUID()
 
     var request: Request {
@@ -44,7 +54,10 @@ final class OfflineFavoritesSync {
                 network: server.state.networkPathEvent,
                 isOnline: server.state.isOnline,
                 observedNetwork: server.state.hasObservedNetworkPath,
-                enabled: settings.keepFavoritesOffline,
+                enabled: settings.keepsAnythingOffline,
+                keepFavorites: settings.keepFavoritesOffline,
+                keepRecentlyPlayed: settings.keepRecentlyPlayedOffline,
+                keepPinned: settings.keepPinnedOffline,
                 allowsCellular: settings.cacheOverCellular,
                 format: settings.cacheFormat, streamQuality: streamSettings.currentQuality,
                 revision: revision)
@@ -62,7 +75,8 @@ final class OfflineFavoritesSync {
          cache: any AudioStreamCacheProtocol, artwork: ArtworkImageCache? = nil,
          session: URLSession? = nil,
          fetchFavorites: @escaping @Sendable (ServerConnection) async throws -> Starred2 = { try await $0.makeSwiftSonicClient().getStarred2() },
-         fetchAlbum: @escaping @Sendable (ServerConnection, String) async throws -> AlbumID3 = { try await $0.makeSwiftSonicClient().getAlbum(id: $1) }) {
+         fetchAlbum: @escaping @Sendable (ServerConnection, String) async throws -> AlbumID3 = { try await $0.makeSwiftSonicClient().getAlbum(id: $1) },
+         fetchPlaylist: @escaping @Sendable (ServerConnection, String) async throws -> PlaylistWithSongs = { try await $0.makeSwiftSonicClient().getPlaylist(id: $1) }) {
         self.store = store
         self.settings = settings
         self.streamSettings = streamSettings
@@ -73,6 +87,7 @@ final class OfflineFavoritesSync {
         transfer = OfflineFavoritesTransfer(session: session)
         self.fetchFavorites = fetchFavorites
         self.fetchAlbum = fetchAlbum
+        self.fetchPlaylist = fetchPlaylist
     }
 
     func refreshUsage() async {
@@ -113,15 +128,35 @@ final class OfflineFavoritesSync {
         else { throw CancellationError() }
         let serverID = connection.version.serverID
         let client = connection.makeSwiftSonicClient()
-        let favorites = try await fetchFavorites(connection)
+        let favorites = expected.keepFavorites ? try await fetchFavorites(connection) : nil
         try check(expected)
         var albums: [AlbumID3] = []
-        for album in favorites.album ?? [] {
+        for album in favorites?.album ?? [] {
             albums.append(try await fetchAlbum(connection, album.id))
             try check(expected)
         }
+        var albumIDs = Set(albums.map(\.id))
+        // Recently played and pinned items are best effort: one that was deleted on the server
+        // is skipped rather than stopping the whole sync.
+        if expected.keepRecentlyPlayed {
+            for id in await recentAlbumIDs(serverID).prefix(Self.recentAlbumLimit) where albumIDs.insert(id).inserted {
+                if let album = try? await fetchAlbum(connection, id) { albums.append(album) }
+                try check(expected)
+            }
+        }
+        var extraSongs: [Song] = []
+        if expected.keepPinned {
+            for pin in pinnedItems(serverID) {
+                if pin.kind == "album", albumIDs.insert(pin.id).inserted {
+                    if let album = try? await fetchAlbum(connection, pin.id) { albums.append(album) }
+                } else if pin.kind == "playlist" {
+                    extraSongs += (try? await fetchPlaylist(connection, pin.id))?.entry ?? []
+                }
+                try check(expected)
+            }
+        }
         // Only a complete, successful catalogue may remove previously saved favorites.
-        let songs = try await store.reconcile(favorites: favorites, albums: albums, serverID: serverID)
+        let songs = try await store.reconcile(favorites: favorites, albums: albums, extraSongs: extraSongs, serverID: serverID)
         try check(expected)
         total = songs.count
         var covers = Set<String>()

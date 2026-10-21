@@ -1,17 +1,32 @@
 import SwiftUI
 
+/// Settings > Storage > Auto-Caching: what Minidisc keeps on the phone by itself.
 struct OfflineFavoritesSettingsSection: View {
     let settings: CacheSettings
     let sync: OfflineFavoritesSync
 
     var body: some View {
         Section {
-            Toggle("Keep Favorites Offline", isOn: Binding(
+            Toggle("Favorites", isOn: Binding(
                 get: { settings.keepFavoritesOffline },
                 set: { settings.keepFavoritesOffline = $0 }
             ))
-            .tint(Color(.systemGreen))
             .accessibilityIdentifier("offline-favorites-toggle")
+            Toggle("Recently Played", isOn: Binding(
+                get: { settings.keepRecentlyPlayedOffline },
+                set: { settings.keepRecentlyPlayedOffline = $0 }
+            ))
+            .accessibilityIdentifier("auto-cache-recent-toggle")
+            Toggle("Pinned", isOn: Binding(
+                get: { settings.keepPinnedOffline },
+                set: { settings.keepPinnedOffline = $0 }
+            ))
+            .accessibilityIdentifier("auto-cache-pinned-toggle")
+            Toggle("Upcoming Songs", isOn: Binding(
+                get: { settings.cacheUpcomingSongs },
+                set: { settings.cacheUpcomingSongs = $0 }
+            ))
+            .accessibilityIdentifier("auto-cache-upcoming-toggle")
 
             LabeledContent("Disk usage") {
                 usageText
@@ -20,7 +35,7 @@ struct OfflineFavoritesSettingsSection: View {
             }
             .accessibilityIdentifier("offline-favorites-usage")
 
-            if settings.keepFavoritesOffline {
+            if settings.keepsAnythingOffline {
                 if sync.isSyncing {
                     HStack {
                         ProgressView()
@@ -41,14 +56,14 @@ struct OfflineFavoritesSettingsSection: View {
                 if let error = sync.error {
                     Text(error.displayMessage).font(.footnote).foregroundStyle(.secondary)
                 }
-                Button("Sync Favorites Now") { sync.revision += 1 }
+                Button("Sync Now") { sync.revision += 1 }
                     .disabled(sync.isSyncing || sync.waitingForConnection || sync.waitingForWiFi)
                     .accessibilityIdentifier("offline-favorites-sync")
             }
         } header: {
-            Text("Offline favorites")
+            Text("Auto-Caching")
         } footer: {
-            Text("Favorite tracks and albums are saved automatically, outside Downloads and the stream cache limit. Turning this off removes only these automatic copies. Uses the stream cache format and cellular data settings.")
+            Text("Favorites, the \(OfflineFavoritesSync.recentAlbumLimit) most recently played albums and pinned albums and playlists are saved automatically, outside Downloads and the stream cache limit; turning one off removes only its automatic copies. Upcoming songs go into the stream cache. Uses the stream cache format and cellular data settings.")
         }
         .task { await sync.refreshUsage() }
     }
@@ -57,5 +72,30 @@ struct OfflineFavoritesSettingsSection: View {
         let size = ByteCountFormatter.string(fromByteCount: sync.usage.bytes, countStyle: .file)
         if sync.usage.count == 1 { return Text("1 track · \(size)") }
         return Text("\(sync.usage.count) tracks · \(size)")
+    }
+}
+
+/// The small "Auto-Caching 13%" capsule shown above the mini player while the sync runs.
+struct AutoCachingIndicator: View {
+    let sync: OfflineFavoritesSync
+
+    var body: some View {
+        if sync.isSyncing, sync.total > 0, sync.completed < sync.total {
+            let fraction = Double(sync.completed) / Double(sync.total)
+            HStack(spacing: MinidiscSpacing.s) {
+                ProgressView().controlSize(.small)
+                Text("Auto-Caching")
+                    .font(.footnote.weight(.semibold))
+                Text(fraction.formatted(.percent.precision(.fractionLength(0))))
+                    .font(.footnote.monospacedDigit())
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, MinidiscSpacing.l)
+            .padding(.vertical, MinidiscSpacing.s)
+            .glassEffect(.regular, in: Capsule())
+            .accessibilityElement(children: .combine)
+            .allowsHitTesting(false)
+            .transition(.opacity.combined(with: .move(edge: .bottom)))
+        }
     }
 }

@@ -12,6 +12,9 @@ final class CacheSettings {
     @ObservationIgnored private var _cacheOverCellular: Bool
     @ObservationIgnored private var _cacheArtwork: Bool
     @ObservationIgnored private var _keepFavoritesOffline: Bool
+    @ObservationIgnored private var _keepRecentlyPlayedOffline: Bool
+    @ObservationIgnored private var _keepPinnedOffline: Bool
+    @ObservationIgnored private var _cacheUpcomingSongs: Bool
 
     // MARK: - Visible properties (manual observation hooks)
 
@@ -84,6 +87,45 @@ final class CacheSettings {
         }
     }
 
+    /// Auto-caching: the most recently played albums.
+    var keepRecentlyPlayedOffline: Bool {
+        get {
+            access(keyPath: \.keepRecentlyPlayedOffline)
+            return _keepRecentlyPlayedOffline
+        }
+        set {
+            withMutation(keyPath: \.keepRecentlyPlayedOffline) { _keepRecentlyPlayedOffline = newValue }
+            defaults.set(newValue, forKey: Self.keepRecentlyPlayedOfflineKey)
+        }
+    }
+
+    /// Auto-caching: albums and playlists pinned to Home and Library.
+    var keepPinnedOffline: Bool {
+        get {
+            access(keyPath: \.keepPinnedOffline)
+            return _keepPinnedOffline
+        }
+        set {
+            withMutation(keyPath: \.keepPinnedOffline) { _keepPinnedOffline = newValue }
+            defaults.set(newValue, forKey: Self.keepPinnedOfflineKey)
+        }
+    }
+
+    /// Auto-caching: the next songs in the queue, saved into the stream cache ahead of time.
+    var cacheUpcomingSongs: Bool {
+        get {
+            access(keyPath: \.cacheUpcomingSongs)
+            return _cacheUpcomingSongs
+        }
+        set {
+            withMutation(keyPath: \.cacheUpcomingSongs) { _cacheUpcomingSongs = newValue }
+            defaults.set(newValue, forKey: Self.cacheUpcomingSongsKey)
+        }
+    }
+
+    /// Whether any automatic copy is kept in the offline store.
+    var keepsAnythingOffline: Bool { keepFavoritesOffline || keepRecentlyPlayedOffline || keepPinnedOffline }
+
     // MARK: - Defaults & keys
 
     static let defaultCapacityMegabytes = 512
@@ -99,6 +141,9 @@ final class CacheSettings {
     private static let cacheFormatKey = "minidisc.cache.format"
     private static let cacheOverCellularKey = "minidisc.cache.cellular"
     private static let keepFavoritesOfflineKey = "minidisc.cache.favoritesOffline"
+    private static let keepRecentlyPlayedOfflineKey = "minidisc.cache.recentlyPlayedOffline"
+    private static let keepPinnedOfflineKey = "minidisc.cache.pinnedOffline"
+    private static let cacheUpcomingSongsKey = "minidisc.cache.upcomingSongs"
     private static let cacheArtworkKey = "minidisc.cache.artwork"
 
     // MARK: - Init
@@ -106,6 +151,9 @@ final class CacheSettings {
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         self._keepFavoritesOffline = defaults.object(forKey: Self.keepFavoritesOfflineKey) as? Bool ?? true
+        self._keepRecentlyPlayedOffline = defaults.object(forKey: Self.keepRecentlyPlayedOfflineKey) as? Bool ?? true
+        self._keepPinnedOffline = defaults.object(forKey: Self.keepPinnedOfflineKey) as? Bool ?? true
+        self._cacheUpcomingSongs = defaults.object(forKey: Self.cacheUpcomingSongsKey) as? Bool ?? true
 
         if defaults.object(forKey: Self.capacityMegabytesKey) != nil {
             self._capacityMegabytes = Self.normalizedCapacity(

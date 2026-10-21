@@ -146,6 +146,57 @@ struct OfflineFavoritesTests {
         #expect(FileManager.default.fileExists(atPath: cached.path))
     }
 
+    @Test func recentlyPlayedAndPinnedPlaylistsAreKeptBestEffort() async throws {
+        let root = try folder()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = OfflineFavoritesStore(directory: root.appendingPathComponent("store"))
+        let models = try ModelContainer.minidisc(inMemory: true)
+        let server = try server()
+        let id = try #require(server.connection?.version.serverID)
+        let recentSong = Song(id: "recent-song", title: "Recent", albumId: "recent")
+        let pinnedSong = Song(id: "pinned-song", title: "Pinned")
+        let cache = AudioStreamCache(modelContainer: models)
+        var cachedFiles: [URL] = []
+        for song in [recentSong, pinnedSong] {
+            cachedFiles.append(try await cache.store(fileAt: audio(in: root), forSongId: song.id, serverId: id, mimeType: "audio/mpeg"))
+        }
+        defer { cachedFiles.forEach { try? FileManager.default.removeItem(at: $0) } }
+        let settings = CacheSettings(defaults: UserDefaults(suiteName: "OfflineFavorites.\(UUID())")!)
+        settings.keepFavoritesOffline = false
+        let album = AlbumID3(id: "recent", name: "Recent", songCount: 1, duration: 1, song: [recentSong])
+        let playlist = PlaylistWithSongs(id: "p1", name: "Pinned", songCount: 1, duration: 1, entry: [pinnedSong])
+        let sync = OfflineFavoritesSync(
+            store: store, settings: settings, streamSettings: StreamSettings(), server: server,
+            downloads: DownloadService(serverService: server, modelContainer: models, toastService: ToastService()),
+            cache: cache,
+            fetchFavorites: { _ in Issue.record("Favorites are off"); throw CancellationError() },
+            fetchAlbum: { _, albumID in
+                guard albumID == "recent" else { throw URLError(.fileDoesNotExist) }
+                return album
+            },
+            fetchPlaylist: { _, _ in playlist })
+        // A recently played album deleted on the server is skipped, not fatal.
+        sync.recentAlbumIDs = { _ in ["deleted", "recent"] }
+        sync.pinnedItems = { _ in [(kind: "playlist", id: "p1")] }
+        await sync.synchronize()
+        #expect(sync.error == nil)
+        #expect(sync.completed == 2)
+        #expect(await store.localURL(songID: recentSong.id, serverID: id) != nil)
+        #expect(await store.localURL(songID: pinnedSong.id, serverID: id) != nil)
+
+        settings.keepPinnedOffline = false
+        await sync.synchronize()
+        #expect(await store.localURL(songID: pinnedSong.id, serverID: id) == nil)
+        #expect(await store.localURL(songID: recentSong.id, serverID: id) != nil)
+    }
+
+    @Test func upcomingSongsSkipLocalFilesAndStopAtTheLookahead() {
+        let queue = (0..<8).map { DisplayableSong(from: Song(id: "s\($0)", title: "\($0)")) }
+        #expect(UpcomingSongsPrefetcher.candidates(queue: queue, currentIndex: 2).map(\.id) == ["s3", "s4", "s5"])
+        #expect(UpcomingSongsPrefetcher.candidates(queue: queue, currentIndex: 7).isEmpty)
+        #expect(UpcomingSongsPrefetcher.candidates(queue: queue, currentIndex: 6).map(\.id) == ["s7"])
+    }
+
     @Test func unknownAndMeteredConnectionsDoNotStartAutomaticTransfers() async throws {
         let root = try folder()
         defer { try? FileManager.default.removeItem(at: root) }

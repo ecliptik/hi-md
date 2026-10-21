@@ -6,10 +6,12 @@ actor OfflineFavoritesStore {
         var favorites: Starred2?
         var albums: [String: AlbumID3] = [:]
         var files: [String: FileEntry] = [:]
+        /// Auto-cached songs beyond favourites and whole albums, such as pinned playlists.
+        var extraSongs: [Song]?
 
         var songs: [Song] {
             var seen = Set<String>()
-            return ((favorites?.song ?? []) + albums.values.flatMap { $0.song ?? [] })
+            return ((favorites?.song ?? []) + albums.values.flatMap { $0.song ?? [] } + (extraSongs ?? []))
                 .filter { seen.insert($0.id).inserted }
         }
     }
@@ -46,11 +48,12 @@ actor OfflineFavoritesStore {
         try save(value, serverID: serverID)
     }
 
-    func reconcile(favorites: Starred2, albums: [AlbumID3], serverID: UUID) throws -> [Song] {
+    func reconcile(favorites: Starred2?, albums: [AlbumID3], extraSongs: [Song] = [], serverID: UUID) throws -> [Song] {
         try Task.checkCancellation()
         var value = try snapshot(serverID: serverID)
         value.favorites = favorites
         value.albums = Dictionary(albums.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        value.extraSongs = extraSongs.isEmpty ? nil : extraSongs
         let desired = Set(value.songs.map(\.id))
         let removed = value.files.filter { !desired.contains($0.key) }
         value.files = value.files.filter { desired.contains($0.key) }

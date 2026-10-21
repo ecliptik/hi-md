@@ -2,6 +2,7 @@ import Foundation
 import OSLog
 import SwiftUI
 import SwiftData
+import SwiftSonic
 
 @MainActor
 final class AppContainer {
@@ -63,6 +64,10 @@ final class AppContainer {
         moodPlaylistService: moodPlaylistService, artwork: widgetArtwork
     )
     let linkRouter = LinkRouter()
+    private(set) lazy var upcomingSongsPrefetcher = UpcomingSongsPrefetcher(
+        playerState: playerState, server: serverService, resolver: mediaResolver,
+        cache: audioStreamCache, settings: cacheSettings, streamSettings: streamSettings
+    )
     /// Nil for in-memory test containers, which must not touch the device's Spotlight index.
     private(set) var spotlightIndexer: SpotlightIndexer?
     private let spotlightDefaults: UserDefaults?
@@ -169,6 +174,9 @@ final class AppContainer {
             store: favoritesStore, settings: cacheSettings, streamSettings: streamSettings,
             server: server, downloads: download, cache: cache, artwork: artworkImageCache
         )
+        offlineFavoritesSync.recentAlbumIDs = { serverID in
+            await HomeFeedCache.shared.load(serverID: serverID)?.recentlyPlayed.map(\.id) ?? []
+        }
         let moodCovers: @Sendable (PlaylistGradientSpec, String, String) async -> Void = { [artworkImageCache] spec, playlistId, title in
             let manager = await PlaylistCoverManager(
                 downloadService: download,
@@ -298,6 +306,12 @@ final class AppContainer {
             try await self?.handleWidgetCommand(command)
         }
         widgetSnapshotPublisher.start()
+        offlineFavoritesSync.pinnedItems = { [modelContainer] serverID in
+            let pins = FetchDescriptor<PinnedItem>(predicate: #Predicate { $0.serverId == serverID },
+                                                   sortBy: [SortDescriptor(\.sortOrder)])
+            return ((try? modelContainer.mainContext.fetch(pins)) ?? []).map { (kind: $0.itemType, id: $0.itemId) }
+        }
+        upcomingSongsPrefetcher.start()
         // Loading the settings sends the saved equalizer curve to the audio taps.
         EqualizerSettings.shared.publish()
         if let spotlightDefaults, spotlightIndexer == nil {

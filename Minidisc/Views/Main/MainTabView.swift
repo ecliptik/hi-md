@@ -42,6 +42,14 @@ struct MainTabView: View {
                 PlayerContainer(configuration: playerPresentation)
             }
             .tabBarMinimizeBehavior(.onScrollDown)
+            // Clears the tab bar, and the mini player when there is one.
+            .overlay(alignment: .bottom) {
+                if let sync = container?.offlineFavoritesSync, !playerPresentation.attachExpandedPlayer {
+                    AutoCachingIndicator(sync: sync)
+                        .padding(.bottom, hasTrack ? 150 : 96)
+                        .animation(.easeInOut(duration: 0.25), value: sync.isSyncing)
+                }
+            }
             .onChange(of: hasTrack) { _, hasTrack in
                 if !hasTrack { playerPresentation.reset() }
             }

@@ -49969,6 +49969,214 @@
           }
         }
       }
+    },
+    "Upcoming Songs" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nächste Titel"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Επόμενα τραγούδια"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Próximas canciones"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Morceaux à venir"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brani successivi"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "次に再生する曲"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "即将播放的歌曲"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "即將播放的歌曲"
+          }
+        }
+      }
+    },
+    "Auto-Caching" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatisches Zwischenspeichern"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Αυτόματη αποθήκευση"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Caché automática"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mise en cache automatique"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cache automatica"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自動キャッシュ"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自动缓存"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自動快取"
+          }
+        }
+      }
+    },
+    "Sync Now" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jetzt synchronisieren"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Συγχρονισμός τώρα"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sincronizar ahora"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Synchroniser maintenant"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sincronizza ora"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "今すぐ同期"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "立即同步"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "立即同步"
+          }
+        }
+      }
+    },
+    "Favorites, the %lld most recently played albums and pinned albums and playlists are saved automatically, outside Downloads and the stream cache limit; turning one off removes only its automatic copies. Upcoming songs go into the stream cache. Uses the stream cache format and cellular data settings." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Favoriten, die %lld zuletzt gespielten Alben sowie angeheftete Alben und Playlists werden automatisch gespeichert, außerhalb der Downloads und des Stream-Cache-Limits; das Ausschalten entfernt nur die jeweiligen automatischen Kopien. Nächste Titel landen im Stream-Cache. Verwendet Format und Mobilfunkeinstellungen des Stream-Cache."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Τα αγαπημένα, τα %lld πιο πρόσφατα άλμπουμ και τα καρφιτσωμένα άλμπουμ και λίστες αποθηκεύονται αυτόματα, εκτός Λήψεων και του ορίου της προσωρινής μνήμης· η απενεργοποίηση αφαιρεί μόνο τα αντίστοιχα αυτόματα αντίγραφα. Τα επόμενα τραγούδια μπαίνουν στην προσωρινή μνήμη ροής. Χρησιμοποιεί τη μορφή και τις ρυθμίσεις δεδομένων κινητής της προσωρινής μνήμης ροής."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Los favoritos, los %lld álbumes reproducidos más recientemente y los álbumes y playlists fijados se guardan automáticamente, fuera de Descargas y del límite de la caché; desactivar uno elimina solo sus copias automáticas. Las próximas canciones van a la caché de streaming. Usa el formato y los ajustes de datos móviles de la caché."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les favoris, les %lld albums écoutés le plus récemment et les albums et playlists épinglés sont enregistrés automatiquement, hors Téléchargements et hors limite du cache ; désactiver une option ne supprime que ses copies automatiques. Les morceaux à venir vont dans le cache de diffusion. Utilise le format et les réglages de données cellulaires du cache."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I preferiti, i %lld album ascoltati più di recente e gli album e le playlist fissati vengono salvati automaticamente, fuori dai Download e dal limite della cache; disattivarne uno rimuove solo le sue copie automatiche. I brani successivi vanno nella cache di streaming. Usa il formato e le impostazioni dati cellulari della cache."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "お気に入り、最近再生した%lld枚のアルバム、ピン留めしたアルバムとプレイリストは、ダウンロードやストリームキャッシュの上限とは別に自動で保存されます。オフにするとその自動コピーだけが削除されます。次に再生する曲はストリームキャッシュに入ります。ストリームキャッシュのフォーマットとモバイルデータ設定を使用します。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "收藏、最近播放的 %lld 张专辑以及置顶的专辑和播放列表会自动保存，不计入下载和流媒体缓存上限；关闭某项只会移除其自动副本。即将播放的歌曲会存入流媒体缓存。使用流媒体缓存的格式和蜂窝数据设置。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "收藏、最近播放的 %lld 張專輯以及釘選的專輯和播放列表會自動儲存，不計入下載和串流快取上限；關閉某項只會移除其自動副本。即將播放的歌曲會存入串流快取。使用串流快取的格式和行動數據設定。"
+          }
+        }
+      }
     }
   },
   "version" : "1.1"
