@@ -1,4 +1,7 @@
 import AVFoundation
+#if targetEnvironment(macCatalyst)
+import CoreAudio // UnsafeMutableAudioBufferListPointer on the Mac
+#endif
 import Foundation
 import Synchronization
 

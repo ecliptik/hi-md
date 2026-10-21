@@ -113,6 +113,7 @@ struct MinidiscApp: App {
                     MinidiscShortcuts.updateAppShortcutParameters()
                 }
         }
+        .commands { PlaybackCommands(container: activeContainer) }
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .active {
                 activeContainer?.offlineFavoritesSync.revision += 1

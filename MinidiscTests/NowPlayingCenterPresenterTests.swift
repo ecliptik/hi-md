@@ -1,3 +1,4 @@
+#if canImport(NowPlaying)
 import AppIntents
 import Foundation
 import NowPlaying
@@ -91,3 +92,4 @@ struct NowPlayingCenterPresenterTests {
         #expect(presenter.model.playbackSnapshot == nil)
     }
 }
+#endif

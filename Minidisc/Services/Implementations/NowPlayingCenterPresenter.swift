@@ -1,3 +1,4 @@
+#if canImport(NowPlaying)
 import AppIntents
 import Foundation
 import NowPlaying
@@ -238,3 +239,4 @@ final class NowPlayingCenterPresenter {
         Task { try? await RelevantEntities.shared.removeAllEntities(for: .audio(.nowPlaying)) }
     }
 }
+#endif

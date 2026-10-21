@@ -1,4 +1,7 @@
 import AVFoundation
+#if targetEnvironment(macCatalyst)
+import CoreAudio
+#endif
 import Foundation
 import Testing
 @testable import Minidisc

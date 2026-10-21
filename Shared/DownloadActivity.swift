@@ -1,3 +1,5 @@
+// Live Activities are iOS-only; Mac Catalyst builds leave the download activity out.
+#if !targetEnvironment(macCatalyst)
 import ActivityKit
 import AppIntents
 import Foundation
@@ -33,3 +35,4 @@ struct CancelMinidiscDownloadIntent: LiveActivityIntent {
         return .result()
     }
 }
+#endif
