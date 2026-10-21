@@ -1,7 +1,8 @@
 import SwiftUI
 
 private struct MinidiscPlayingAccentKey: EnvironmentKey {
-    static let defaultValue: Color = MinidiscColors.accent
+    // RootView sets the chosen accent; this is only the fallback outside it.
+    static let defaultValue = Color(.minidiscBrandGold)
 }
 
 extension EnvironmentValues {

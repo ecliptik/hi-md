@@ -863,6 +863,7 @@ private struct IntegrationsSettingsView: View {
 private struct ApplicationSettingsView: View {
     @Environment(\.appContainer) private var container
     @AppStorage("minidisc.appTheme") private var theme: AppTheme = .system
+    @Bindable private var appearance = AppearanceSettings.shared
 
     var body: some View {
         Form {
@@ -882,18 +883,65 @@ private struct ApplicationSettingsView: View {
                     }
                 }
                 .tint(.primary)
+                AccentColorPicker()
+                Picker("Album & Playlist Screens", selection: $appearance.detailStyle) {
+                    ForEach(DetailScreenStyle.allCases) { style in
+                        Text(style.title).tag(style)
+                    }
+                }
+                .tint(.primary)
             } header: {
                 Text("Appearance")
             } footer: {
-                Text("System follows your device's light or dark setting.")
+                Text("System follows your device's light or dark setting. Black screens use the accent colour for Play; Cover Colours tint album, playlist and artist screens from their artwork.")
             }
             MoodPlaylistSettingsSection()
-            SiriSettingsSection()
+            if SiriKitEntitlement.isPresent {
+                SiriSettingsSection()
+            }
             ApplicationDebugSection()
         }
         .formStyle(.grouped)
         .navigationTitle("Application")
         .navigationBarTitleDisplayModeInline()
+    }
+}
+
+/// A row of accent swatches; the selected one is ringed and announced as selected.
+private struct AccentColorPicker: View {
+    @Bindable private var appearance = AppearanceSettings.shared
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: MinidiscSpacing.s) {
+            Text("Accent Color")
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: MinidiscSpacing.m) {
+                    ForEach(AccentChoice.allCases) { choice in
+                        Button {
+                            HapticFeedback.light.trigger()
+                            appearance.accent = choice
+                        } label: {
+                            Circle()
+                                .fill(choice.color)
+                                .frame(width: 32, height: 32)
+                                .overlay {
+                                    if appearance.accent == choice {
+                                        Image(systemName: "checkmark")
+                                            .font(.caption.weight(.bold))
+                                            .foregroundStyle(.white)
+                                    }
+                                }
+                                .padding(3)
+                                .overlay(Circle().strokeBorder(appearance.accent == choice ? choice.color : .clear, lineWidth: 2))
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(Text(choice.title))
+                        .accessibilityAddTraits(appearance.accent == choice ? .isSelected : [])
+                    }
+                }
+                .padding(.vertical, 2)
+            }
+        }
     }
 }
 

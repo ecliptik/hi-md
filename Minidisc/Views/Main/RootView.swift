@@ -17,6 +17,9 @@ struct RootView: View {
 
     var body: some View {
         content
+            // The accent chosen in Settings > Appearance; reading it here redraws on change.
+            .tint(Color.minidiscAccent)
+            .environment(\.minidiscPlayingAccent, .minidiscAccent)
             // The server may have become reachable or unreachable while the app was away, or a
             // different server may now be active; neither always changes the network path.
             .onChange(of: scenePhase) { _, phase in

@@ -5,11 +5,16 @@ import SwiftUI
 public enum MinidiscColors {
     
     // MARK: — Accent
-    public static let accent = Color("MinidiscAccent")
+    /// The accent chosen in Settings > Appearance (gold by default).
+    @MainActor static var accent: Color { .minidiscAccent }
 
-    public static let accentBackground = Color("MinidiscAccentBackground")
+    @MainActor static var accentBackground: Color {
+        AppearanceSettings.shared.accent == .gold ? Color("MinidiscAccentBackground") : accent.opacity(0.14)
+    }
 
-    public static let accentForeground = Color("MinidiscAccentForeground")
+    @MainActor static var accentForeground: Color {
+        AppearanceSettings.shared.accent == .gold ? Color("MinidiscAccentForeground") : accent
+    }
 
     // MARK: — Backgrounds
     public static let backgroundPrimary = Color("MinidiscBackgroundPrimary")
