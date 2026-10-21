@@ -1,6 +1,6 @@
 # UI redesign plan
 
-Status: in progress, 2026-10-20. Based on the owner's mockups (screenshots of another Subsonic client, used for layout and style only; none of its name, artwork or trial UI is copied). Tracked on the "Minidisc UI redesign" card.
+Status: done in the simulator, 2026-10-20; look, feel and sound still to be checked on a device. Based on the owner's mockups (screenshots of another Subsonic client, used for layout and style only; none of its name, artwork or trial UI is copied). Tracked on the "Minidisc UI redesign" card.
 
 ## Decisions
 
@@ -25,3 +25,7 @@ Status: in progress, 2026-10-20. Based on the owner's mockups (screenshots of an
 7. **Auto-caching.** Settings > Downloads & Cache: keep favourites, recently played, pinned items and the next songs in the queue on the phone, with a storage limit and a Wi-Fi-only switch, separate from explicit downloads so the cache can be cleared on its own. A small progress indicator shows while it works.
 
 Each step gets targeted tests and simulator screenshots; look and feel is confirmed on the phone once deployment works.
+
+## Outcome
+
+All seven steps are on the `ui/redesign` branch. Differences from the plan: Settings stays behind the Home button, so the mockup's Settings tab is not used; the Library's Recently Added stays a grid; the mini player's capsule is the system tab-bar accessory, tinted from the cover. Auto-caching extends the existing offline-favourites sync and store instead of adding a new one, and its size is bounded by the 12-album recent limit rather than a byte cap. The equalizer is verified with synthetic signals in tests (a +6 dB band measures within 0.5 dB); it still needs a listen on a device, together with gapless and crossfade. The Siri permission row in Settings is hidden because the free team cannot sign the SiriKit entitlement; it crashed the app before.
