@@ -38,6 +38,7 @@ final class MockPlayerService: PlayerServiceProtocol {
     func playInstantMix(from seed: InstantMixSeed, startingWith seedTrack: DisplayableSong?) async throws {}
     func setAutoExtendEnabled(_ enabled: Bool) async {}
     func setVolume(_ volume: Float) async {}
+    func applySleepFade(_ level: Float) async {}
     func togglePlayPause() async {}
     func saveCurrentPosition() async {}
     func replayGainSettingsDidChange() async {}

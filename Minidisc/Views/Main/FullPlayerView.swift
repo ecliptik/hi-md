@@ -495,12 +495,25 @@ private struct TrackInfoSection: View {
                         Label("Smart Shuffle", systemImage: "shuffle.circle")
                     }
                     .disabled(container?.serverState.activeServer == nil)
+                    if let sleepTimer = container?.sleepTimer {
+                        SleepTimerMenu(timer: sleepTimer)
+                    }
                 } label: {
                     Image(systemName: "ellipsis")
                         .font(.title2.weight(.semibold))
                         .foregroundStyle(contentColor)
                         .frame(width: 44, height: 44)
                         .contentShape(Circle())
+                        // A moon on the button while the sleep timer runs.
+                        .overlay(alignment: .topTrailing) {
+                            if container?.sleepTimer.isActive == true {
+                                Image(systemName: "moon.fill")
+                                    .font(.caption2)
+                                    .foregroundStyle(contentColor)
+                                    .offset(x: -2, y: 4)
+                                    .accessibilityLabel("Sleep timer on")
+                            }
+                        }
                 }
                 .menuOrder(.fixed)
                 .buttonStyle(.plain)
@@ -1008,6 +1021,38 @@ private struct VolumeSection: View {
                 .foregroundStyle(secondaryContentColor)
                 .frame(width: 20)
                 .accessibilityHidden(true)
+        }
+    }
+}
+
+/// The Sleep Timer submenu: off, end of song or album, or a number of minutes.
+private struct SleepTimerMenu: View {
+    let timer: SleepTimer
+
+    var body: some View {
+        Menu {
+            if timer.isActive {
+                Button("Turn Off Sleep Timer", systemImage: "moon.zzz", role: .destructive) { timer.cancel() }
+                Divider()
+            }
+            Button("End of Song", systemImage: "music.note") { timer.start(.endOfSong) }
+            Button("End of Album", systemImage: "square.stack") { timer.start(.endOfAlbum) }
+            ForEach(SleepTimer.durations, id: \.self) { minutes in
+                Button("\(minutes) Minutes") { timer.start(.minutes(minutes)) }
+            }
+        } label: {
+            Label("Sleep Timer", systemImage: timer.isActive ? "moon.fill" : "moon")
+            if let status { Text(status) }
+        }
+    }
+
+    private var status: String? {
+        switch timer.mode {
+        case .none: nil
+        case .endOfSong: String(localized: "At the end of this song")
+        case .endOfAlbum: String(localized: "At the end of this album")
+        case .minutes:
+            timer.endsAt.map { String(localized: "Pauses at \($0.formatted(date: .omitted, time: .shortened))") }
         }
     }
 }

@@ -46,6 +46,9 @@ protocol PlayerServiceProtocol: AnyObject, Sendable {
     /// When enabled and ≤15 tracks remain, the player appends a fresh smart shuffle batch automatically.
     func setAutoExtendEnabled(_ enabled: Bool) async
     func setVolume(_ volume: Float) async
+    /// Scales the user's saved volume by `level` (0...1) without saving it; the sleep timer fades
+    /// out with this and restores 1 afterwards.
+    func applySleepFade(_ level: Float) async
     func togglePlayPause() async
     func saveCurrentPosition() async
     /// Re-reads ReplayGainSettings and reapplies gain to the current track.

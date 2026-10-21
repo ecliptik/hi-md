@@ -1324,6 +1324,10 @@ actor PlayerService: PlayerServiceProtocol {
         Logger.player.info("Started Instant Mix with \(tracks.count) tracks (auto-extend on)")
     }
 
+    func applySleepFade(_ level: Float) async {
+        engine.volume = await playbackPreferences.restoredVolume * max(0, min(1, level))
+    }
+
     func setVolume(_ volume: Float) async {
         let clamped = max(0, min(1, volume))
         engine.volume = clamped

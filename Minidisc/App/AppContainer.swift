@@ -64,6 +64,7 @@ final class AppContainer {
         moodPlaylistService: moodPlaylistService, artwork: widgetArtwork
     )
     let linkRouter = LinkRouter()
+    private(set) lazy var sleepTimer = SleepTimer(playerState: playerState, player: playerService)
     private(set) lazy var upcomingSongsPrefetcher = UpcomingSongsPrefetcher(
         playerState: playerState, server: serverService, resolver: mediaResolver,
         cache: audioStreamCache, settings: cacheSettings, streamSettings: streamSettings
