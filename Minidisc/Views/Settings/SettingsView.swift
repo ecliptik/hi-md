@@ -66,6 +66,12 @@ struct SettingsView: View {
                         .foregroundStyle(.primary)
                 }
                 NavigationLink {
+                    EqualizerView()
+                } label: {
+                    Label("Equalizer", systemImage: "slider.vertical.3")
+                        .foregroundStyle(.primary)
+                }
+                NavigationLink {
                     StorageSettingsView(vm: downloadsVM)
                 } label: {
                     Label("Storage", systemImage: "internaldrive")

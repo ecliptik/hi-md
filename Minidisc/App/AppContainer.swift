@@ -298,6 +298,8 @@ final class AppContainer {
             try await self?.handleWidgetCommand(command)
         }
         widgetSnapshotPublisher.start()
+        // Loading the settings sends the saved equalizer curve to the audio taps.
+        EqualizerSettings.shared.publish()
         if let spotlightDefaults, spotlightIndexer == nil {
             spotlightIndexer = SpotlightIndexer(serverState: serverState, store: libraryIndexStore, defaults: spotlightDefaults)
         }

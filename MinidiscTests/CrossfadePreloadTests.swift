@@ -60,6 +60,12 @@ struct AVPlayerEngineReplayGainRoutingTests {
     @Test func installedTapOwnsTheEntireGain() {
         #expect(AVPlayerEngine.replayGainDeckVolumeScale(linearGain: 0.5, tapInstalled: true) == 1)
     }
+
+    @Test func equalizerRequiresAudioTapEvenWithoutBoost() {
+        #expect(!AVPlayerEngine.requiresAudioTap(linearGain: 0.5, equalizerEnabled: false))
+        #expect(AVPlayerEngine.requiresAudioTap(linearGain: 0.5, equalizerEnabled: true))
+        #expect(AVPlayerEngine.requiresAudioTap(linearGain: 1.5, equalizerEnabled: false))
+    }
 }
 
 @Suite("AVPlayerEngine equal-power crossfade")
