@@ -115,6 +115,13 @@ final class MinidiscUXVerificationTests: XCTestCase {
             }
         }
         revealToggle()
+        // Disk usage covers all of auto-caching; leave only favourites on so it counts just them.
+        for id in ["auto-cache-recent-toggle", "auto-cache-pinned-toggle", "auto-cache-upcoming-toggle"] {
+            let other = app.switches[id].firstMatch
+            try require(other)
+            let control = other.switches.firstMatch.exists ? other.switches.firstMatch : other
+            if control.value as? String == "1" { try tap(control, named: "disable-\(id)") }
+        }
         if toggle.value as? String == "0" { try tap(toggle, named: "enable-offline-favorites") }
         XCTAssertEqual(toggle.value as? String, "1")
         captureHierarchy("offline-favorites-enabled")
@@ -136,6 +143,12 @@ final class MinidiscUXVerificationTests: XCTestCase {
         XCTAssertEqual(XCTWaiter.wait(for: [saved], timeout: 20), .completed)
         captureHierarchy("offline-favorites-restored")
         capturePlayerScreenshot("Offline-favorites-storage")
+        // Restore the default auto-caching for later scenarios.
+        for id in ["auto-cache-recent-toggle", "auto-cache-pinned-toggle", "auto-cache-upcoming-toggle"] {
+            let other = app.switches[id].firstMatch
+            let control = other.switches.firstMatch.exists ? other.switches.firstMatch : other
+            if control.value as? String == "0" { try tap(control, named: "restore-\(id)") }
+        }
     }
 
     func testFixtureSiriSettings() async throws {
@@ -837,7 +850,9 @@ final class MinidiscUXVerificationTests: XCTestCase {
 
     func testFixturePlaylistArtworkAndSongMenu() async throws {
         try await openFixtureArtworkPlaylist()
-        let controls = ["shuffle", "play", "download"].map { app.buttons["playlist.detail.\($0)"] }
+        // Download is a standard toolbar button; the header holds shuffle and play.
+        try requireHittable(app.buttons["playlist.detail.download"])
+        let controls = ["shuffle", "play"].map { app.buttons["playlist.detail.\($0)"] }
         var controlFrames: [CGRect] = []
         let screen = app.frame
         for control in controls {
@@ -856,10 +871,8 @@ final class MinidiscUXVerificationTests: XCTestCase {
         captureHierarchy("playlist-detail-bright-artwork-header")
         try await Task.sleep(for: .seconds(3))
 
-        let songMenu = searchElement("playlist.song.menu.ux-song-1")
-        try scrollPlaylistTo(songMenu, named: "first-song-menu")
-        try tap(songMenu, named: "playlist-detail-song-menu-open")
-        try require(app.buttons["Informations"])
+        try openSongMenu(title: firstTitle, named: "playlist-detail-song-menu-open")
+        try revealMenuItem("Informations")
         captureHierarchy("playlist-detail-song-menu-confirmed")
         try await Task.sleep(for: .seconds(2))
         try tap(app.buttons["Informations"], named: "playlist-detail-song-information")
@@ -890,10 +903,10 @@ final class MinidiscUXVerificationTests: XCTestCase {
         XCTAssertLessThanOrEqual(title.frame.width, app.frame.width)
         captureHierarchy("playlist-detail-xxxl-title-and-metadata")
         try await Task.sleep(for: .seconds(3))
-        let songMenu = searchElement("playlist.song.menu.ux-song-2")
-        try scrollPlaylistTo(songMenu, named: "large-long-song")
-        XCTAssertGreaterThanOrEqual(songMenu.frame.width, 44)
-        XCTAssertGreaterThanOrEqual(songMenu.frame.height, 44)
+        let songRow = songRowButton(secondTitle)
+        try scrollPlaylistTo(songRow, named: "large-long-song")
+        XCTAssertLessThanOrEqual(songRow.frame.maxX, app.frame.maxX)
+        XCTAssertGreaterThanOrEqual(songRow.frame.height, 44)
         captureHierarchy("playlist-detail-xxxl-long-song-row")
         try await Task.sleep(for: .seconds(3))
     }
@@ -904,7 +917,7 @@ final class MinidiscUXVerificationTests: XCTestCase {
         try tap(app.staticTexts["Palette générée"].firstMatch, named: "playlist-detail-open-generator-fixture")
         try require(searchElement("playlist.detail.title"))
         XCTAssertEqual(searchElement("playlist.detail.title").label, "Palette générée")
-        try tap(app.buttons["Plus d'options"].firstMatch, named: "playlist-detail-options")
+        try tap(app.buttons["OverflowBarButtonItem"].firstMatch, named: "playlist-detail-options")
         try tap(app.buttons["Modifier"], named: "playlist-detail-edit-cover")
         try require(app.textFields["Titre de la liste de lecture"])
         let carousel = app.scrollViews.firstMatch
@@ -941,19 +954,16 @@ final class MinidiscUXVerificationTests: XCTestCase {
         let controlFrame = miniControl.frame
         let miniRegion = CGRect(x: 0, y: controlFrame.minY - 8, width: app.frame.width,
                                 height: controlFrame.height + 16)
+        // Scrolling can minimize the tab bar, which moves the mini player; read its title by identifier.
         func miniContains(_ title: String) -> Bool {
-            app.staticTexts.matching(identifier: title).allElementsBoundByIndex.contains {
-                $0.frame.intersects(miniRegion)
-            }
+            app.staticTexts.matching(identifier: "player.mini.title").firstMatch.label == title
         }
         XCTAssertTrue(miniContains(firstTitle))
 
         // Open another song's menu: an accidental row tap would change the current track.
-        let menu = searchElement("playlist.song.menu.ux-song-2")
-        try scrollPlaylistTo(menu, named: "second-song-menu")
-        try tap(menu, named: "playlist-detail-second-song-menu")
+        try openSongMenu(title: secondTitle, named: "playlist-detail-second-song-menu")
+        try revealMenuItem("Informations")
         let info = app.buttons["Informations"]
-        try require(info)
         XCTAssertTrue(miniContains(firstTitle), "Opening a future song's menu must preserve the paused current song.")
         captureHierarchy("playlist-detail-menu-preserves-current-track")
         try await Task.sleep(for: .seconds(2))
@@ -1026,6 +1036,31 @@ final class MinidiscUXVerificationTests: XCTestCase {
         try require(metadata)
         try require(metadata.staticTexts["test"])
         XCTAssertTrue(metadata.staticTexts.allElementsBoundByIndex.contains { $0.label.contains("Mise à jour") })
+    }
+
+    private func songRowButton(_ title: String) -> XCUIElement {
+        app.buttons.matching(NSPredicate(format: "label == %@", title)).firstMatch
+    }
+
+    /// Playlist rows show a duration; their song actions are in the long-press menu.
+    private func openSongMenu(title: String, named name: String) throws {
+        let row = songRowButton(title)
+        try scrollPlaylistTo(row, named: name)
+        captureHierarchy("before-\(name)")
+        row.press(forDuration: 1.2)
+        captureHierarchy(name)
+    }
+
+    /// The context menu scrolls once it is taller than the space beside its preview.
+    private func revealMenuItem(_ label: String) throws {
+        let item = app.buttons[label]
+        let menu = app.collectionViews.containing(.button, identifier: "Lire ensuite").firstMatch
+        try require(menu)
+        for attempt in 0..<4 where !(item.exists && item.isHittable) {
+            captureHierarchy("before-menu-scroll-\(attempt)")
+            menu.swipeUp(velocity: .slow)
+        }
+        try requireHittable(item)
     }
 
     private func scrollPlaylistTo(_ element: XCUIElement, named name: String) throws {
@@ -1135,7 +1170,8 @@ final class MinidiscUXVerificationTests: XCTestCase {
             try require(app.buttons["Retirer le téléchargement"], timeout: 30)
         }
         try tapBack(named: "downloads-back-to-playlists")
-        try tapBack(named: "downloads-back-to-library")
+        try tapTab("Bibliothèque")
+        try require(app.navigationBars["Bibliothèque"])
         try tap(app.buttons["Téléchargements"], named: "downloads-index-open")
         try assertInlineTitle("Téléchargements")
         try await verifyAlphabetJumps(recordPrefix: "downloads.album.", fixtureKind: "album", context: "downloads")
@@ -1164,7 +1200,8 @@ final class MinidiscUXVerificationTests: XCTestCase {
             try assertInlineTitle(title)
             captureHierarchy(title == "Titres" ? "songs-inline-navigation-title" : "playlists-inline-navigation-title")
             try await Task.sleep(for: .seconds(2))
-            try tapBack(named: "browse-title-back")
+            // The Playlists tab root has no Back button.
+            if title != "Listes de lecture" { try tapBack(named: "browse-title-back") }
         }
     }
 
@@ -1264,9 +1301,21 @@ final class MinidiscUXVerificationTests: XCTestCase {
     }
 
     private func openBrowse(_ title: String) throws {
+        // Playlists have their own tab; the other lists are Library tiles.
+        if title == "Listes de lecture" {
+            try tapTab(title)
+            try require(app.navigationBars[title])
+            return
+        }
         try tapTab("Bibliothèque")
         try require(app.navigationBars["Bibliothèque"])
-        try tap(app.buttons[title], named: "browse-open-\(title)")
+        let tile = app.buttons[["Titres": "Pistes", "Artistes": "Artistes d'album"][title] ?? title]
+        try require(tile)
+        // With large text the tile grid runs below the fold.
+        for _ in 0..<6 where !(tile.isHittable && tile.frame.maxY < app.frame.maxY - 160) {
+            app.swipeUp(velocity: .slow)
+        }
+        try tap(tile, named: "browse-open-\(title)")
         try require(app.navigationBars[title])
     }
 
@@ -1405,7 +1454,8 @@ final class MinidiscUXVerificationTests: XCTestCase {
         let favoriteSongs = searchElement("home.favoriteSongs")
         try scrollHomeTo(favoriteSongs, named: "home-favorite-songs")
         let favorite = app.buttons.matching(identifier: "home.favoriteSongs").allElementsBoundByIndex.first {
-            $0.label == "Aurore, Aurore Ensemble" && $0.isHittable
+            // Song rows speak the title as the label and the artist first in the value.
+            $0.label == "Aurore" && ($0.value as? String)?.hasPrefix("Aurore Ensemble") == true && $0.isHittable
         }
         try tap(try XCTUnwrap(favorite), named: "home-play-favorite")
         try require(app.buttons["Pause"].firstMatch)
@@ -1615,9 +1665,10 @@ final class MinidiscUXVerificationTests: XCTestCase {
     }
 
     private func miniPlayerTitle() throws -> XCUIElement {
-        try XCTUnwrap(app.staticTexts.allElementsBoundByIndex.filter {
-            [firstTitle, secondTitle].contains($0.label)
-        }.max { $0.frame.midY < $1.frame.midY })
+        // Playlist rows scroll behind the mini player, so find it by identifier, not position.
+        let title = app.staticTexts.matching(identifier: "player.mini.title").firstMatch
+        try require(title)
+        return title
     }
 
     private func playbackSeconds(_ element: XCUIElement) throws -> Int {
@@ -1632,6 +1683,11 @@ final class MinidiscUXVerificationTests: XCTestCase {
 
     private func tapTab(_ label: String) throws {
         let element = app.tabBars.buttons[label]
+        // Scrolling can minimize the tab bar to its selected tab; tapping that expands it again.
+        if !element.waitForExistence(timeout: 2) {
+            let selected = app.tabBars.buttons.matching(NSPredicate(format: "selected == true")).firstMatch
+            if selected.exists { selected.tap() }
+        }
         try require(element)
         captureHierarchy("before-tab-\(label)")
         element.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()

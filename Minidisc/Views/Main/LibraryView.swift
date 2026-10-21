@@ -5,6 +5,7 @@ import SwiftSonic
 struct LibraryView: View {
     @Environment(\.appContainer) private var container
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Query(sort: \PinnedItem.sortOrder) private var allPinnedItems: [PinnedItem]
     @Query private var recentDownloadedAlbums: [DownloadedAlbum]
     @Query private var recentDownloadedPlaylists: [DownloadedPlaylist]
@@ -233,11 +234,16 @@ struct LibraryView: View {
 
     // MARK: - Library section
 
-    private let tileColumns = [GridItem(.flexible(), spacing: MinidiscSpacing.m), GridItem(.flexible(), spacing: MinidiscSpacing.m)]
+    /// Two columns, or one at accessibility text sizes so tile titles don't wrap a letter at a time.
+    private var tileColumns: [GridItem] {
+        Array(repeating: GridItem(.flexible(), spacing: MinidiscSpacing.m), count: dynamicTypeSize.isAccessibilitySize ? 1 : 2)
+    }
 
     /// The tile grid from the mockups, then Shuffle Tracks and Shuffle Albums.
     private var librarySection: some View {
         let local = container?.offlineLibrary.snapshot ?? OfflineBrowsingSnapshot()
+        let shuffleLayout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(spacing: MinidiscSpacing.m)) : AnyLayout(HStackLayout(spacing: MinidiscSpacing.m))
         return VStack(spacing: MinidiscSpacing.m) {
             LazyVGrid(columns: tileColumns, spacing: MinidiscSpacing.m) {
                 if isOnline || !local.albums.isEmpty {
@@ -275,7 +281,7 @@ struct LibraryView: View {
             }
             .buttonStyle(.plain)
 
-            HStack(spacing: MinidiscSpacing.m) {
+            shuffleLayout {
                 Button { Task { await shuffleTracks() } } label: {
                     LibraryTile(title: "Tracks", systemImage: "shuffle", isShuffle: true)
                 }

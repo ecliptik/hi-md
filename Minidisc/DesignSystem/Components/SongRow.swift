@@ -90,7 +90,7 @@ struct SongRow: View {
             onAddToPlaylist: onAddToPlaylist,
             onShare: { shareRequest = song },
             onGoToAlbum: onGoToAlbum,
-            onGetInfo: trailingAccessory == .menu ? { trackInformation = song } : nil
+            onGetInfo: { trackInformation = song }
         )
     }
 
