@@ -22,6 +22,8 @@ struct SongRow: View {
     var titleColor: Color = .primary
     var secondaryColor: Color = .secondary
     var trailingAccessory: SongRowTrailingAccessory = .duration
+    /// Numbers tracks as disc.track ("2.4"), for albums with more than one disc.
+    var showsDiscNumber: Bool = false
     var menuAccessibilityIdentifier: String = ""
     let onDownload: (() -> Void)?
     let onRemoveDownload: (() -> Void)?
@@ -41,7 +43,8 @@ struct SongRow: View {
     @State private var preparedShare: PreparedTrackShare?
     @State private var trackInformation: DisplayableSong?
 
-    init(song: DisplayableSong, index: Int, showCoverArt: Bool = false, showArtist: Bool = true, secondaryText: String? = nil, coverArtSize: CGFloat = 44, coverArtCornerRadius: CGFloat = MinidiscCornerRadius.standard, primaryContentSpacing: CGFloat = MinidiscSpacing.s, isFavorite: Bool = false, titleColor: Color = .primary, secondaryColor: Color = .secondary, trailingAccessory: SongRowTrailingAccessory = .duration, menuAccessibilityIdentifier: String = "", onDownload: (() -> Void)? = nil, onRemoveDownload: (() -> Void)? = nil, isDownloading: Bool = false, onRemoveFromPlaylist: (() -> Void)? = nil, onAddToPlaylist: ((DisplayableSong) -> Void)? = nil, onGoToAlbum: (() -> Void)? = nil, onTap: (() -> Void)? = nil) {
+    init(song: DisplayableSong, index: Int, showCoverArt: Bool = false, showArtist: Bool = true, secondaryText: String? = nil, coverArtSize: CGFloat = 44, coverArtCornerRadius: CGFloat = MinidiscCornerRadius.standard, primaryContentSpacing: CGFloat = MinidiscSpacing.s, isFavorite: Bool = false, titleColor: Color = .primary, secondaryColor: Color = .secondary, trailingAccessory: SongRowTrailingAccessory = .duration, menuAccessibilityIdentifier: String = "", onDownload: (() -> Void)? = nil, onRemoveDownload: (() -> Void)? = nil, isDownloading: Bool = false, onRemoveFromPlaylist: (() -> Void)? = nil, onAddToPlaylist: ((DisplayableSong) -> Void)? = nil, onGoToAlbum: (() -> Void)? = nil, onTap: (() -> Void)? = nil, showsDiscNumber: Bool = false) {
+        self.showsDiscNumber = showsDiscNumber
         self.song = song
         self.index = index
         self.showCoverArt = showCoverArt
@@ -62,6 +65,12 @@ struct SongRow: View {
         self.onAddToPlaylist = onAddToPlaylist
         self.onGoToAlbum = onGoToAlbum
         self.onTap = onTap
+    }
+
+    private var numberLabel: String {
+        let track = song.trackNumber ?? index
+        guard showsDiscNumber, let disc = song.discNumber else { return "\(track)" }
+        return "\(disc).\(track)"
     }
 
     private var textLineLimit: Int {
@@ -150,7 +159,7 @@ struct SongRow: View {
                     if isCurrentTrack {
                         NowPlayingBarsIndicator(isPlaying: isPlaying)
                     } else {
-                        Text("\(song.trackNumber ?? index)")
+                        Text(verbatim: numberLabel)
                             .font(.minidiscCellSubtitle)
                             .foregroundStyle(secondaryColor.opacity(0.72))
                             .opacity(isFavorite ? 0 : 1)
@@ -162,7 +171,7 @@ struct SongRow: View {
                         }
                     }
                 }
-                .frame(width: 28, height: 44, alignment: .center)
+                .frame(width: showsDiscNumber ? 36 : 28, height: 44, alignment: .center)
                 .monospacedDigit()
             }
 

@@ -92,7 +92,15 @@ struct AlbumDetailView: View {
         viewModel == nil || (viewModel?.isLoading == true && viewModel?.songs.isEmpty == true)
     }
     private var palette: AlbumDetailPalette {
-        AlbumDetailPalette(dominantColor: dominantColor, appearance: colorScheme)
+        switch AppearanceSettings.shared.detailStyle {
+        case .black: .black(accent: AppearanceSettings.shared.accent)
+        case .coverColors: AlbumDetailPalette(dominantColor: dominantColor, appearance: colorScheme)
+        }
+    }
+
+    /// Albums spread over several discs number their tracks disc.track.
+    private func hasSeveralDiscs(_ songs: [DisplayableSong]) -> Bool {
+        Set(songs.compactMap(\.discNumber)).count > 1
     }
     private var headerTextColor: Color { palette.contentColor }
     private var headerSecondaryColor: Color { palette.secondaryContentColor }
@@ -228,10 +236,10 @@ struct AlbumDetailView: View {
                     mode: mode,
                     viewModel: viewModel,
                     downloadedAlbumTracks: downloadedAlbumTracks,
-                    contentColor: palette.contentColor,
+                    contentColor: palette.accentControlColor ?? palette.contentColor,
                     controlFillColor: palette.controlFillColor,
                     playLabelColor: palette.playLabelColor,
-                    showDeleteAlert: $showDeleteAlert
+                    playFillColor: palette.playFillColor
                 )
                 .padding(.top, MinidiscSpacing.l)
                 .padding(.bottom, MinidiscSpacing.xl)
@@ -262,6 +270,8 @@ struct AlbumDetailView: View {
                             )
                         }
                     } else {
+                        TrackCountRow(count: songs.count, totalDuration: songs.reduce(0) { $0 + $1.duration },
+                                      color: headerSecondaryColor)
                         AlbumSongRows(
                             songs: songs,
                             albumId: albumId,
@@ -270,6 +280,7 @@ struct AlbumDetailView: View {
                             downloadingIds: vm.downloadingIds,
                             titleColor: headerTextColor,
                             secondaryColor: headerSecondaryColor,
+                            showsDiscNumbers: hasSeveralDiscs(songs),
                             onTap: { index in
                                 Task {
                                     do {
@@ -346,27 +357,36 @@ struct AlbumDetailView: View {
                 .tint(palette.contentColor)
             }
             ToolbarItem(placement: .primaryAction) {
-                Button(
-                    isAlbumFavorite ? "Remove from Favorites" : "Add to Favorites",
-                    systemImage: isAlbumFavorite ? "star.fill" : "star"
-                ) {
-                    HapticFeedback.light.trigger()
-                    Task {
-                        if isAlbumFavorite {
-                            await container?.toastService.perform { try await container?.favoritesService.unstar(itemType: .album, itemId: albumId) }
-                        } else {
-                            await container?.toastService.perform { try await container?.favoritesService.star(itemType: .album, itemId: albumId) }
-                        }
-                    }
-                }
+                AlbumDownloadActionButton(
+                    albumId: albumId,
+                    mode: mode,
+                    viewModel: viewModel,
+                    downloadedAlbumTracks: downloadedAlbumTracks,
+                    contentColor: palette.contentColor,
+                    controlFillColor: palette.controlFillColor,
+                    showDeleteAlert: $showDeleteAlert,
+                    isToolbarItem: true
+                )
                 .tint(palette.contentColor)
-                .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isAlbumFavorite)
-                .disabled(!isOnline)
             }
             .visibilityPriority(.high)
-            // The system "…" menu, which also takes the favourite button when space runs out.
+            // The system "…" menu, which also takes the download button when space runs out.
             ToolbarOverflowMenu {
                     Group {
+                        Button(
+                            isAlbumFavorite ? "Remove from Favorites" : "Add to Favorites",
+                            systemImage: isAlbumFavorite ? "star.fill" : "star"
+                        ) {
+                            HapticFeedback.light.trigger()
+                            Task {
+                                if isAlbumFavorite {
+                                    await container?.toastService.perform { try await container?.favoritesService.unstar(itemType: .album, itemId: albumId) }
+                                } else {
+                                    await container?.toastService.perform { try await container?.favoritesService.star(itemType: .album, itemId: albumId) }
+                                }
+                            }
+                        }
+                        .disabled(!isOnline)
                         Button("Select Songs", systemImage: "checkmark.circle") {
                             songSelection = SongSelectionRequest(songs: displaySongs())
                         }
@@ -378,11 +398,13 @@ struct AlbumDetailView: View {
                         }
                         .disabled(displaySongs().isEmpty || !isOnline)
                         Divider()
-                        // ColorPicker requires a sheet rather than Menu content.
-                        Button("Theme colour", systemImage: "paintpalette") {
-                            showThemeColorSheet = true
+                        if AppearanceSettings.shared.detailStyle == .coverColors {
+                            // ColorPicker requires a sheet rather than Menu content.
+                            Button("Theme colour", systemImage: "paintpalette") {
+                                showThemeColorSheet = true
+                            }
                         }
-                        if colorExtractor.colorOverride(for: albumCoverId) != nil {
+                        if AppearanceSettings.shared.detailStyle == .coverColors, colorExtractor.colorOverride(for: albumCoverId) != nil {
                             Button("Reset to cover colour", systemImage: "arrow.uturn.backward") {
                                 resetThemeColor()
                             }
@@ -494,6 +516,28 @@ struct AlbumDetailPalette {
     let controlFillColor: Color
     let playLabelColor: Color
     let preferredContentScheme: ColorScheme?
+    /// The Play capsule: white on cover colours, the accent colour on black.
+    var playFillColor: Color = .white
+
+    /// The black detail-screen style: white text, with the accent colour on Play.
+    /// Icon buttons beside Play: the content colour on cover colours, the accent on black.
+    var accentControlColor: Color?
+
+    @MainActor static func black(accent: AccentChoice) -> AlbumDetailPalette {
+        AlbumDetailPalette(black: accent.fillColor, iconColor: accent.color)
+    }
+
+    private init(black fill: Color, iconColor: Color) {
+        backgroundTopColor = .black
+        backgroundBottomColor = .black
+        contentColor = .white
+        secondaryContentColor = .white.opacity(0.62)
+        controlFillColor = .white.opacity(0.14)
+        playLabelColor = .white
+        preferredContentScheme = .dark
+        playFillColor = fill
+        accentControlColor = iconColor
+    }
 
     init(dominantColor: Color, appearance: ColorScheme) {
         guard dominantColor != .clear else {
@@ -627,7 +671,7 @@ struct AlbumMetadataSection: View {
     var body: some View {
         VStack(spacing: MinidiscSpacing.xs) {
             Text(albumName)
-                .font(.title2.weight(.bold))
+                .font(.title.weight(.bold))
                 .multilineTextAlignment(.center)
                 .lineLimit(2)
 
@@ -637,14 +681,14 @@ struct AlbumMetadataSection: View {
                 if let artistId, !isOffline {
                     NavigationLink(value: HomeDestination.artist(ArtistID3(id: artistId, name: artistName))) {
                         Text(artistName)
-                            .font(.title3.weight(.medium))
-                            .foregroundStyle(.secondary)
+                            .font(.title3)
+                            .foregroundStyle(.primary)
                     }
                     .buttonStyle(.plain)
                 } else {
                     Text(artistName)
-                        .font(.title3.weight(.medium))
-                        .foregroundStyle(.secondary)
+                        .font(.title3)
+                        .foregroundStyle(.primary)
                 }
             }
 
@@ -691,7 +735,7 @@ private struct AlbumPlaybackActions: View {
     let contentColor: Color
     let controlFillColor: Color
     let playLabelColor: Color
-    @Binding var showDeleteAlert: Bool
+    let playFillColor: Color
 
     @Environment(\.appContainer) private var container
 
@@ -714,29 +758,8 @@ private struct AlbumPlaybackActions: View {
                 .disabled(songs.isEmpty)
                 .accessibilityLabel("Shuffle")
 
-                PlayButton(
-                    action: {
-                        Task {
-                            guard !songs.isEmpty else { return }
-                            await container?.toastService.perform { try await container?.playerService.play(tracks: songs, startIndex: 0) }
-                        }
-                    },
-                    isDisabled: songs.isEmpty,
-                    accentColor: .white,
-                    labelColor: playLabelColor,
-                    height: 48
-                )
-                .frame(maxWidth: 220)
-
-                AlbumDownloadActionButton(
-                    albumId: albumId,
-                    mode: mode,
-                    viewModel: viewModel,
-                    downloadedAlbumTracks: downloadedAlbumTracks,
-                    contentColor: contentColor,
-                    controlFillColor: controlFillColor,
-                    showDeleteAlert: $showDeleteAlert
-                )
+                PlayMenuButton(songs: songs, fillColor: playFillColor, labelColor: playLabelColor)
+                    .frame(maxWidth: 220)
             }
             .buttonStyle(.plain)
             .padding(.horizontal, MinidiscSpacing.xxxxl)
@@ -774,6 +797,8 @@ private struct AlbumDownloadActionButton: View {
     let contentColor: Color
     let controlFillColor: Color
     @Binding var showDeleteAlert: Bool
+    /// A plain toolbar icon, with a dot once the album is downloaded, instead of a filled circle.
+    var isToolbarItem = false
 
     @Environment(\.appContainer) private var container
 
@@ -796,11 +821,20 @@ private struct AlbumDownloadActionButton: View {
 
     var body: some View {
         Button(action: performAction) {
-            AlbumCircularActionLabel(
-                systemImage: state.systemImage,
-                foregroundColor: contentColor,
-                backgroundColor: controlFillColor
-            )
+            if isToolbarItem {
+                Image(systemName: state == .removeDownloaded ? "arrow.down" : state.systemImage)
+                    .overlay(alignment: .bottomTrailing) {
+                        if state == .removeDownloaded {
+                            Circle().fill(Color.minidiscAccent).frame(width: 7, height: 7).offset(x: 3, y: 2)
+                        }
+                    }
+            } else {
+                AlbumCircularActionLabel(
+                    systemImage: state.systemImage,
+                    foregroundColor: contentColor,
+                    backgroundColor: controlFillColor
+                )
+            }
         }
         .disabled(state == .unavailable)
         .opacity(state == .unavailable ? 0.4 : 1)
@@ -934,6 +968,7 @@ struct AlbumSongRows: View {
     let downloadingIds: Set<String>
     let titleColor: Color
     let secondaryColor: Color
+    let showsDiscNumbers: Bool
     let onTap: (Int) -> Void
     let onDownload: ((String) -> Void)?
     let onRemoveDownload: ((String) -> Void)?
@@ -947,12 +982,13 @@ struct AlbumSongRows: View {
         Set(allFavorites.map(\.id))
     }
 
-    init(songs: [DisplayableSong], albumId: String, serverId: UUID, showArtists: Bool = false, downloadingIds: Set<String> = [], titleColor: Color = .primary, secondaryColor: Color = .secondary, onTap: @escaping (Int) -> Void, onDownload: ((String) -> Void)? = nil, onRemoveDownload: ((String) -> Void)? = nil, onAddToPlaylist: ((DisplayableSong) -> Void)? = nil) {
+    init(songs: [DisplayableSong], albumId: String, serverId: UUID, showArtists: Bool = false, downloadingIds: Set<String> = [], titleColor: Color = .primary, secondaryColor: Color = .secondary, showsDiscNumbers: Bool = false, onTap: @escaping (Int) -> Void, onDownload: ((String) -> Void)? = nil, onRemoveDownload: ((String) -> Void)? = nil, onAddToPlaylist: ((DisplayableSong) -> Void)? = nil) {
         self.songs = songs
         self.showArtists = showArtists
         self.downloadingIds = downloadingIds
         self.titleColor = titleColor
         self.secondaryColor = secondaryColor
+        self.showsDiscNumbers = showsDiscNumbers
         self.onTap = onTap
         self.onDownload = onDownload
         self.onRemoveDownload = onRemoveDownload
@@ -981,7 +1017,7 @@ struct AlbumSongRows: View {
             let downloadAction: (() -> Void)? = (liveDownloaded || isDownloading) ? nil : onDownload.map { action in { action(song.id) } }
             let removeAction: (() -> Void)? = liveDownloaded ? onRemoveDownload.map { action in { action(song.id) } } : nil
             VStack(spacing: 0) {
-                SongRow(song: liveSong, index: index + 1, showArtist: showArtists, isFavorite: favoriteIds.contains("song:\(song.id)"), titleColor: titleColor, secondaryColor: secondaryColor, trailingAccessory: .menu, onDownload: downloadAction, onRemoveDownload: removeAction, isDownloading: isDownloading, onAddToPlaylist: onAddToPlaylist, onTap: { onTap(index) })
+                SongRow(song: liveSong, index: index + 1, showArtist: showArtists, isFavorite: favoriteIds.contains("song:\(song.id)"), titleColor: titleColor, secondaryColor: secondaryColor, trailingAccessory: .duration, onDownload: downloadAction, onRemoveDownload: removeAction, isDownloading: isDownloading, onAddToPlaylist: onAddToPlaylist, onTap: { onTap(index) }, showsDiscNumber: showsDiscNumbers)
                     .padding(.vertical, MinidiscSpacing.xs)
                     .padding(.horizontal, MinidiscSpacing.l)
                 if index < songs.count - 1 {
@@ -1230,5 +1266,29 @@ struct ThemeColorSheet: View {
             }
         }
         .presentationDetents([.height(260)])
+    }
+}
+
+/// "18 tracks" and the total running time, above a song list.
+struct TrackCountRow: View {
+    let count: Int
+    let totalDuration: TimeInterval
+    let color: Color
+
+    var body: some View {
+        HStack {
+            Text("\(count) tracks")
+            Spacer()
+            Text(Duration.seconds(totalDuration).formatted(.time(pattern: totalDuration >= 3600 ? .hourMinuteSecond : .minuteSecond)))
+                .monospacedDigit()
+        }
+        .font(.minidiscCaption)
+        .foregroundStyle(color)
+        .padding(.horizontal, MinidiscSpacing.l)
+        .padding(.bottom, MinidiscSpacing.s)
+        .overlay(alignment: .bottom) {
+            Rectangle().fill(color.opacity(0.3)).frame(height: 0.5)
+        }
+        .accessibilityElement(children: .combine)
     }
 }

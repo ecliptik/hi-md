@@ -45,6 +45,13 @@ nonisolated enum AccentChoice: String, CaseIterable, Identifiable, Sendable {
         return Color(uiColor: Self.dynamicColor(light: light, dark: dark))
     }
 
+    /// For filled buttons with white text: the deeper light-mode shade in both appearances,
+    /// since the bright dark-mode shade is too light behind white.
+    @MainActor var fillColor: Color {
+        if self == .gold { return Color(.minidiscBrandGold).resolvedLight }
+        return Color(uiColor: UIColor(rgb: hex.light))
+    }
+
     /// Nonisolated so the provider closure is too: SwiftUI resolves colours on its render
     /// thread, and a main-actor closure would trap there.
     private static func dynamicColor(light: UInt32, dark: UInt32) -> UIColor {
@@ -102,6 +109,15 @@ extension Color {
 
 extension ShapeStyle where Self == Color {
     static var minidiscAccent: Color { Color.minidiscAccent }
+}
+
+private extension Color {
+    /// This colour as it appears in light mode.
+    var resolvedLight: Color {
+        var environment = EnvironmentValues()
+        environment.colorScheme = .light
+        return Color(resolve(in: environment))
+    }
 }
 
 private nonisolated extension UIColor {
