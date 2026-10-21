@@ -9,7 +9,10 @@ struct MiniPlayerAccessoryView: View {
     var expandPlayer: () -> Void
     @Environment(\.appContainer) private var container
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(DominantColorExtractor.self) private var colorExtractor
     @State private var dragOffset: CGFloat = 0
+    /// The playing cover's colour, darkened for white text; clear until it is known.
+    @State private var coverTint: Color = .clear
     @State private var isAnimatingSwipe = false
 
     private let swipeThreshold: CGFloat = 100
@@ -46,6 +49,7 @@ struct MiniPlayerAccessoryView: View {
                 expandedBar(playerState: playerState, coverArtId: coverArtId, title: title, artist: artist, isPlaying: isPlaying, isAvailable: isAvailable, isLiveStream: isLiveStream, status: playerState.playbackStatusMessage)
             }
         }
+        .task(id: coverArtId) { await loadCoverTint(coverArtId) }
         .offset(x: dragOffset)
         .opacity(1.0 - min(abs(dragOffset) / 200, 0.4))
         .contentShape(Rectangle())
@@ -96,13 +100,13 @@ struct MiniPlayerAccessoryView: View {
             : playerState.position / playerState.duration
         return VStack(spacing: 0) {
             HStack(alignment: .center, spacing: MinidiscSpacing.m) {
-                miniArtwork(coverArtId)
+                miniArtwork(coverArtId, size: 40)
                     .opacity(isAvailable ? 1.0 : 0.5)
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
                         .accessibilityIdentifier("player.mini.title")
-                        .font(.minidiscCellTitle)
+                        .font(.minidiscCellTitle.weight(.semibold))
                         .foregroundStyle(typoColor)
                         .lineLimit(1)
                         .accessibilityLabel(metadataLabel(title: title, artist: artist, status: status))
@@ -144,9 +148,9 @@ struct MiniPlayerAccessoryView: View {
                 }
                 .frame(height: 36)
             }
-            .padding(.leading, MinidiscSpacing.l)
+            .padding(.leading, MinidiscSpacing.s)
             .padding(.trailing, MinidiscSpacing.s)
-            .padding(.vertical, MinidiscSpacing.m)
+            .padding(.vertical, MinidiscSpacing.s)
 
             if isLiveStream {
                 HStack(spacing: MinidiscSpacing.xs) {
@@ -171,14 +175,36 @@ struct MiniPlayerAccessoryView: View {
                 .accessibilityHidden(true)
             }
         }
+        // A capsule tinted from the cover, fading towards the controls, with white text on it.
+        .background {
+            if coverTint != .clear {
+                LinearGradient(colors: [coverTint, coverTint.opacity(0.55)], startPoint: .leading, endPoint: .trailing)
+            }
+        }
+        .environment(\.colorScheme, coverTint != .clear ? .dark : colorSchemeFallback)
     }
 
-    private func miniArtwork(_ coverArtId: String) -> some View {
-        CoverArtView(id: coverArtId, size: 60,
+    @Environment(\.colorScheme) private var colorSchemeFallback
+
+    private func loadCoverTint(_ coverArtId: String) async {
+        guard !coverArtId.isEmpty else { coverTint = .clear; return }
+        let color: Color
+        if let cached = colorExtractor.cachedColor(for: coverArtId) {
+            color = cached
+        } else {
+            guard let image = await container?.artworkImageCache.load(coverArtId: coverArtId) else { return }
+            color = colorExtractor.dominantColor(for: coverArtId, image: image)
+        }
+        let tint = color == .clear ? .clear : AlbumDetailPalette(dominantColor: color, appearance: .dark).backgroundBottomColor
+        withAnimation(.easeInOut(duration: 0.3)) { coverTint = tint }
+    }
+
+    private func miniArtwork(_ coverArtId: String, size: CGFloat = 30) -> some View {
+        CoverArtView(id: coverArtId, size: 120,
                      initialImage: initialArtwork?.id == coverArtId ? initialArtwork?.image : nil)
             .minidiscCoverStyle()
             .modifier(PlayerArtworkTransition(namespace: artworkNamespace))
-            .frame(width: 30, height: 30)
+            .frame(width: size, height: size)
     }
 
     private func metadataLabel(title: String, artist: String?, status: String?) -> Text {
