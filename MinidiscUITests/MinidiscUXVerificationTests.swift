@@ -14,6 +14,8 @@ final class MinidiscUXVerificationTests: XCTestCase {
     override func setUp() {
         super.setUp()
         continueAfterFailure = false
+        // LayoutCaptureTests rotates the simulator; its reset doesn't always stick.
+        XCUIDevice.shared.orientation = .portrait
     }
 
     #if compiler(>=6.4) && canImport(AppIntentsTesting)
