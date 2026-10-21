@@ -7,14 +7,13 @@ struct MainTabView: View {
     @State private var homePath = NavigationPath()
     @State private var libraryPath = NavigationPath()
     @State private var discoverPath = NavigationPath()
+    @State private var playlistsPath = NavigationPath()
     @SceneStorage("minidisc.selectedTab") private var selectedTab: AppTab = .home
     @State private var playerPresentation = PlayerContainerConfiguration()
     @State private var playlistAddition = PlaylistAddition()
     @AppStorage("minidisc.appTheme") private var theme: AppTheme = .system
 
-    private enum AppTab: String, Hashable { case home, discover, library, lidarr, search }
-
-    private var lidarrConnected: Bool { container?.lidarrSettings.isConnected == true }
+    private enum AppTab: String, Hashable { case home, discover, library, playlists, search }
 
     private var hasTrack: Bool {
         container?.playerState.currentTrack != nil || container?.playerState.isLiveStream == true
@@ -77,10 +76,12 @@ struct MainTabView: View {
                 }
             }
 
-            if lidarrConnected {
-                Tab("Lidarr", systemImage: "opticaldisc.fill", value: AppTab.lidarr) {
-                    NavigationStack {
-                        LidarrLibraryView()
+            // Lidarr, when connected, is a Library tile so the bar keeps five tabs.
+            if container?.serverState.activeServer != nil {
+                Tab("Playlists", systemImage: "music.note.list", value: AppTab.playlists) {
+                    NavigationStack(path: $playlistsPath) {
+                        PlaylistListView()
+                            .resolvesHomeDestinations()
                     }
                 }
             }
@@ -106,11 +107,9 @@ struct MainTabView: View {
             homePath = NavigationPath()
             libraryPath = NavigationPath()
             discoverPath = NavigationPath()
+            playlistsPath = NavigationPath()
             searchPath = NavigationPath()
             searchText = ""
-        }
-        .onChange(of: lidarrConnected, initial: true) {
-            if !lidarrConnected, selectedTab == .lidarr { selectedTab = .home }
         }
         .onReceive(NotificationCenter.default.publisher(for: .minidiscNavigateToLibrary)) { _ in
             playerPresentation.reset()

@@ -233,59 +233,95 @@ struct LibraryView: View {
 
     // MARK: - Library section
 
+    private let tileColumns = [GridItem(.flexible(), spacing: MinidiscSpacing.m), GridItem(.flexible(), spacing: MinidiscSpacing.m)]
+
+    /// The tile grid from the mockups, then Shuffle Tracks and Shuffle Albums.
     private var librarySection: some View {
         let local = container?.offlineLibrary.snapshot ?? OfflineBrowsingSnapshot()
-        return VStack(alignment: .leading, spacing: MinidiscSpacing.s) {
-            VStack(spacing: 0) {
+        return VStack(spacing: MinidiscSpacing.m) {
+            LazyVGrid(columns: tileColumns, spacing: MinidiscSpacing.m) {
+                if isOnline || !local.albums.isEmpty {
+                    NavigationLink(value: HomeDestination.libraryAlbums) { LibraryTile(title: "Albums", systemImage: "square.stack.fill") }
+                }
+                if isOnline || !local.artists.isEmpty {
+                    NavigationLink(value: HomeDestination.libraryArtists) { LibraryTile(title: "Album Artists", systemImage: "person.crop.square.fill") }
+                }
+                if isOnline || !local.songs.isEmpty {
+                    NavigationLink(value: HomeDestination.librarySongs) { LibraryTile(title: "Tracks", systemImage: "music.note") }
+                }
+                NavigationLink { LibraryFacetListView(kind: .trackArtist) } label: {
+                    LibraryTile(title: "Track Artists", systemImage: "music.mic")
+                }
+                NavigationLink { LibraryFacetListView(kind: .genre) } label: {
+                    LibraryTile(title: "Genres", systemImage: "guitars.fill")
+                }
+                NavigationLink { LibraryFacetListView(kind: .composer) } label: {
+                    LibraryTile(title: "Composers", systemImage: "music.quarternote.3")
+                }
+                if isOnline || !local.favorites.songs.isEmpty || !local.favorites.albums.isEmpty || !local.favorites.artists.isEmpty {
+                    NavigationLink(value: HomeDestination.libraryFavorites) { LibraryTile(title: "Favorites", systemImage: "star.fill") }
+                }
+                if isOnline || local.songs.contains(where: \.isDownloaded) {
+                    NavigationLink(value: HomeDestination.libraryDownloads) { LibraryTile(title: "Downloads", systemImage: "arrow.down.circle.fill") }
+                }
                 if container?.localMusic.snapshot.folders.isEmpty == false {
                     NavigationLink { LocalMusicView() } label: {
-                        HomeLibraryRowLabel(title: "Local Files", systemImage: "folder.fill", tableName: "LocalMusic")
+                        LibraryTile(title: LocalizedStringResource("Local Files", table: "LocalMusic"), systemImage: "folder.fill")
                     }
-                    .buttonStyle(.plain)
-                    Divider().padding(.leading, 52)
                 }
-                if isOnline || (!local.playlists.isEmpty) {
-                    NavigationLink(value: HomeDestination.libraryPlaylists) {
-                        HomeLibraryRowLabel(title: "Playlists", systemImage: "music.note.list")
-                    }
-                    .buttonStyle(.plain)
-                    Divider().padding(.leading, 52)
-                }
-                if isOnline || (!local.albums.isEmpty) {
-                    NavigationLink(value: HomeDestination.libraryAlbums) {
-                        HomeLibraryRowLabel(title: "Albums", systemImage: "square.stack")
-                    }
-                    .buttonStyle(.plain)
-                    Divider().padding(.leading, 52)
-                }
-                if isOnline || (!local.artists.isEmpty) {
-                    NavigationLink(value: HomeDestination.libraryArtists) {
-                        HomeLibraryRowLabel(title: "Artists", systemImage: "music.mic")
-                    }
-                    .buttonStyle(.plain)
-                    Divider().padding(.leading, 52)
-                }
-                if isOnline || (!local.songs.isEmpty) {
-                    NavigationLink(value: HomeDestination.librarySongs) {
-                        HomeLibraryRowLabel(title: "Songs", systemImage: "music.note")
-                    }
-                    .buttonStyle(.plain)
-                    Divider().padding(.leading, 52)
-                }
-                if isOnline || (!local.favorites.songs.isEmpty || !local.favorites.albums.isEmpty || !local.favorites.artists.isEmpty) {
-                    NavigationLink(value: HomeDestination.libraryFavorites) {
-                        HomeLibraryRowLabel(title: "Favorites", systemImage: "star.fill")
-                    }
-                    .buttonStyle(.plain)
-                    Divider().padding(.leading, 52)
-                }
-                if isOnline || (local.songs.contains(where: \.isDownloaded)) {
-                    NavigationLink(value: HomeDestination.libraryDownloads) {
-                        HomeLibraryRowLabel(title: "Downloads", systemImage: "arrow.down.circle.fill")
-                    }
-                    .buttonStyle(.plain)
+                if container?.lidarrSettings.isConnected == true {
+                    NavigationLink { LidarrLibraryView() } label: { LibraryTile(title: "Lidarr", systemImage: "opticaldisc.fill") }
                 }
             }
+            .buttonStyle(.plain)
+
+            HStack(spacing: MinidiscSpacing.m) {
+                Button { Task { await shuffleTracks() } } label: {
+                    LibraryTile(title: "Tracks", systemImage: "shuffle", isShuffle: true)
+                }
+                .accessibilityLabel("Shuffle Tracks")
+                Button { Task { await shuffleAlbums() } } label: {
+                    LibraryTile(title: "Albums", systemImage: "shuffle", isShuffle: true)
+                }
+                .accessibilityLabel("Shuffle Albums")
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    /// Random songs from the server, or from downloads when offline.
+    private func shuffleTracks() async {
+        guard let container else { return }
+        HapticFeedback.medium.trigger()
+        await container.toastService.perform {
+            let songs: [DisplayableSong]
+            if container.serverState.isOnline {
+                songs = try await container.libraryService.randomSongs(size: 200).map { DisplayableSong(from: $0) }
+            } else {
+                songs = Array(container.offlineLibrary.snapshot.songs.filter(\.isDownloaded).shuffled().prefix(200))
+            }
+            guard !songs.isEmpty else { throw MusicIntentError.empty }
+            try await container.playerService.play(tracks: songs, startIndex: 0)
+        }
+    }
+
+    /// Ten random albums, each played in order.
+    private func shuffleAlbums() async {
+        guard let container, let server = container.serverState.activeServer else { return }
+        HapticFeedback.medium.trigger()
+        await container.toastService.perform {
+            let scope = MusicIntentID.scope(baseURL: server.baseURL, username: server.username)
+            let albumIDs: [String] = container.serverState.isOnline
+                ? try await container.libraryIndexStore.albums(serverID: server.id).map(\.id)
+                : container.offlineLibrary.snapshot.albums.map(\.id)
+            let service = MusicIntentService(container: container)
+            var songs: [DisplayableSong] = []
+            for id in albumIDs.shuffled().prefix(10) {
+                let reference = MusicIntentID(scope: scope, kind: .album, resourceID: id)
+                songs += (try? await service.songs(id: reference.rawValue)) ?? []
+            }
+            guard !songs.isEmpty else { throw MusicIntentError.empty }
+            try await container.playerService.play(tracks: songs, startIndex: 0)
         }
     }
 
@@ -336,6 +372,34 @@ struct LibraryView: View {
                 }
             }
         }
+    }
+}
+
+// MARK: - LibraryTile
+
+/// A rounded tile with an accent symbol on the left and its title on the right.
+private struct LibraryTile: View {
+    let title: LocalizedStringResource
+    let systemImage: String
+    var isShuffle = false
+
+    var body: some View {
+        HStack(spacing: MinidiscSpacing.m) {
+            Image(systemName: systemImage)
+                .font(.title2)
+                .foregroundStyle(Color.minidiscAccent)
+                .accessibilityHidden(true)
+            Spacer(minLength: 0)
+            Text(title)
+                .font(.headline)
+                .multilineTextAlignment(.trailing)
+                .foregroundStyle(.primary)
+        }
+        .padding(.horizontal, MinidiscSpacing.l)
+        .frame(maxWidth: .infinity, minHeight: isShuffle ? 56 : 76)
+        .background(isShuffle ? Color.minidiscAccent.opacity(0.18) : Color(.secondarySystemBackground),
+                    in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .contentShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
     }
 }
 
@@ -438,39 +502,6 @@ private struct HomePinnedCard: View {
                 return []
             }
         }
-    }
-}
-
-// MARK: - HomeLibraryRowLabel
-
-private struct HomeLibraryRowLabel: View {
-    let title: LocalizedStringKey
-    let systemImage: String
-    var tableName: String? = nil
-
-    var body: some View {
-        HStack(spacing: MinidiscSpacing.m) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 7, style: .continuous)
-                    .fill(Color.minidiscAccent)
-                    .frame(width: 30, height: 30)
-                Image(systemName: systemImage)
-                    .font(.caption)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(.white)
-            }
-            Text(title, tableName: tableName)
-                .font(.minidiscCellTitle)
-                .foregroundStyle(.primary)
-            Spacer(minLength: 0)
-            Image(systemName: "chevron.right")
-                .font(.caption)
-                .fontWeight(.semibold)
-                .foregroundStyle(.tertiary)
-        }
-        .padding(.horizontal, MinidiscSpacing.m)
-        .padding(.vertical, MinidiscSpacing.m)
-        .contentShape(Rectangle())
     }
 }
 
