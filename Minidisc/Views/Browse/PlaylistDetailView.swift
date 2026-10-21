@@ -121,7 +121,8 @@ struct PlaylistDetailView: View {
         coverRefreshID = UUID()
     }
 
-    private var bodyColor: Color { PlaylistArtworkPalette.background(for: dominantColor) }
+    private var isBlackStyle: Bool { AppearanceSettings.shared.detailStyle == .black }
+    private var bodyColor: Color { isBlackStyle ? .black : PlaylistArtworkPalette.background(for: dominantColor) }
     private var headerTextColor: Color { .white }
     private var headerSecondaryColor: Color { .white.opacity(0.7) }
     private var heroIconColor: Color { .minidiscAccentSecondary }
@@ -249,6 +250,11 @@ struct PlaylistDetailView: View {
                         guard let stored = resolvedSongs(vm).firstIndex(where: { $0.id == song.id }) else { return }
                         Task { await vm.removeTrack(at: stored) }
                     }
+                    TrackCountRow(count: songs.count, totalDuration: songs.reduce(0) { $0 + $1.duration },
+                                  color: headerSecondaryColor)
+                        .listRowInsets(EdgeInsets())
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(bodyColor)
                     PlaylistSongRows(
                         songs: songs,
                         serverId: serverId,
@@ -270,12 +276,8 @@ struct PlaylistDetailView: View {
                         onContextRemove: removeTrack,
                         onAddToPlaylist: playlistAddition.present,
                         rowBackground: bodyColor,
-                        trailingAccessory: .menu
+                        trailingAccessory: .duration
                     )
-
-                    PlaylistTrackSummary(count: songs.count, duration: songs.reduce(0) { $0 + $1.duration })
-                        .listRowSeparator(.hidden)
-                        .listRowBackground(bodyColor)
 
                     let featured = FeaturedArtist.from(songs)
                     if !featured.isEmpty {
@@ -466,6 +468,22 @@ struct PlaylistDetailView: View {
                 }
                 .tint(.primary)
             }
+            if let control = downloadControl(for: viewModel) {
+                ToolbarItem(placement: .primaryAction) {
+                    Button(action: performDownloadAction) {
+                        Image(systemName: control == .remove ? "arrow.down" : control.symbol)
+                            .overlay(alignment: .bottomTrailing) {
+                                if control == .remove {
+                                    Circle().fill(Color.minidiscAccent).frame(width: 7, height: 7).offset(x: 3, y: 2)
+                                }
+                            }
+                    }
+                    .accessibilityLabel(control.label)
+                    .accessibilityIdentifier("playlist.detail.download")
+                    .tint(.primary)
+                }
+                .visibilityPriority(.high)
+            }
             // The system "…" menu.
             ToolbarOverflowMenu {
                     Group {
@@ -493,11 +511,13 @@ struct PlaylistDetailView: View {
                         } label: {
                             Label("Sort By", systemImage: "arrow.up.arrow.down")
                         }
-                        Divider()
-                        Button("Theme colour", systemImage: "paintpalette") {
-                            showThemeColorSheet = true
+                        if !isBlackStyle {
+                            Divider()
+                            Button("Theme colour", systemImage: "paintpalette") {
+                                showThemeColorSheet = true
+                            }
                         }
-                        if colorExtractor.colorOverride(for: displayCoverArtId) != nil {
+                        if !isBlackStyle, colorExtractor.colorOverride(for: displayCoverArtId) != nil {
                             Button("Reset to cover colour", systemImage: "arrow.uturn.backward") {
                                 resetThemeColor()
                             }
@@ -818,8 +838,10 @@ struct PlaylistDetailView: View {
 
                 PlaylistPlaybackControls(
                     isEnabled: !resolvedSongs(vm).isEmpty,
-                    playColor: bodyColor,
-                    downloadControl: downloadControl(for: vm),
+                    songs: sortedSongs(resolvedSongs(vm)),
+                    playFill: isBlackStyle ? AppearanceSettings.shared.accent.fillColor : .white,
+                    playLabel: isBlackStyle ? .white : bodyColor,
+                    shuffleColor: isBlackStyle ? Color.minidiscAccent : .white,
                     onPlay: {
                         Task {
                             let songs = sortedSongs(resolvedSongs(vm))
@@ -834,8 +856,7 @@ struct PlaylistDetailView: View {
                             guard !shuffled.isEmpty else { return }
                             await playSongs(shuffled, startIndex: 0)
                         }
-                    },
-                    onDownload: { performDownloadAction() }
+                    }
                 )
 
                 if let vm, vm.isDownloadingPlaylist {

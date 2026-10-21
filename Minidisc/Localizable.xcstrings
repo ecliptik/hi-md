@@ -48305,6 +48305,58 @@
           }
         }
       }
+    },
+    "Touch and hold for Play Next and Add to Queue." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gedrückt halten für „Als Nächstes spielen“ und „Zur Warteliste hinzufügen“."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Αγγίξτε παρατεταμένα για Αναπαραγωγή επόμενου και Προσθήκη στην ουρά."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mantén pulsado para Reproducir a continuación y Añadir a la cola."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maintenez appuyé pour Lire ensuite et Ajouter à la file d'attente."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tieni premuto per Riproduci dopo e Aggiungi alla coda."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "長押しで「次に再生」と「キューに追加」を表示します。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "按住以显示“接下来播放”和“添加到队列”。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "按住以顯示「接下來播放」和「加入佇列」。"
+          }
+        }
+      }
     }
   },
   "version" : "1.1"

@@ -44,7 +44,9 @@ struct ArtistDetailView: View {
 
     // MARK: - Theming
 
-    private var theme: PlaylistTheme { PlaylistTheme(dominantColor: dominantColor) }
+    private var isBlackStyle: Bool { AppearanceSettings.shared.detailStyle == .black }
+    /// Black detail screens reuse the themed layout with black as the theme colour.
+    private var theme: PlaylistTheme { PlaylistTheme(dominantColor: isBlackStyle ? .black : dominantColor) }
     private var bodyColor: Color { theme.isThemed ? theme.dominantColor : systemBackgroundColor }
     private var headerTextColor: Color { theme.contentColor }
     private var headerSecondaryColor: Color { theme.secondaryContentColor }
@@ -292,7 +294,7 @@ struct ArtistDetailView: View {
                     Task { await playAll() }
                 } label: {
                     Circle()
-                        .fill(.white)
+                        .fill(isBlackStyle ? AppearanceSettings.shared.accent.fillColor : .white)
                         .frame(width: 66, height: 66)
                         .overlay {
                             Image(systemName: "play.fill")

@@ -6,7 +6,9 @@ struct PlayMenuButton: View {
     let songs: [DisplayableSong]
     var fillColor: Color
     var labelColor: Color
-    var height: CGFloat = 48
+    var height: CGFloat? = 48
+    /// Replaces the default "play from the first song", e.g. to apply a sort order.
+    var onPlay: (() -> Void)? = nil
 
     @Environment(\.appContainer) private var container
 
@@ -30,10 +32,12 @@ struct PlayMenuButton: View {
             .foregroundStyle(labelColor)
             .frame(maxWidth: .infinity)
             .frame(height: height)
+            .padding(.vertical, height == nil ? MinidiscSpacing.m : 0)
             .background(songs.isEmpty ? fillColor.opacity(0.4) : fillColor, in: Capsule())
             .contentShape(Capsule())
         } primaryAction: {
             HapticFeedback.medium.trigger()
+            if let onPlay { return onPlay() }
             let songs = songs
             Task { await container?.toastService.perform { try await container?.playerService.play(tracks: songs, startIndex: 0) } }
         }

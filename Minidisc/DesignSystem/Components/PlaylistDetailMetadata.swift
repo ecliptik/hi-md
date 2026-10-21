@@ -42,23 +42,3 @@ struct PlaylistDetailMetadata: View {
         .accessibilityIdentifier("playlist.detail.metadata")
     }
 }
-
-struct PlaylistTrackSummary: View {
-    let count: Int
-    let duration: TimeInterval
-
-    var body: some View {
-        Text(summary)
-            .font(.minidiscCaption)
-            .foregroundStyle(.white.opacity(0.65))
-            .padding(.vertical, MinidiscSpacing.l)
-            .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private var summary: String {
-        let countLabel = String(localized: "\(count) songs")
-        guard duration > 0, duration.isFinite else { return countLabel }
-        let time = Duration.seconds(duration).formatted(.units(allowed: [.hours, .minutes], width: .wide))
-        return "\(countLabel) · \(time)"
-    }
-}

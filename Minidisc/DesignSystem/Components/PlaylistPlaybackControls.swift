@@ -23,11 +23,13 @@ enum PlaylistDownloadControl {
 
 struct PlaylistPlaybackControls: View {
     let isEnabled: Bool
-    let playColor: Color
-    let downloadControl: PlaylistDownloadControl?
+    let songs: [DisplayableSong]
+    /// The Play capsule's fill and label, and the shuffle icon's colour.
+    let playFill: Color
+    let playLabel: Color
+    let shuffleColor: Color
     let onPlay: () -> Void
     let onShuffle: () -> Void
-    let onDownload: () -> Void
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @ScaledMetric(relativeTo: .callout) private var scaledControlSize: CGFloat = 48
@@ -44,7 +46,7 @@ struct PlaylistPlaybackControls: View {
             Button(action: onShuffle) {
                 Image(systemName: "shuffle")
                     .font(.minidiscCellTitle)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(shuffleColor)
                     .frame(width: controlSize, height: controlSize)
                     .background(.white.opacity(0.1), in: Circle())
                     .contentShape(Circle())
@@ -52,28 +54,10 @@ struct PlaylistPlaybackControls: View {
             .accessibilityLabel("Shuffle")
             .accessibilityIdentifier("playlist.detail.shuffle")
 
-            PlayButton(
-                action: onPlay,
-                isDisabled: !isEnabled,
-                accentColor: .white,
-                labelColor: playColor,
-                height: dynamicTypeSize.isAccessibilitySize ? nil : controlSize
-            )
-            .frame(maxWidth: scaledPlayWidth)
-            .accessibilityIdentifier("playlist.detail.play")
-
-            Button(action: onDownload) {
-                Image(systemName: (downloadControl ?? .download).symbol)
-                    .font(.minidiscCellTitle)
-                    .foregroundStyle(.white)
-                    .frame(width: controlSize, height: controlSize)
-                    .background(.white.opacity(0.1), in: Circle())
-                    .contentShape(Circle())
-            }
-            .disabled(downloadControl == nil)
-            .opacity(downloadControl == nil ? 0.4 : 1)
-            .accessibilityLabel((downloadControl ?? .download).label)
-            .accessibilityIdentifier("playlist.detail.download")
+            PlayMenuButton(songs: songs, fillColor: playFill, labelColor: playLabel,
+                           height: dynamicTypeSize.isAccessibilitySize ? nil : controlSize, onPlay: onPlay)
+                .frame(maxWidth: scaledPlayWidth + 60)
+                .accessibilityIdentifier("playlist.detail.play")
         }
         .buttonStyle(.borderless)
         .disabled(!isEnabled)
