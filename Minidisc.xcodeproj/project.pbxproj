@@ -10,6 +10,7 @@
 		8785D13D3012A3A500208269 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 8785D13C3012A3A500208269 /* AppIcon.icon */; };
 		DBA4A77D2F9BE3C8008BC5A9 /* SwiftSonic in Frameworks */ = {isa = PBXBuildFile; productRef = DBA4A77C2F9BE3C8008BC5A9 /* SwiftSonic */; };
 		EC1D2700000000000000000D /* MinidiscWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = EC1D27000000000000000001 /* MinidiscWidgets.appex */; platformFilter = ios; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		EC1D2700000000000000001B /* MinidiscWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = EC1D27000000000000000010 /* MinidiscWatch.app */; platformFilter = ios; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -34,6 +35,13 @@
 			remoteGlobalIDString = EC1D27000000000000000005;
 			remoteInfo = MinidiscWidgets;
 		};
+		EC1D2700000000000000001C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = DBA4A7492F9BBFCB008BC5A9 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = EC1D27000000000000000013;
+			remoteInfo = MinidiscWatch;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -48,6 +56,17 @@
 			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		EC1D2700000000000000001A /* Embed Watch Content */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+			dstSubfolderSpec = 16;
+			files = (
+				EC1D2700000000000000001B /* MinidiscWatch.app in Embed Watch Content */,
+			);
+			name = "Embed Watch Content";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
@@ -56,6 +75,7 @@
 		DBA4A75E2F9BBFCC008BC5A9 /* MinidiscTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MinidiscTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		DBA4A7682F9BBFCC008BC5A9 /* MinidiscUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MinidiscUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		EC1D27000000000000000001 /* MinidiscWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = MinidiscWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		EC1D27000000000000000010 /* MinidiscWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MinidiscWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -107,6 +127,16 @@
 			path = Shared;
 			sourceTree = "<group>";
 		};
+		EC1D27000000000000000011 /* MinidiscWatch */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = MinidiscWatch;
+			sourceTree = "<group>";
+		};
+		EC1D27000000000000000012 /* WatchShared */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = WatchShared;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -139,6 +169,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		EC1D27000000000000000015 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -148,6 +185,8 @@
 				DBA4A7532F9BBFCB008BC5A9 /* Minidisc */,
 				EC1D27000000000000000003 /* Shared */,
 				EC1D27000000000000000002 /* MinidiscWidgets */,
+				EC1D27000000000000000011 /* MinidiscWatch */,
+				EC1D27000000000000000012 /* WatchShared */,
 				DBA4A7612F9BBFCC008BC5A9 /* MinidiscTests */,
 				DBA4A76B2F9BBFCC008BC5A9 /* MinidiscUITests */,
 				DBA4A7522F9BBFCB008BC5A9 /* Products */,
@@ -162,6 +201,7 @@
 				DBA4A75E2F9BBFCC008BC5A9 /* MinidiscTests.xctest */,
 				DBA4A7682F9BBFCC008BC5A9 /* MinidiscUITests.xctest */,
 				EC1D27000000000000000001 /* MinidiscWidgets.appex */,
+				EC1D27000000000000000010 /* MinidiscWatch.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -177,15 +217,18 @@
 				DBA4A74E2F9BBFCB008BC5A9 /* Frameworks */,
 				DBA4A74F2F9BBFCB008BC5A9 /* Resources */,
 				EC1D2700000000000000000C /* Embed Foundation Extensions */,
+				EC1D2700000000000000001A /* Embed Watch Content */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 				EC1D2700000000000000000F /* PBXTargetDependency */,
+				EC1D2700000000000000001D /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				DBA4A7532F9BBFCB008BC5A9 /* Minidisc */,
 				EC1D27000000000000000003 /* Shared */,
+				EC1D27000000000000000012 /* WatchShared */,
 			);
 			name = Minidisc;
 			packageProductDependencies = (
@@ -262,6 +305,27 @@
 			productReference = EC1D27000000000000000001 /* MinidiscWidgets.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
+		EC1D27000000000000000013 /* MinidiscWatch */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = EC1D27000000000000000017 /* Build configuration list for PBXNativeTarget "MinidiscWatch" */;
+			buildPhases = (
+				EC1D27000000000000000014 /* Sources */,
+				EC1D27000000000000000015 /* Frameworks */,
+				EC1D27000000000000000016 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				EC1D27000000000000000011 /* MinidiscWatch */,
+				EC1D27000000000000000012 /* WatchShared */,
+			);
+			name = MinidiscWatch;
+			productName = MinidiscWatch;
+			productReference = EC1D27000000000000000010 /* MinidiscWatch.app */;
+			productType = "com.apple.product-type.application";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -284,6 +348,9 @@
 						TestTargetID = DBA4A7502F9BBFCB008BC5A9;
 					};
 					EC1D27000000000000000005 = {
+						CreatedOnToolsVersion = 27.1;
+					};
+					EC1D27000000000000000013 = {
 						CreatedOnToolsVersion = 27.1;
 					};
 				};
@@ -317,6 +384,7 @@
 				DBA4A75D2F9BBFCC008BC5A9 /* MinidiscTests */,
 				DBA4A7672F9BBFCC008BC5A9 /* MinidiscUITests */,
 				EC1D27000000000000000005 /* MinidiscWidgets */,
+				EC1D27000000000000000013 /* MinidiscWatch */,
 			);
 		};
 /* End PBXProject section */
@@ -345,6 +413,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		EC1D27000000000000000008 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EC1D27000000000000000016 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -382,6 +457,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		EC1D27000000000000000014 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -400,6 +482,12 @@
 			platformFilter = ios;
 			target = EC1D27000000000000000005 /* MinidiscWidgets */;
 			targetProxy = EC1D2700000000000000000E /* PBXContainerItemProxy */;
+		};
+		EC1D2700000000000000001D /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			platformFilter = ios;
+			target = EC1D27000000000000000013 /* MinidiscWatch */;
+			targetProxy = EC1D2700000000000000001C /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -832,6 +920,74 @@
 			};
 			name = Release;
 		};
+		EC1D27000000000000000018 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 27;
+				DEVELOPMENT_TEAM = JG6P86C33U;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Minidisc;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.ecliptik.minidisc;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 26.9.5;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ecliptik.minidisc.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_TREAT_WARNINGS_AS_ERRORS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 27.0;
+			};
+			name = Debug;
+		};
+		EC1D27000000000000000019 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 27;
+				DEVELOPMENT_TEAM = JG6P86C33U;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Minidisc;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.ecliptik.minidisc;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 26.9.5;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ecliptik.minidisc.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_TREAT_WARNINGS_AS_ERRORS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 27.0;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -876,6 +1032,15 @@
 			buildConfigurations = (
 				EC1D2700000000000000000A /* Debug */,
 				EC1D2700000000000000000B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		EC1D27000000000000000017 /* Build configuration list for PBXNativeTarget "MinidiscWatch" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				EC1D27000000000000000018 /* Debug */,
+				EC1D27000000000000000019 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

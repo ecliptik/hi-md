@@ -64,6 +64,9 @@ final class AppContainer {
         moodPlaylistService: moodPlaylistService, artwork: widgetArtwork
     )
     let linkRouter = LinkRouter()
+    #if canImport(WatchConnectivity) && !targetEnvironment(macCatalyst)
+    private(set) lazy var watchBridge = PhoneWatchBridge(container: self)
+    #endif
     private(set) lazy var aiRecommendationSettings = AIRecommendationSettings(keychain: keychainService)
     private(set) lazy var sleepTimer = SleepTimer(playerState: playerState, player: playerService)
     private(set) lazy var upcomingSongsPrefetcher = UpcomingSongsPrefetcher(
@@ -314,6 +317,9 @@ final class AppContainer {
             return ((try? modelContainer.mainContext.fetch(pins)) ?? []).map { (kind: $0.itemType, id: $0.itemId) }
         }
         upcomingSongsPrefetcher.start()
+        #if canImport(WatchConnectivity) && !targetEnvironment(macCatalyst)
+        watchBridge.start()
+        #endif
         // Loading the settings sends the saved equalizer curve to the audio taps.
         EqualizerSettings.shared.publish()
         if let spotlightDefaults, spotlightIndexer == nil {
