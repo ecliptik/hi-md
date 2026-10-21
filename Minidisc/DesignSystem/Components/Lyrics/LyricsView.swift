@@ -3,6 +3,7 @@ import SwiftSonic
 
 struct LyricsView: View {
     @Bindable var viewModel: LyricsViewModel
+    @State private var showsKaraoke = false
 
     var body: some View {
         Group {
@@ -27,6 +28,7 @@ struct LyricsView: View {
         .onAppear { viewModel.setVisible(true) }
         .onDisappear { viewModel.setVisible(false) }
         .onChange(of: viewModel.isPlaying) { _, _ in viewModel.reconcileTracking() }
+        .fullScreenCover(isPresented: $showsKaraoke) { KaraokeLyricsView(viewModel: viewModel) }
     }
 
     // MARK: - Loaded
@@ -100,6 +102,16 @@ struct LyricsView: View {
             }
 
             Spacer()
+
+            Button {
+                showsKaraoke = true
+            } label: {
+                Image(systemName: "arrow.up.left.and.arrow.down.right")
+                    .font(.title3)
+                    .foregroundStyle(.white.opacity(0.8))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Full Screen Lyrics")
 
             Button {
                 viewModel.autoScrollEnabled.toggle()

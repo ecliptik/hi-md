@@ -472,7 +472,15 @@ class Handler(BaseHTTPRequestHandler):
         elif endpoint == "getMusicFolders":
             response["musicFolders"] = {"musicFolder": [{"id": 1, "name": "Fixture"}]}
         elif endpoint == "getOpenSubsonicExtensions":
-            response["openSubsonicExtensions"] = []
+            response["openSubsonicExtensions"] = [{"name": "songLyrics", "versions": [1]}]
+        elif endpoint == "getLyricsBySongId":
+            # Synced French lyrics, one line every 3 seconds, for the karaoke view.
+            words = ["Le matin se lève", "sur la ville tranquille", "les rues encore vides", "un café qui fume",
+                     "la radio murmure", "une chanson d'hier", "et le jour commence", "doucement, doucement"]
+            response["lyricsList"] = {"structuredLyrics": [{
+                "lang": "fra", "synced": True, "offset": 0, "displayArtist": "Atelier Minidisc",
+                "displayTitle": "Matin tranquille",
+                "line": [{"start": i * 3000, "value": value} for i, value in enumerate(words)]}]}
         elif endpoint in ("getRandomSongs", "getSongsByGenre", "getSimilarSongs2", "getTopSongs"):
             key = {"getRandomSongs": "randomSongs", "getSongsByGenre": "songsByGenre", "getSimilarSongs2": "similarSongs2", "getTopSongs": "topSongs"}[endpoint]
             songs = catalog["songs"]

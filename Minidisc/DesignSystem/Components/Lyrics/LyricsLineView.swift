@@ -7,6 +7,8 @@ struct LyricsLineView: View {
     let isSynced: Bool
     let isTappable: Bool
     let onTap: () -> Void
+    /// Centred, larger lines for the full-screen karaoke view.
+    var isKaraoke = false
 
     private var distance: Int {
         guard let currentIndex else { return 0 }
@@ -39,17 +41,18 @@ struct LyricsLineView: View {
     }
 
     private var lineFont: Font {
-        .system(.title, design: .rounded, weight: .bold)
+        isKaraoke ? .system(.largeTitle, design: .rounded, weight: .heavy) : .system(.title, design: .rounded, weight: .bold)
     }
 
     var body: some View {
         Text(value)
             .font(lineFont)
-            .multilineTextAlignment(.leading)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .multilineTextAlignment(isKaraoke ? .center : .leading)
+            .frame(maxWidth: .infinity, alignment: isKaraoke ? .center : .leading)
             .foregroundStyle(.white.opacity(opacity))
             .blur(radius: blurRadius)
-            .scaleEffect(scale, anchor: .leading)
+            .scaleEffect(isKaraoke && distance == 0 && currentIndex != nil ? 1.12 : scale,
+                         anchor: isKaraoke ? .center : .leading)
             .animation(.easeInOut(duration: 0.25), value: currentIndex)
             .contentShape(Rectangle())
             .onTapGesture {

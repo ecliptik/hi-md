@@ -21,7 +21,10 @@ final class LyricsViewModel {
     private var lyricsList: LyricsList?
     private var trackingTask: Task<Void, Never>?
     private var resumeTask: Task<Void, Never>?
-    private var isShown = false
+    /// How many views show these lyrics: the player's lyrics panel and the full-screen karaoke
+    /// view can overlap while one is presented over the other.
+    private var visibleCount = 0
+    private var isShown: Bool { visibleCount > 0 }
 
     nonisolated enum State: Equatable {
         case loading
@@ -143,10 +146,11 @@ final class LyricsViewModel {
         return false
     }
 
-    /// Called when the lyrics view appears/disappears. The auto-scroll resume task is torn down on hide.
+    /// Called when a lyrics view appears/disappears. The auto-scroll resume task is torn down once
+    /// no view shows the lyrics.
     func setVisible(_ visible: Bool) {
-        isShown = visible
-        if !visible {
+        visibleCount = max(0, visibleCount + (visible ? 1 : -1))
+        if !isShown {
             resumeTask?.cancel()
             resumeTask = nil
         }
