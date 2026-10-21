@@ -38,10 +38,21 @@ enum MinidiscShadow {
 
 // MARK: - View modifier: content width
 
+/// Keeps lists and detail screens at a readable width on iPad, the Mac and wide windows, centred
+/// in the space; iPhones (compact width) are unchanged.
 struct ContentWidthModifier: ViewModifier {
+    static let maxReadableWidth: CGFloat = 760
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+
     @ViewBuilder
     func body(content: Content) -> some View {
-        content
+        if horizontalSizeClass == .regular {
+            content
+                .frame(maxWidth: Self.maxReadableWidth)
+                .frame(maxWidth: .infinity)
+        } else {
+            content
+        }
     }
 }
 

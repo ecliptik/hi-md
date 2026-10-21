@@ -341,8 +341,9 @@ struct AlbumDetailView: View {
         } message: {
             Text("The audio files will be deleted from this device.")
         }
-        .background(AlbumDetailPageBackground(palette: palette))
+        // Width first, so the page colour still fills the screen beside the readable column.
         .minidiscContentWidth()
+        .background(AlbumDetailPageBackground(palette: palette))
         .environment(\.minidiscPlayingAccent, palette.contentColor)
         .environment(\.colorScheme, palette.preferredContentScheme ?? colorScheme)
         .navigationTitle("")

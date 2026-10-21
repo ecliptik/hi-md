@@ -32,6 +32,7 @@ struct FullPlayerView: View {
     @Environment(\.appContainer) private var container
     @Environment(DominantColorExtractor.self) private var colorExtractor
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     var artworkNamespace: Namespace.ID? = nil
     var contentInsets: EdgeInsets = .init()
@@ -125,110 +126,141 @@ struct FullPlayerView: View {
         }
     }
 
+    /// Phones in landscape have a compact height; the player then puts the cover (or lyrics or
+    /// queue) on the left and the controls on the right.
+    private var isLandscapeLayout: Bool { verticalSizeClass == .compact }
+
     @ViewBuilder
     private func surfaceStack(
         _ playerState: PlayerState,
         coverArtId: String,
         showingQueue: Bool
     ) -> some View {
-        VStack(spacing: 0) {
-            VStack(spacing: 0) {
-                flowGap((showLyrics || showingQueue) ? 44 : Self.playerTopGap)
-
-                ZStack {
-                    if showLyrics, let lyricsVM = lyricsViewModel {
-                        LyricsView(viewModel: lyricsVM)
-                            .frame(maxWidth: .infinity)
-                            .padding(.horizontal, 20)
-                            .mask(
-                                LinearGradient(
-                                    stops: [
-                                        .init(color: .clear, location: 0),
-                                        .init(color: .black, location: 0.1),
-                                        .init(color: .black, location: 0.8),
-                                        .init(color: .clear, location: 1)
-                                    ],
-                                    startPoint: .top,
-                                    endPoint: .bottom
-                                )
-                            )
-                            .transition(.opacity)
-                    } else if showingQueue {
-                        flowingQueueContent(playerState)
-                            .transition(.opacity)
+        Group {
+            if isLandscapeLayout {
+                HStack(spacing: MinidiscSpacing.xl) {
+                    mediaArea(playerState, coverArtId: coverArtId, showingQueue: showingQueue)
+                        .padding(.vertical, MinidiscSpacing.l)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    VStack(spacing: 0) {
+                        Spacer(minLength: 44)
+                        controlsArea(playerState, showingQueue: showingQueue, showsVolume: false)
+                        Spacer(minLength: MinidiscSpacing.s)
+                        bottomToolbar(playerState)
                     }
-
-                    // Keep the cover mounted across player and queue for matched geometry.
-                    if !showLyrics {
-                        flowingCover(playerState, coverArtId: coverArtId, isSource: !showingQueue)
-                            .allowsHitTesting(!showingQueue)
-                            .padding(.horizontal, showingQueue ? 0 : Self.playerCoverHPadding)
-                            .transition(.opacity)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+            } else {
+                VStack(spacing: 0) {
+                    VStack(spacing: 0) {
+                        flowGap((showLyrics || showingQueue) ? 44 : Self.playerTopGap)
+                        mediaArea(playerState, coverArtId: coverArtId, showingQueue: showingQueue)
+                        flowGap(Self.playerCoverToTitleGap)
+                        controlsArea(playerState, showingQueue: showingQueue, showsVolume: dynamicTypeSize < .accessibility1)
+                        flowGap((showLyrics || showingQueue) ? MinidiscSpacing.xs : 40)
                     }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    bottomToolbar(playerState)
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-                flowGap(Self.playerCoverToTitleGap)
-
-                if !showingQueue {
-                    TrackInfoSection(
-                        playerState: playerState,
-                        container: container,
-                        contentColor: vm.contentColor,
-                        secondaryContentColor: vm.secondaryContentColor,
-                        trackSwipe: trackSwipe
-                    )
-                    .padding(.horizontal, Self.playerHorizontalPadding)
-                }
-
-                if !playerState.isLiveStream {
-                    ScrubberView(
-                        playerState: playerState,
-                        playerService: container?.playerService,
-                        contentColor: vm.contentColor,
-                        secondaryContentColor: vm.secondaryContentColor
-                    )
-                    .padding(.horizontal, Self.playerHorizontalPadding)
-                    .padding(.top, MinidiscSpacing.m)
-                    .disabled(!playerState.isPlaybackAvailable)
-                    .opacity(playerState.isPlaybackAvailable ? 1.0 : 0.4)
-                }
-
-                PlaybackControlsView(
-                    playerState: playerState,
-                    playerService: container?.playerService,
-                    isPlaybackAvailable: playerState.isPlaybackAvailable,
-                    keepsPauseIcon: trackSwipe.keepsPauseIcon,
-                    contentColor: vm.contentColor
-                )
-                .padding(.top, Self.playerControlsSpacing)
-
-                if dynamicTypeSize < .accessibility1 {
-                    VolumeSection(contentColor: vm.contentColor, secondaryContentColor: vm.secondaryContentColor)
-                        .padding(.horizontal, Self.playerHorizontalPadding)
-                        .padding(.top, Self.playerControlsSpacing)
-                }
-
-                flowGap((showLyrics || showingQueue) ? MinidiscSpacing.xs : 40)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .animation(.smooth(duration: 0.3), value: showLyrics)
-            .animation(.smooth(duration: 0.3), value: surface)
-
-            BottomToolbar(
-                showLyrics: $showLyrics,
-                surface: $surface,
-                isLiveStream: playerState.isLiveStream,
-                secondaryContentColor: vm.secondaryContentColor,
-                accentColor: MinidiscColors.accent,
-                playerState: playerState
-            )
-            .padding(.top, MinidiscSpacing.s)
-            .padding(.bottom, MinidiscSpacing.l)
         }
+        .animation(.smooth(duration: 0.3), value: showLyrics)
+        .animation(.smooth(duration: 0.3), value: surface)
         .overlay(alignment: .top) {
             topBar
         }
+    }
+
+    /// The cover, or lyrics or the queue in its place.
+    private func mediaArea(_ playerState: PlayerState, coverArtId: String, showingQueue: Bool) -> some View {
+        ZStack {
+            if showLyrics, let lyricsVM = lyricsViewModel {
+                LyricsView(viewModel: lyricsVM)
+                    .frame(maxWidth: .infinity)
+                    .padding(.horizontal, 20)
+                    .mask(
+                        LinearGradient(
+                            stops: [
+                                .init(color: .clear, location: 0),
+                                .init(color: .black, location: 0.1),
+                                .init(color: .black, location: 0.8),
+                                .init(color: .clear, location: 1)
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                    .transition(.opacity)
+            } else if showingQueue {
+                flowingQueueContent(playerState)
+                    .transition(.opacity)
+            }
+
+            // Keep the cover mounted across player and queue for matched geometry.
+            if !showLyrics {
+                flowingCover(playerState, coverArtId: coverArtId, isSource: !showingQueue)
+                    .allowsHitTesting(!showingQueue)
+                    .padding(.horizontal, showingQueue || isLandscapeLayout ? 0 : Self.playerCoverHPadding)
+                    .transition(.opacity)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    /// Title, scrubber, transport controls and, in portrait, volume.
+    @ViewBuilder
+    private func controlsArea(_ playerState: PlayerState, showingQueue: Bool, showsVolume: Bool) -> some View {
+        if !showingQueue {
+            TrackInfoSection(
+                playerState: playerState,
+                container: container,
+                contentColor: vm.contentColor,
+                secondaryContentColor: vm.secondaryContentColor,
+                trackSwipe: trackSwipe
+            )
+            .padding(.horizontal, Self.playerHorizontalPadding)
+        }
+
+        if !playerState.isLiveStream {
+            ScrubberView(
+                playerState: playerState,
+                playerService: container?.playerService,
+                contentColor: vm.contentColor,
+                secondaryContentColor: vm.secondaryContentColor
+            )
+            .padding(.horizontal, Self.playerHorizontalPadding)
+            .padding(.top, MinidiscSpacing.m)
+            .disabled(!playerState.isPlaybackAvailable)
+            .opacity(playerState.isPlaybackAvailable ? 1.0 : 0.4)
+        }
+
+        PlaybackControlsView(
+            playerState: playerState,
+            playerService: container?.playerService,
+            isPlaybackAvailable: playerState.isPlaybackAvailable,
+            keepsPauseIcon: trackSwipe.keepsPauseIcon,
+            contentColor: vm.contentColor
+        )
+        .padding(.top, Self.playerControlsSpacing)
+
+        if showsVolume {
+            VolumeSection(contentColor: vm.contentColor, secondaryContentColor: vm.secondaryContentColor)
+                .padding(.horizontal, Self.playerHorizontalPadding)
+                .padding(.top, Self.playerControlsSpacing)
+        }
+    }
+
+    private func bottomToolbar(_ playerState: PlayerState) -> some View {
+        BottomToolbar(
+            showLyrics: $showLyrics,
+            surface: $surface,
+            isLiveStream: playerState.isLiveStream,
+            secondaryContentColor: vm.secondaryContentColor,
+            accentColor: MinidiscColors.accent,
+            playerState: playerState
+        )
+        .padding(.top, MinidiscSpacing.s)
+        .padding(.bottom, MinidiscSpacing.l)
     }
 
     private func flowGap(_ floor: CGFloat) -> some View {

@@ -108,6 +108,8 @@ struct MainTabView: View {
                 }
             }
         }
+        // A sidebar on iPad and the Mac; the bottom tab bar on iPhone.
+        .tabViewStyle(.sidebarAdaptable)
         .onAppear { if container?.serverState.activeServer == nil { selectedTab = .library } }
         .accentColor(.minidiscAccent)
         .preferredColorScheme(theme.colorScheme)

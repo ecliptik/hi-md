@@ -398,8 +398,9 @@ struct PlaylistDetailView: View {
                 .environment(\.appContainer, c)
             }
         }
-        .background(bodyColor.ignoresSafeArea())
+        // Width first, so the page colour still fills the screen beside the readable column.
         .minidiscContentWidth()
+        .background(bodyColor.ignoresSafeArea())
         .environment(\.minidiscPlayingAccent, heroIconColor)
         .navigationTitle("")
         .navigationBarTitleDisplayModeInline()
