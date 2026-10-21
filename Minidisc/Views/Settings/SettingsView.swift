@@ -856,6 +856,12 @@ private struct IntegrationsSettingsView: View {
                     Text("Open Releases In")
                         .foregroundStyle(.primary)
                 }
+                NavigationLink {
+                    AIRecommendationSettingsView()
+                } label: {
+                    Text("AI Recommendations")
+                        .foregroundStyle(.primary)
+                }
             }
         }
         .formStyle(.grouped)

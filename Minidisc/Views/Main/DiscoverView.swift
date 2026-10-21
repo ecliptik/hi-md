@@ -30,6 +30,13 @@ struct DiscoverView: View {
             LazyVStack(alignment: .leading, spacing: MinidiscSpacing.xxl) {
                 if let vm {
                     if isOnline {
+                        NavigationLink {
+                            AIRecommendationsView()
+                        } label: {
+                            AIRecommendationsCard()
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.horizontal, MinidiscSpacing.l)
                         freshReleasesSection(vm: vm)
                         stationsSection(vm)
                     }
