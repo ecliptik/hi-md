@@ -10,6 +10,7 @@ final class CacheSettings {
     @ObservationIgnored private var _capacityMegabytes: Int
     @ObservationIgnored private var _cacheFormat: CacheFormat
     @ObservationIgnored private var _cacheOverCellular: Bool
+    @ObservationIgnored private var _cacheWhilePlaying: Bool
     @ObservationIgnored private var _cacheArtwork: Bool
     @ObservationIgnored private var _keepFavoritesOffline: Bool
     @ObservationIgnored private var _keepRecentlyPlayedOffline: Bool
@@ -99,6 +100,19 @@ final class CacheSettings {
         }
     }
 
+    /// Saves a streamed song into the stream cache while it plays, for instant replay. This
+    /// downloads the song a second time, so it is skipped in Low Power and Low Data Mode.
+    var cacheWhilePlaying: Bool {
+        get {
+            access(keyPath: \.cacheWhilePlaying)
+            return _cacheWhilePlaying
+        }
+        set {
+            withMutation(keyPath: \.cacheWhilePlaying) { _cacheWhilePlaying = newValue }
+            defaults.set(newValue, forKey: Self.cacheWhilePlayingKey)
+        }
+    }
+
     /// Auto-caching: albums and playlists pinned to Home and Library.
     var keepPinnedOffline: Bool {
         get {
@@ -140,6 +154,7 @@ final class CacheSettings {
     private static let legacyMaxTracksKey = "minidisc.cache.maxTracks"
     private static let cacheFormatKey = "minidisc.cache.format"
     private static let cacheOverCellularKey = "minidisc.cache.cellular"
+    private static let cacheWhilePlayingKey = "minidisc.cache.whilePlaying"
     private static let keepFavoritesOfflineKey = "minidisc.cache.favoritesOffline"
     private static let keepRecentlyPlayedOfflineKey = "minidisc.cache.recentlyPlayedOffline"
     private static let keepPinnedOfflineKey = "minidisc.cache.pinnedOffline"
@@ -175,6 +190,7 @@ final class CacheSettings {
         self._cacheFormat = CacheFormat(rawValue: loadedFormatRaw ?? "") ?? Self.defaultFormat
 
         self._cacheOverCellular = defaults.bool(forKey: Self.cacheOverCellularKey)
+        self._cacheWhilePlaying = defaults.object(forKey: Self.cacheWhilePlayingKey) as? Bool ?? true
         // object(forKey:) so the default is true — bool(forKey:) would silently default to false.
         self._cacheArtwork = defaults.object(forKey: Self.cacheArtworkKey) as? Bool ?? Self.defaultCacheArtwork
     }

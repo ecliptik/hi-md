@@ -51,6 +51,8 @@ protocol PlayerServiceProtocol: AnyObject, Sendable {
     func applySleepFade(_ level: Float) async
     func togglePlayPause() async
     func saveCurrentPosition() async
+    /// Tells the player whether any of the app's UI is on screen; progress ticks slow down when not.
+    func setAppVisible(_ visible: Bool) async
     /// Re-reads ReplayGainSettings and reapplies gain to the current track.
     /// Call this whenever the user changes any ReplayGain setting.
     func replayGainSettingsDidChange() async
@@ -69,6 +71,8 @@ nonisolated struct PreparedPlaybackQueue: Sendable {
 }
 
 extension PlayerServiceProtocol {
+    func setAppVisible(_ visible: Bool) async {}
+
     nonisolated func play(preparingQueue: @escaping @Sendable () async throws -> PreparedPlaybackQueue) async throws {
         let queue = try await preparingQueue()
         if let repeatMode = queue.repeatMode { await setRepeatMode(repeatMode) }

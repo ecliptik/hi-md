@@ -351,6 +351,15 @@ struct StorageSettingsView: View {
                     .tint(.secondary)
 
                     Toggle(isOn: Binding(
+                        get: { cacheSettings.cacheWhilePlaying },
+                        set: { cacheSettings.cacheWhilePlaying = $0 }
+                    )) {
+                        Text("Save songs as they play")
+                            .foregroundStyle(.primary)
+                    }
+                    .tint(Color(.systemGreen))
+
+                    Toggle(isOn: Binding(
                         get: { cacheSettings.cacheOverCellular },
                         set: { cacheSettings.cacheOverCellular = $0 }
                     )) {

@@ -45,6 +45,15 @@ nonisolated enum NetworkPlaybackProgressValidationOutcome: Equatable, Sendable {
     case deferToEndOfTrack
 }
 
+/// The position last sent to Now Playing, with the uptime it was sent at.
+nonisolated struct NowPlayingPositionAnchor: Sendable, Equatable {
+    static let allowedDrift: TimeInterval = 2
+
+    let elapsed: TimeInterval
+    let duration: TimeInterval
+    let uptime: TimeInterval
+}
+
 nonisolated struct PlaybackNetworkRecoveryTiming: Sendable {
     /// Opening a lossless stream or starting server transcoding can take several seconds on cellular.
     var startupGrace: Duration = .seconds(15)
@@ -154,9 +163,11 @@ actor PlayerService: PlayerServiceProtocol {
     private var restorePauseTask: Task<Void, Never>?
     private var isMutedForRestore = false
     private var positionSaveTask: Task<Void, Never>?
-    /// Last elapsed position sent to the system Now Playing center. Position updates are intentionally
-    /// throttled: the progress UI remains at 2 Hz, while lock-screen metadata only needs 1 Hz.
-    private var lastNowPlayingPushElapsed: TimeInterval?
+    /// Last position sent to the system Now Playing center. The system extrapolates elapsed time
+    /// from it, so the progress loop only pushes again when playback drifts from that prediction.
+    private var nowPlayingAnchor: NowPlayingPositionAnchor?
+    /// Set from the scene phase; the progress loop slows down while the app is hidden.
+    private var isAppVisible = true
     private var subsonicPlayingNowTask: Task<Void, Never>?
     private var playingNowTask: Task<Void, Never>?
     private var cacheDownloadTask: Task<Void, Never>?
@@ -286,6 +297,7 @@ actor PlayerService: PlayerServiceProtocol {
         cacheConfig.timeoutIntervalForRequest = 30
         cacheConfig.timeoutIntervalForResource = 300
         cacheConfig.networkServiceType = .background
+        cacheConfig.allowsConstrainedNetworkAccess = false
         self.cacheSession = URLSession(configuration: cacheConfig)
 
         self.engine = engine
@@ -662,7 +674,7 @@ actor PlayerService: PlayerServiceProtocol {
         cancelNetworkRecoveryProbe()
         cancelNetworkRecoveryValidation()
         networkReloadRequiredTrackID = nil
-        lastNowPlayingPushElapsed = nil
+        nowPlayingAnchor = nil
         networkRecoveryAttemptBudget.reset()
         pendingRestoreInfo = nil
         // Starting a new track can interrupt a muted parking play (end-of-queue rewind)
@@ -746,7 +758,8 @@ actor PlayerService: PlayerServiceProtocol {
             await listenBrainzService.notifyTrackStarted(song: song)
         }
 
-        if case .stream(let streamURL, let customHeaders) = source, let serverId {
+        if case .stream(let streamURL, let customHeaders) = source, let serverId,
+           await MainActor.run(body: { cacheSettings.cacheWhilePlaying }) {
             let (allowCellular, cacheFormat) = await MainActor.run {
                 (cacheSettings.cacheOverCellular, cacheSettings.cacheFormat)
             }
@@ -847,7 +860,7 @@ actor PlayerService: PlayerServiceProtocol {
         cancelNetworkRecoveryValidation()
         pendingSystemResume = nil
         networkReloadRequiredTrackID = nil
-        lastNowPlayingPushElapsed = nil
+        nowPlayingAnchor = nil
         networkRecoveryAttemptBudget.reset()
         let previousEnginePlayback = activeEnginePlayback
         defer {
@@ -3140,11 +3153,28 @@ actor PlayerService: PlayerServiceProtocol {
         stopProgressTimer()
         progressTask = Task { [weak self] in
             while !Task.isCancelled {
-                try? await Task.sleep(for: .milliseconds(500))
+                guard let interval = await self?.progressTickInterval else { break }
+                try? await Task.sleep(for: interval.period, tolerance: interval.tolerance)
                 guard !Task.isCancelled, let self else { break }
                 await self.performProgressTick()
             }
         }
+    }
+
+    /// No one sees the progress bar while the app is hidden, so it ticks half as often. Even
+    /// at 1 s the standby preload, scheduled 15 s before the transition, keeps a wide margin.
+    nonisolated static func progressTickInterval(isAppVisible: Bool) -> (period: Duration, tolerance: Duration) {
+        isAppVisible
+            ? (.milliseconds(500), .milliseconds(100))
+            : (.seconds(1), .milliseconds(500))
+    }
+
+    private var progressTickInterval: (period: Duration, tolerance: Duration) {
+        Self.progressTickInterval(isAppVisible: isAppVisible)
+    }
+
+    func setAppVisible(_ visible: Bool) {
+        isAppVisible = visible
     }
 
     private func performProgressTick() async {
@@ -3154,8 +3184,6 @@ actor PlayerService: PlayerServiceProtocol {
         let progress = engine.progress
         let audioDuration = engine.duration
         if activeEngineState == .playing {
-            let outputs = currentAudioRouteOutputs()
-            if !outputs.isEmpty { lastKnownAudioOutputs = outputs }
             playbackDiagnostics.recordProgress(progress)
         }
         let durationSnapshot = await MainActor.run {
@@ -3955,10 +3983,19 @@ actor PlayerService: PlayerServiceProtocol {
             return
         }
 
-        let isExpensive = await MainActor.run { serverService.state.isExpensive }
+        let (isExpensive, isConstrained) = await MainActor.run {
+            (serverService.state.isExpensive, serverService.state.networkPathEvent.descriptor.isConstrained)
+        }
         if isExpensive && !allowCellular {
             playbackDiagnostics.record(.cache(.skippedCellular))
             Logger.player.debug("Cache skipped — cellular for '\(songId, privacy: .public)'")
+            return
+        }
+        // The song is already streaming; a second full download is a luxury Low Power Mode and
+        // Low Data Mode should not pay for.
+        if isConstrained || ProcessInfo.processInfo.isLowPowerModeEnabled {
+            playbackDiagnostics.record(.cache(.skippedPowerOrData))
+            Logger.player.debug("Cache skipped — Low Power or Low Data Mode for '\(songId, privacy: .public)'")
             return
         }
 
@@ -4075,30 +4112,48 @@ actor PlayerService: PlayerServiceProtocol {
             radioStationName: nil,
             songId: track.id
         )
+        nowPlayingAnchor = resolvedRate > 0
+            ? NowPlayingPositionAnchor(
+                elapsed: snapshot.position, duration: duration, uptime: ProcessInfo.processInfo.systemUptime
+            )
+            : nil
         await nowPlayingService?.update(with: snapshot)
     }
 
     /// Called from the progress timer to keep MPNowPlayingInfoCenter in sync.
     /// Guards ensure we only push during live playback — not during transitions, live streams,
     /// or when elapsed is out of range — so we never send a stale or impossible position.
+    /// The system advances elapsed time itself at rate 1, so a push is needed only for the first
+    /// tick of a track, a refined duration, or a stall or jump the extrapolation can't see.
     private func periodicNowPlayingPush(elapsed: TimeInterval) async {
         let (playbackState, duration, isLiveStream, songId) = await MainActor.run {
             (state.playbackState, state.duration, state.isLiveStream, state.currentTrack?.id)
         }
         guard case .playing = playbackState, !isLiveStream, let songId else { return }
         guard elapsed >= 0, duration > 0 else { return }
-        if let last = lastNowPlayingPushElapsed,
-           elapsed >= last,
-           elapsed - last < 1.0 {
-            return
-        }
-        lastNowPlayingPushElapsed = elapsed
+        let now = ProcessInfo.processInfo.systemUptime
+        guard Self.nowPlayingNeedsPositionPush(
+            anchor: nowPlayingAnchor, elapsed: elapsed, duration: duration, uptime: now
+        ) else { return }
+        nowPlayingAnchor = NowPlayingPositionAnchor(elapsed: elapsed, duration: duration, uptime: now)
         await nowPlayingService?.pushPosition(
             elapsed: elapsed,
             rate: 1.0,
             duration: duration,
             songId: songId
         )
+    }
+
+    nonisolated static func nowPlayingNeedsPositionPush(
+        anchor: NowPlayingPositionAnchor?,
+        elapsed: TimeInterval,
+        duration: TimeInterval,
+        uptime: TimeInterval
+    ) -> Bool {
+        guard let anchor else { return true }
+        if abs(duration - anchor.duration) > 0.5 { return true }
+        let predicted = anchor.elapsed + (uptime - anchor.uptime)
+        return abs(elapsed - predicted) > NowPlayingPositionAnchor.allowedDrift
     }
 
     // nonisolated: safe — only called during app termination
@@ -4536,6 +4591,15 @@ extension PlayerService {
                 invalidateAudioRecoveryPlayback()
             }
             return
+        }
+        defer {
+            // Remember the route audio is still playing on for media-services recovery. It is
+            // refreshed here and on activation rather than polled from the progress loop; a
+            // disconnect that suspended playback leaves the previous route in place.
+            if audioSystemRecovery == nil, activeEngineState == .playing {
+                let outputs = currentAudioRouteOutputs()
+                if !outputs.isEmpty { lastKnownAudioOutputs = outputs }
+            }
         }
         switch reason {
         case .oldDeviceUnavailable:

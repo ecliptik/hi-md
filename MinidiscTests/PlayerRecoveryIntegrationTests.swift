@@ -514,6 +514,20 @@ struct PlayerRecoveryIntegrationTests {
         await h.player.stop()
     }
 
+    @Test func recoveryUsesTheRouteAudioMovedToDuringPlayback() async throws {
+        let h = try RecoveryHarness()
+        try await h.play()
+        h.engine.startAdvancing()
+        await h.player.handleEngineState(.playing, playbackToken: h.engine.token)
+        // The progress loop no longer polls the route; the change notification must record it.
+        h.audioSession.outputs = [.init(uid: "different-headphones", portType: .bluetoothA2DP)]
+        await h.player.handleRouteChange(.override)
+        await h.player.handleMediaServicesReset()
+        try await h.waitUntil { h.engine.playCount == 2 }
+        try await confirmAudioResumed(h)
+        await h.player.stop()
+    }
+
     @Test func systemSuspensionBeforeResetStillRetainsPlayIntent() async throws {
         let h = try RecoveryHarness()
         try await h.play()

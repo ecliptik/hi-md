@@ -115,6 +115,10 @@ struct MinidiscApp: App {
         }
         .commands { PlaybackCommands(container: activeContainer) }
         .onChange(of: scenePhase) { _, newPhase in
+            if let container = activeContainer {
+                let isVisible = newPhase != .background
+                Task { await container.playerService.setAppVisible(isVisible) }
+            }
             if newPhase == .active {
                 activeContainer?.offlineFavoritesSync.revision += 1
                 activeContainer?.offlineLibrary.revision += 1
@@ -185,6 +189,9 @@ struct MinidiscApp: App {
         }
 
         launchState = .ready(newContainer)
+        // A launch for CarPlay, Siri or background audio starts hidden.
+        let isVisible = UIApplication.shared.applicationState != .background
+        Task { await newContainer.playerService.setAppVisible(isVisible) }
         playbackDiagnostics.record(.application(.servicesReady))
         Logger.boot.info("App services ready")
     }

@@ -1,7 +1,8 @@
 import Foundation
 
 nonisolated struct PlaybackProgressTracker {
-    private static let maximumContinuousDelta: TimeInterval = 2
+    /// Above the 1 s background tick plus its 0.5 s tolerance, so a late tick isn't mistaken for a seek.
+    private static let maximumContinuousDelta: TimeInterval = 3
     private static let minimumEventDuration: TimeInterval = 30
     private static let maximumScrobbleThreshold: TimeInterval = 240
 

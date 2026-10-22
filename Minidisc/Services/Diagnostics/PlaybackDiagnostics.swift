@@ -50,6 +50,7 @@ nonisolated final class PlaybackDiagnostics: Sendable {
         case stored
         case alreadyLocal
         case skippedCellular
+        case skippedPowerOrData
         case cancelled
         case failed(code: Int)
     }
@@ -371,6 +372,7 @@ nonisolated final class PlaybackDiagnostics: Sendable {
         case .stored: "stored"
         case .alreadyLocal: "already-local"
         case .skippedCellular: "skipped-cellular"
+        case .skippedPowerOrData: "skipped-power-or-data"
         case .cancelled: "cancelled"
         case .failed(let code): "failed error-code=\(code)"
         }
