@@ -261,6 +261,18 @@ struct FullPlayerView: View {
     @ViewBuilder
     private func controlsArea(_ playerState: PlayerState, showsHeader: Bool, showsVolume: Bool) -> some View {
         if !showsHeader {
+            // Radio leaves no context: its title already names the station.
+            if let context = playerState.playbackContext {
+                PlaybackContextLabel(
+                    context: context,
+                    color: vm.secondaryContentColor,
+                    isOnline: container?.serverState.isOnline == true
+                )
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, Self.playerHorizontalPadding)
+                .transition(.opacity)
+            }
+
             TrackInfoSection(
                 playerState: playerState,
                 container: container,
@@ -371,6 +383,12 @@ struct FullPlayerView: View {
             queuePills(playerState)
                 .padding(.horizontal, MinidiscSpacing.l)
                 .padding(.vertical, MinidiscSpacing.m)
+
+            if let context = playerState.playbackContext {
+                PlaybackContextQueueHeader(context: context, color: vm.secondaryContentColor)
+                    .padding(.horizontal, MinidiscSpacing.l)
+                    .padding(.bottom, MinidiscSpacing.s)
+            }
 
             InlineQueueList(
                 playerState: playerState,
@@ -582,7 +600,8 @@ private struct TrackInfoSection: View {
                         Divider()
                         Button("Instant Mix", systemImage: instantMixSymbol) {
                             guard let track = playerState.currentTrack else { return }
-                            startInstantMix(from: .song(id: track.id), using: container, startingWith: track)
+                            startInstantMix(from: .song(id: track.id), using: container, startingWith: track,
+                                            context: songMixContext(track))
                         }
                         .disabled(!isOnline || playerState.currentTrack == nil || playerState.currentTrack?.isLocalFile == true)
                         Divider()
