@@ -42,6 +42,23 @@ struct ArtistStationCard: View {
     }
 }
 
+/// Holds an artist station's place while Discover's first load runs: the card's square and two
+/// text lines, at the same size, so the shelf doesn't change height when the stations arrive.
+struct ArtistStationPlaceholderCard: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    private var side: CGFloat { dynamicTypeSize.isAccessibilitySize ? 260 : 160 }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: MinidiscSpacing.s) {
+            SkeletonBlock(width: side, height: side, cornerRadius: MinidiscCornerRadius.standard)
+            CoverCardMetadata(title: "Artist & Similar artists", subtitle: "Radio Station")
+                .redacted(reason: .placeholder)
+        }
+        .frame(width: side, alignment: .leading)
+    }
+}
+
 struct SmartShuffleCard: View {
     let coverIDs: [String]
     let isStarting: Bool
@@ -107,6 +124,7 @@ private struct ShuffleArtwork: View {
                 Image(systemName: "shuffle")
                     .font(.system(size: 60, weight: .bold))
                     .rotationEffect(.degrees(-12))
+                    .transition(.opacity)
             } else {
                 ForEach(Array(coverIDs.prefix(3).enumerated()), id: \.element) { index, id in
                     CoverArtView(id: id, size: 180)
@@ -115,8 +133,11 @@ private struct ShuffleArtwork: View {
                         .shadow(color: .black.opacity(0.25), radius: 6, y: 3)
                         .rotationEffect(.degrees(Double(index - 1) * 12))
                         .offset(x: CGFloat(index - 1) * 10, y: CGFloat(index - 1) * 24)
+                        .transition(.opacity)
                 }
             }
         }
+        // The icon shows until listening history loads, then cross-fades into the covers.
+        .animation(CoverArtView.arrival, value: coverIDs)
     }
 }
