@@ -1,6 +1,6 @@
 # UI redesign plan
 
-Status: done in the simulator, 2026-10-20; look, feel and sound still to be checked on a device. Based on the owner's mockups (screenshots of another Subsonic client, used for layout and style only; none of its name, artwork or trial UI is copied). Tracked on the "Minidisc UI redesign" card.
+Status: done in the simulator, 2026-10-20; look, feel and sound still to be checked on a device. Based on the owner's mockups (screenshots of another Subsonic client, used for layout and style only; none of its name, artwork or trial UI is copied).
 
 ## Decisions
 

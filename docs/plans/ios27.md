@@ -1,6 +1,6 @@
 # iOS 27 adoption plan
 
-Status: proposed, 2026-10-20. Tracked on the Minidisc Player card and its phase cards on the board.
+Status: proposed, 2026-10-20.
 
 ## Decisions
 

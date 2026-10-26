@@ -1,6 +1,6 @@
 # Winamp mode (feature request)
 
-Status: idea, not started. Requested by the owner on 2026-10-25 as an easter egg for the Mac version: a mode that looks and works like classic Winamp 2 / XMMS. Tracked on the "Minidisc Winamp mode" board card.
+Status: idea, not started. Requested by the owner on 2026-10-25 as an easter egg for the Mac version: a mode that looks and works like classic Winamp 2 / XMMS.
 
 ## The request
 
