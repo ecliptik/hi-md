@@ -3978,7 +3978,7 @@ actor PlayerService: PlayerServiceProtocol {
             return
         }
         guard !Task.isCancelled, generation == playbackGeneration else { return }
-        if await mediaResolver.localSource(songId: songId, serverId: serverId) != nil {
+        if await mediaResolver.hasLocalCopy(songId: songId, serverId: serverId, atLeast: CachedAudioQuality(streamURL: streamURL)) {
             playbackDiagnostics.record(.cache(.alreadyLocal))
             return
         }
@@ -4053,7 +4053,8 @@ actor PlayerService: PlayerServiceProtocol {
             fileAt: tempURL,
             forSongId: songId,
             serverId: serverId,
-            mimeType: mimeType
+            mimeType: mimeType,
+            quality: CachedAudioQuality(streamURL: streamURL)
         )
 
         playbackDiagnostics.record(.cache(.stored))

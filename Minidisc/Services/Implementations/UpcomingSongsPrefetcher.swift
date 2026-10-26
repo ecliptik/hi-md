@@ -76,8 +76,9 @@ final class UpcomingSongsPrefetcher {
         let bitrate = usesStreamFormat ? streamSettings.currentQuality.subsonicMaxBitRate : settings.cacheFormat.subsonicMaxBitRate
         for song in songs {
             guard !Task.isCancelled else { return }
-            if await resolver.localSource(songId: song.id, serverId: serverID) != nil { continue }
             guard let url = client.streamURL(id: song.id, maxBitRate: bitrate, format: format) else { continue }
+            let quality = CachedAudioQuality(streamURL: url)
+            if await resolver.hasLocalCopy(songId: song.id, serverId: serverID, atLeast: quality) { continue }
             let request = PlayerService.cacheDownloadRequest(
                 url: url, headers: connection.authorizationHeaders(for: url), allowCellular: settings.cacheOverCellular
             )
@@ -88,7 +89,7 @@ final class UpcomingSongsPrefetcher {
                 guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else { continue }
                 try AudioResponseValidator.validate(fileAt: file, response: response, songId: song.id, logger: Logger.cache)
                 _ = try await cache.store(fileAt: file, forSongId: song.id, serverId: serverID,
-                                          mimeType: response.mimeType ?? "audio/mpeg")
+                                          mimeType: response.mimeType ?? "audio/mpeg", quality: quality)
                 Logger.cache.info("Auto-cached upcoming '\(song.id, privacy: .public)'")
             } catch {
                 if Task.isCancelled { return }
