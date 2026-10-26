@@ -209,6 +209,22 @@ nonisolated final class AVPlayerEngine: AudioEngine, @unchecked Sendable {
         return options
     }
 
+    /// Seconds of audio AVPlayer is asked to buffer ahead of the playhead for a remote item. Four
+    /// minutes rides out a cellular dead zone, and most songs are then buffered to the end within
+    /// seconds of starting. Local files keep the system default (0): they never wait for data.
+    nonisolated static let remoteForwardBufferDuration: TimeInterval = 240
+
+    nonisolated static func preferredForwardBufferDuration(for url: URL) -> TimeInterval {
+        url.isFileURL ? 0 : remoteForwardBufferDuration
+    }
+
+    /// Every item, on either deck, is built here so both get the same buffering policy.
+    private static func makeItem(asset: AVURLAsset) -> AVPlayerItem {
+        let item = AVPlayerItem(asset: asset)
+        item.preferredForwardBufferDuration = preferredForwardBufferDuration(for: asset.url)
+        return item
+    }
+
     // MARK: - AudioEngine
 
     @discardableResult
@@ -241,7 +257,7 @@ nonisolated final class AVPlayerEngine: AudioEngine, @unchecked Sendable {
 
         resetDecks()
         let asset = AVURLAsset(url: url, options: Self.assetOptions(headers: headers))
-        let item = AVPlayerItem(asset: asset)
+        let item = Self.makeItem(asset: asset)
         attachItemObservers(item)
         currentItem = item
         currentAsset = asset
@@ -293,7 +309,7 @@ nonisolated final class AVPlayerEngine: AudioEngine, @unchecked Sendable {
         }
         clearPreloadedDeck()
         let asset = AVURLAsset(url: url, options: Self.assetOptions(headers: headers))
-        let item = AVPlayerItem(asset: asset)
+        let item = Self.makeItem(asset: asset)
         standbyPlayer.replaceCurrentItem(with: item)
         preloadedItem = item
         preloadedAsset = asset
@@ -1055,7 +1071,7 @@ nonisolated final class AVPlayerEngine: AudioEngine, @unchecked Sendable {
         }
         Logger.player.info("[ENGINE] reopening stream as \(mimeType, privacy: .public) after an unidentified container")
         let asset = AVURLAsset(url: url, options: Self.assetOptions(headers: headers, mimeType: mimeType))
-        let item = AVPlayerItem(asset: asset)
+        let item = Self.makeItem(asset: asset)
         item.forwardPlaybackEndTime = failedItem.forwardPlaybackEndTime
         attachItemObservers(item)
         currentItem = item
