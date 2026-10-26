@@ -1,7 +1,9 @@
 import SwiftUI
 
 struct MeshGradientBackground: View {
-    /// 3 colors from WrappedYearPalette.
+    /// 3 colors from WrappedYearPalette, already darkened so white text on them reaches 4.5:1.
+    /// The mesh blends between them; the stops stop a little short of the 4.5:1 limit to leave
+    /// room for any overshoot from its smoothed colour interpolation.
     let palette: [Color]
     let animated: Bool
 

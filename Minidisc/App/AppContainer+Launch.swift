@@ -7,9 +7,10 @@ extension AppContainer {
     /// adds its own platform work, such as scheduling background tasks, after this returns.
     static func launch(
         diagnostics: PlaybackDiagnostics,
+        linkRouter: LinkRouter,
         backgroundSync: BackgroundSyncCoordinator
     ) async throws -> AppContainer {
-        let newContainer = try AppContainer(playbackDiagnostics: diagnostics)
+        let newContainer = try AppContainer(playbackDiagnostics: diagnostics, linkRouter: linkRouter)
         await newContainer.setup()
         // Detect an upgraded Navidrome before any cache maintenance or queue
         // restoration reads resource IDs from the local stores.
@@ -25,7 +26,7 @@ extension AppContainer {
             }
         )
         await newContainer.nowPlayingService.start()
-        AppContainer.invalidateCoverArtCacheIfNeeded(artworkCache: newContainer.artworkImageCache)
+        await AppContainer.invalidateCoverArtCacheIfNeeded(artworkCache: newContainer.artworkImageCache)
         if let sweepTask = AppContainer.sweepLegacyCoverArtFiles() {
             newContainer.retainLifecycleTask(sweepTask)
         }
@@ -64,12 +65,19 @@ extension AppContainer {
 
     // MARK: - Cover art garbage collection
 
-    @MainActor
     private static func runCoverArtGarbageCollection(
         modelContainer: ModelContainer,
         downloadService: any DownloadServiceProtocol
     ) async {
-        let context = modelContainer.mainContext
+        let referencedIds = await referencedCoverArtIds(in: modelContainer)
+        await downloadService.garbageCollectOrphanedCovers(referencedIds: referencedIds)
+    }
+
+    /// Every cover a download or pin still uses. A large download library makes these fetches
+    /// slow, so they run on a background context rather than the main one.
+    @concurrent
+    private nonisolated static func referencedCoverArtIds(in modelContainer: ModelContainer) async -> Set<String> {
+        let context = ModelContext(modelContainer)
         var referencedIds: Set<String> = []
 
         let albums = (try? context.fetch(FetchDescriptor<DownloadedAlbum>())) ?? []
@@ -92,6 +100,6 @@ extension AppContainer {
             if let id = item.coverArtId { referencedIds.insert(id) }
         }
 
-        await downloadService.garbageCollectOrphanedCovers(referencedIds: referencedIds)
+        return referencedIds
     }
 }

@@ -131,7 +131,7 @@ struct AIRecommendationsView: View {
                 Task { await load() }
             }
         }
-        .tint(.minidiscAccent)
+        .tint(.minidiscTextAccent)
     }
 
     @ViewBuilder
@@ -185,6 +185,8 @@ struct AIRecommendationsView: View {
                 if container?.lidarrSettings.isConnected == true {
                     Button("Add to Lidarr", systemImage: "plus") { Task { await addToLidarr(item) } }
                         .buttonStyle(.borderedProminent)
+                        // A fill behind white text, so the fill shade rather than the text one.
+                        .tint(.minidiscAccent)
                 }
                 Button("Bandcamp") { if let url = AIRecommendationLinks.bandcamp(item) { openURL(url) } }
                     .buttonStyle(.bordered)
@@ -193,7 +195,7 @@ struct AIRecommendationsView: View {
             }
         }
         .font(.footnote)
-        .tint(.minidiscAccent)
+        .tint(.minidiscTextAccent)
     }
 
     private func load() async {

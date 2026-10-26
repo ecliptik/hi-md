@@ -57,8 +57,8 @@ struct MinidiscMacApp: App {
         .menuBarExtraStyle(.window)
     }
 
-    static func makeContainer(diagnostics: PlaybackDiagnostics) async throws -> AppContainer {
-        try await AppContainer.launch(diagnostics: diagnostics, backgroundSync: backgroundSyncCoordinator)
+    static func makeContainer(diagnostics: PlaybackDiagnostics, linkRouter: LinkRouter) async throws -> AppContainer {
+        try await AppContainer.launch(diagnostics: diagnostics, linkRouter: linkRouter, backgroundSync: backgroundSyncCoordinator)
     }
 
     private var activeContainer: AppContainer? { appDelegate.launcher.container }

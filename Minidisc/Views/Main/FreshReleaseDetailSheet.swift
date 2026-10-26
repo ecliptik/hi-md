@@ -88,7 +88,7 @@ struct FreshReleaseDetailView: View {
             .frame(maxWidth: .infinity)
             .background(Color.minidiscAccent.opacity(0.1))
             .clipShape(RoundedRectangle(cornerRadius: MinidiscCornerRadius.standard, style: .continuous))
-            .foregroundStyle(Color.minidiscAccent)
+            .foregroundStyle(Color.minidiscTextAccent)
         }
         .buttonStyle(.plain)
     }

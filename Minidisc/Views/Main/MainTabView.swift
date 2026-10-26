@@ -21,10 +21,17 @@ struct MainTabView: View {
 
     /// Widgets, Spotlight and Shortcuts open albums, playlists and artists through minidisc:// links.
     private func open(_ url: URL) {
-        guard container?.serverState.activeServer != nil, let destination = HomeDestination(url: url) else { return }
+        guard let destination = HomeDestination(url: url) else { return }
         playerPresentation.reset()
         selectedTab = .home
         homePath = NavigationPath([destination])
+    }
+
+    /// Opens the link `LinkRouter` is holding. In local-only mode there is no server to show it
+    /// on, so it stays queued and opens once a server is connected.
+    private func openPendingLink() {
+        let hasServer = container?.serverState.activeServer != nil
+        if let url = container?.linkRouter.take(hasActiveServer: hasServer) { open(url) }
     }
 
     var body: some View {
@@ -120,6 +127,7 @@ struct MainTabView: View {
             playlistsPath = NavigationPath()
             searchPath = NavigationPath()
             searchText = ""
+            openPendingLink()
         }
         .onReceive(NotificationCenter.default.publisher(for: .minidiscNavigateToLibrary)) { _ in
             playerPresentation.reset()
@@ -136,10 +144,10 @@ struct MainTabView: View {
             guard container?.serverState.isOnline == true else { return }
             try? await container?.favoritesService.syncFromServer()
         }
-        .onOpenURL { url in open(url) }
-        // Spotlight results and Shortcuts "Open" actions, which can arrive during launch.
+        // Widget links, Spotlight results and Shortcuts "Open" actions, which can arrive during
+        // launch. MinidiscApp queues every opened URL in the router.
         .onChange(of: container?.linkRouter.pending, initial: true) {
-            if let url = container?.linkRouter.take() { open(url) }
+            openPendingLink()
         }
         .onReceive(NotificationCenter.default.publisher(for: .minidiscNavigateToArtist)) { note in
             guard let id   = note.userInfo?["artistId"]   as? String,

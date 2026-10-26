@@ -961,7 +961,7 @@ struct OutOfLibraryArtistSheet: View {
                 ? Color.secondary.opacity(0.08)
                 : Color.minidiscAccent.opacity(0.1))
             .clipShape(RoundedRectangle(cornerRadius: MinidiscCornerRadius.standard, style: .continuous))
-            .foregroundStyle(secondary ? Color.secondary : Color.minidiscAccent)
+            .foregroundStyle(secondary ? Color.secondary : Color.minidiscTextAccent)
         }
         .buttonStyle(.plain)
     }

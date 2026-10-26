@@ -5,6 +5,8 @@ import Foundation
 final class MinidiscRuntime {
     static let shared = MinidiscRuntime()
     let diagnostics = PlaybackDiagnostics()
+    /// Exists before the container, so a widget or Spotlight link from a cold launch is kept.
+    let linkRouter = LinkRouter()
     private var initialization: Task<AppContainer, Error>?
     private let load: (@MainActor () async throws -> AppContainer)?
 
@@ -17,9 +19,9 @@ final class MinidiscRuntime {
         let task = Task {
             if let load { return try await load() }
             #if os(macOS)
-            return try await MinidiscMacApp.makeContainer(diagnostics: diagnostics)
+            return try await MinidiscMacApp.makeContainer(diagnostics: diagnostics, linkRouter: linkRouter)
             #else
-            return try await MinidiscApp.makeContainer(diagnostics: diagnostics)
+            return try await MinidiscApp.makeContainer(diagnostics: diagnostics, linkRouter: linkRouter)
             #endif
         }
         initialization = task

@@ -14,6 +14,8 @@ actor NowPlayingService: NowPlayingServiceProtocol {
     private var commandsRegistered = false
     private var currentSong: NowPlayingSnapshot?
     private var contentGeneration: UInt64 = 0
+    /// Fetches the current song's cover after its details are already showing.
+    private var artworkTask: Task<Void, Never>?
     private var favoritesService: (any FavoritesServiceProtocol)?
 
     init(
@@ -42,6 +44,7 @@ actor NowPlayingService: NowPlayingServiceProtocol {
     }
 
     func stop() async {
+        cancelArtworkLoad()
         contentGeneration &+= 1
         let generation = contentGeneration
         currentSong = nil
@@ -54,6 +57,7 @@ actor NowPlayingService: NowPlayingServiceProtocol {
 
     func update(with snapshot: NowPlayingSnapshot) async {
         if snapshot.isLiveStream {
+            cancelArtworkLoad()
             contentGeneration &+= 1
             let generation = contentGeneration
             currentSong = nil
@@ -86,16 +90,17 @@ actor NowPlayingService: NowPlayingServiceProtocol {
             return
         }
 
+        cancelArtworkLoad()
         contentGeneration &+= 1
         let generation = contentGeneration
 
         currentSong = snapshot
         await presenter.setBaseInfo(for: snapshot, generation: generation)
-        guard generation == contentGeneration, currentSong?.songId == snapshot.songId else { return }
+        guard isCurrent(snapshot, generation: generation) else { return }
         await updateRemoteCommandsAvailability(isLiveStream: false)
-        guard generation == contentGeneration, currentSong?.songId == snapshot.songId else { return }
+        guard isCurrent(snapshot, generation: generation) else { return }
         await refreshLikeCommandState()
-        guard generation == contentGeneration, currentSong?.songId == snapshot.songId else { return }
+        guard isCurrent(snapshot, generation: generation) else { return }
 
         if let coverArtId = snapshot.coverArtId, await artworkImageCache.hasNoArtwork(coverArtId) {
             await showNoArtwork(fallback: snapshot, generation: generation)
@@ -103,7 +108,7 @@ actor NowPlayingService: NowPlayingServiceProtocol {
         }
         if let coverArtId = snapshot.coverArtId,
            let cachedImage = await artworkImageCache.cached(for: coverArtId, tier: .hero) {
-            guard generation == contentGeneration, currentSong?.songId == snapshot.songId else { return }
+            guard isCurrent(snapshot, generation: generation) else { return }
             await presenter.setArtwork(
                 image: cachedImage,
                 fallback: snapshot,
@@ -112,18 +117,52 @@ actor NowPlayingService: NowPlayingServiceProtocol {
             return
         }
 
-        if let artworkURL = snapshot.artworkURL {
-            let result = await artworkLoader.artwork(for: artworkURL, headers: snapshot.artworkHeaders)
-            guard generation == contentGeneration, currentSong?.songId == snapshot.songId else { return }
-            switch result {
-            case .artwork(let data):
-                await presenter.setArtwork(data: data, fallback: snapshot, generation: generation)
-            case .noArtwork:
+        // The disk cache or the server can take seconds, up to the 10 s request timeout offline.
+        // Callers such as launch-time session restore and Siri must not wait for it, so the song's
+        // details are published now and the cover follows when it arrives.
+        guard snapshot.coverArtId != nil || snapshot.artworkURL != nil else { return }
+        artworkTask = Task { [weak self] in
+            await self?.loadArtwork(for: snapshot, generation: generation)
+        }
+    }
+
+    /// Resolves the cover from the disk cache before asking the server. A newer song, a stop or a
+    /// live stream moves the generation on, so a late result is dropped instead of shown.
+    private func loadArtwork(for snapshot: NowPlayingSnapshot, generation: UInt64) async {
+        if let coverArtId = snapshot.coverArtId {
+            let image = await artworkImageCache.load(coverArtId: coverArtId, tier: .hero)
+            guard isCurrent(snapshot, generation: generation) else { return }
+            if let image {
+                await presenter.setArtwork(image: image, fallback: snapshot, generation: generation)
+                return
+            }
+            if await artworkImageCache.hasNoArtwork(coverArtId) {
+                guard isCurrent(snapshot, generation: generation) else { return }
                 await showNoArtwork(fallback: snapshot, generation: generation)
-            case .unavailable:
-                break
+                return
             }
         }
+
+        guard isCurrent(snapshot, generation: generation), let artworkURL = snapshot.artworkURL else { return }
+        let result = await artworkLoader.artwork(for: artworkURL, headers: snapshot.artworkHeaders)
+        guard isCurrent(snapshot, generation: generation) else { return }
+        switch result {
+        case .artwork(let data):
+            await presenter.setArtwork(data: data, fallback: snapshot, generation: generation)
+        case .noArtwork:
+            await showNoArtwork(fallback: snapshot, generation: generation)
+        case .unavailable:
+            break
+        }
+    }
+
+    private func isCurrent(_ snapshot: NowPlayingSnapshot, generation: UInt64) -> Bool {
+        generation == contentGeneration && currentSong?.songId == snapshot.songId
+    }
+
+    private func cancelArtworkLoad() {
+        artworkTask?.cancel()
+        artworkTask = nil
     }
 
     /// The Minidisc cartridge on gold, in place of the server's stand-in image on the Lock Screen,

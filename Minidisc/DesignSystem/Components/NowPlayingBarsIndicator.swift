@@ -5,6 +5,7 @@ struct NowPlayingBarsIndicator: View {
 
     @Environment(\.minidiscPlayingAccent) private var playingAccent
     @Environment(\.systemPrefersReducedResourceUsage) private var prefersReducedResourceUsage
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     private let delays: [Double] = [0.0, 0.15, 0.30]
     @State private var heights: [CGFloat] = [4, 8, 4]
 
@@ -24,11 +25,15 @@ struct NowPlayingBarsIndicator: View {
         .onChange(of: prefersReducedResourceUsage) {
             if isPlaying { startAnimating() }
         }
+        .onChange(of: reduceMotion) {
+            if isPlaying { startAnimating() }
+        }
     }
 
     private func startAnimating() {
-        // Still bars when iOS asks apps to save resources; they still read as "playing".
-        guard !prefersReducedResourceUsage else {
+        // Still bars under Reduce Motion or when iOS asks apps to save resources; uneven
+        // heights still read as "playing".
+        guard !prefersReducedResourceUsage, !reduceMotion else {
             withTransaction(Transaction(animation: nil)) { heights = [6, 12, 8] }
             return
         }

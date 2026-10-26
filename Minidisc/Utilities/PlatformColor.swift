@@ -36,7 +36,7 @@ extension PlatformColor {
 import SwiftUI
 
 extension Color {
-    init(platformColor: PlatformColor) {
+    nonisolated init(platformColor: PlatformColor) {
         #if canImport(UIKit)
         self.init(uiColor: platformColor)
         #else

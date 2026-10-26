@@ -68,7 +68,8 @@ final class AppContainer {
     // The Mac has no widgets or Live Activities, and no App Group to share a snapshot through.
     private(set) lazy var downloadActivities = DownloadActivityController()
     #endif
-    let linkRouter = LinkRouter()
+    /// Owned by `MinidiscRuntime`, so a link opened while launch is still building this container waits there.
+    let linkRouter: LinkRouter
     #if canImport(WatchConnectivity) && !targetEnvironment(macCatalyst)
     private(set) lazy var watchBridge = PhoneWatchBridge(container: self)
     #endif
@@ -85,8 +86,10 @@ final class AppContainer {
     init(
         inMemory: Bool = false,
         playbackDiagnostics: PlaybackDiagnostics = PlaybackDiagnostics(),
-        userDefaults: UserDefaults = .standard
+        userDefaults: UserDefaults = .standard,
+        linkRouter: LinkRouter = LinkRouter()
     ) throws {
+        self.linkRouter = linkRouter
         let localStore = LocalMusicStore(directory: inMemory
             ? URL.temporaryDirectory.appendingPathComponent("minidisc-local-\(UUID())")
             : URL.applicationSupportDirectory.appendingPathComponent("minidisc-local-music"))
@@ -423,20 +426,26 @@ extension AppContainer {
     private static let currentCoverArtCacheVersion = 5
 
     /// Invalidates older artwork tiers so full-resolution files cannot bypass thumbnail decoding.
-    static func invalidateCoverArtCacheIfNeeded(artworkCache: ArtworkImageCache) {
+    static func invalidateCoverArtCacheIfNeeded(artworkCache: ArtworkImageCache) async {
         let stored = UserDefaults.standard.integer(forKey: coverArtCacheVersionKey)
         guard stored < currentCoverArtCacheVersion else { return }
 
         artworkCache.clearCache()
         artworkCache.clearRevalidationMetadata()
+        await removeCoverArtFiles()
+
+        UserDefaults.standard.set(currentCoverArtCacheVersion, forKey: coverArtCacheVersionKey)
+        Logger.player.info("ArtworkImageCache: invalidated cover art disk cache (version \(stored) → \(currentCoverArtCacheVersion))")
+    }
+
+    /// A large cover folder takes a while to delete, so launch does it off the main thread.
+    @concurrent
+    private nonisolated static func removeCoverArtFiles() async {
         let coverArtsDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("app.minidisc/coverarts")
         try? FileManager.default.removeItem(at: coverArtsDir)
         try? FileManager.default.createDirectory(at: coverArtsDir, withIntermediateDirectories: true)
         URLCache.shared.removeAllCachedResponses()
-
-        UserDefaults.standard.set(currentCoverArtCacheVersion, forKey: coverArtCacheVersionKey)
-        Logger.player.info("ArtworkImageCache: invalidated cover art disk cache (version \(stored) → \(currentCoverArtCacheVersion))")
     }
 }
 
@@ -481,11 +490,13 @@ extension AppContainer {
 // MARK: - Audio extension migration
 
 extension AppContainer {
-    private static let audioExtMigrationKey = "minidisc.audioExtMigration_v1"
+    private nonisolated static let audioExtMigrationKey = "minidisc.audioExtMigration_v1"
 
     /// Repairs downloads saved as .mpeg: AVPlayer treats that extension as video, not MP3.
     /// Clears the stream cache and updates downloaded file paths after renaming.
-    static func migrateAudioExtensionsIfNeeded(
+    /// Runs on a background context, off the main thread, since it reads every downloaded track.
+    @concurrent
+    nonisolated static func migrateAudioExtensionsIfNeeded(
         modelContainer: ModelContainer,
         audioStreamCache: any AudioStreamCacheProtocol
     ) async {
@@ -548,14 +559,16 @@ extension AppContainer {
     }
 
     // v2 completed prematurely on empty download stores. Reset the marker and retry counter together.
-    private static let m4aFaststartMigrationKey = "minidisc.m4aFaststartMigration_v3"
-    private static let m4aFaststartAttemptsKey = "minidisc.m4aFaststartMigration_v3_attempts"
-    private static let m4aFaststartMaxAttempts = 3
+    private nonisolated static let m4aFaststartMigrationKey = "minidisc.m4aFaststartMigration_v3"
+    private nonisolated static let m4aFaststartAttemptsKey = "minidisc.m4aFaststartMigration_v3_attempts"
+    private nonisolated static let m4aFaststartMaxAttempts = 3
 
     /// Remuxes downloaded M4A files with trailing moov atoms. Detects the container from its bytes.
     /// Updates file sizes and marks completion only after a successful save with no failed remuxes.
     /// Failed passes retry on later launches up to m4aFaststartMaxAttempts.
-    static func migrateM4AFaststartIfNeeded(modelContainer: ModelContainer) async {
+    /// Like the extension repair, it reads and remuxes files off the main thread.
+    @concurrent
+    nonisolated static func migrateM4AFaststartIfNeeded(modelContainer: ModelContainer) async {
         guard !UserDefaults.standard.bool(forKey: m4aFaststartMigrationKey) else { return }
 
         let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
@@ -611,7 +624,7 @@ extension AppContainer {
         Logger.migration.info("[M4AFaststart] Complete: \(remuxedCount) remuxed, \(failedCount) failed of \(m4aCount) m4a (\(tracks.count) total), attempt \(attempts)")
     }
 
-    private static func audioExtFromMime(_ mimeType: String) -> String {
+    private nonisolated static func audioExtFromMime(_ mimeType: String) -> String {
         switch mimeType.lowercased() {
         case "audio/mpeg", "audio/mp3":        return "mp3"
         case "audio/flac", "audio/x-flac":     return "flac"
