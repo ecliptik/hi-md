@@ -26,8 +26,10 @@ struct MinidiscMacApp: App {
                     await launchIfNeeded()
                 }
                 .containerLifecycle(activeContainer)
+                .winampMode(activeContainer) // Winamp mode: MinidiscMac/Winamp
         }
         .commands { PlaybackCommands(container: activeContainer) }
+        .commands { WinampCommands() } // Winamp mode: View > Winamp Mode (⌘⇧W)
         .onChange(of: scenePhase) { _, newPhase in
             guard let container = activeContainer else { return }
             Task { await container.playerService.setAppVisible(newPhase != .background) }
