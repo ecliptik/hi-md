@@ -255,10 +255,20 @@ actor PlaylistService: PlaylistServiceProtocol {
             return record.serverId
         }
         guard let serverId else { return }
-        for song in addedSongs {
-            Task { [weak self] in
-                try? await self?.downloadService.download(song: song, serverId: serverId)
-            }
+        downloadInBackground(addedSongs, serverId: serverId, playlistId: playlistId)
+    }
+
+    /// One batch per playlist rather than an unowned task per song, so failures are logged
+    /// instead of disappearing.
+    private func downloadInBackground(_ songs: [Song], serverId: UUID, playlistId: String) {
+        guard !songs.isEmpty else { return }
+        Task { [downloadService] in
+            let failures = await downloadService.download(songs: songs, serverId: serverId)
+            guard !failures.isEmpty else { return }
+            let sample = failures.prefix(5).map { "\($0.songId): \($0.error.logSafe)" }.joined(separator: ", ")
+            Logger.playlist.warning(
+                "\(failures.count, privacy: .public) of \(songs.count, privacy: .public) track(s) failed to download for playlist '\(playlistId, privacy: .public)': \(sample, privacy: .public)"
+            )
         }
     }
 
@@ -303,13 +313,7 @@ actor PlaylistService: PlaylistServiceProtocol {
 
             let missingIdSet = Set(missingIds)
             let songsToDownload = (playlist.entry ?? []).filter { missingIdSet.contains($0.id) }
-            let serverId = record.serverId
-
-            for song in songsToDownload {
-                Task { [weak self] in
-                    try? await self?.downloadService.download(song: song, serverId: serverId)
-                }
-            }
+            downloadInBackground(songsToDownload, serverId: record.serverId, playlistId: record.playlistId)
         }
     }
 

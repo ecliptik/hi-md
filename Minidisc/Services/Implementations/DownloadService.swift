@@ -563,6 +563,30 @@ actor DownloadService: DownloadServiceProtocol {
         }
     }
 
+    /// Downloads each song as `download(song:serverId:)` does, under one task group instead of an
+    /// unowned task per song, and returns the songs that failed. Cancellation isn't a failure.
+    func download(songs: [Song], serverId: UUID) async -> [(songId: String, error: any Error)] {
+        await withTaskGroup(of: (songId: String, error: (any Error)?).self) { group in
+            for song in songs {
+                group.addTask {
+                    do {
+                        try await self.download(song: song, serverId: serverId)
+                        return (song.id, nil)
+                    } catch is CancellationError {
+                        return (song.id, nil)
+                    } catch {
+                        return (song.id, error)
+                    }
+                }
+            }
+            var failures: [(songId: String, error: any Error)] = []
+            for await result in group {
+                if let error = result.error { failures.append((result.songId, error)) }
+            }
+            return failures
+        }
+    }
+
     private func awaitQueuedSong(_ song: Song, serverId: UUID) async throws {
         try await transferCoordinator.run(key: taskKey(songId: song.id, serverId: serverId)) {
             try await self.downloadsQueue().wait(songID: song.id, serverID: serverId)
