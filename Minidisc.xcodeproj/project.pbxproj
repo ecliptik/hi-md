@@ -11,6 +11,8 @@
 		8785D1413012A3A500208269 /* AppIconDark.icon in Resources */ = {isa = PBXBuildFile; fileRef = 8785D1403012A3A500208269 /* AppIconDark.icon */; };
 		8785D1433012A3A500208269 /* AppIconLight.icon in Resources */ = {isa = PBXBuildFile; fileRef = 8785D1423012A3A500208269 /* AppIconLight.icon */; };
 		DBA4A77D2F9BE3C8008BC5A9 /* SwiftSonic in Frameworks */ = {isa = PBXBuildFile; productRef = DBA4A77C2F9BE3C8008BC5A9 /* SwiftSonic */; };
+		EC1D2700000000000000003A /* SwiftSonic in Frameworks */ = {isa = PBXBuildFile; productRef = EC1D2700000000000000003B /* SwiftSonic */; };
+		EC1D2700000000000000003C /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 8785D13C3012A3A500208269 /* AppIcon.icon */; };
 		EC1D2700000000000000000D /* MinidiscWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = EC1D27000000000000000001 /* MinidiscWidgets.appex */; platformFilter = ios; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		EC1D2700000000000000001B /* MinidiscWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = EC1D27000000000000000010 /* MinidiscWatch.app */; platformFilter = ios; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
@@ -80,6 +82,7 @@
 		DBA4A7682F9BBFCC008BC5A9 /* MinidiscUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MinidiscUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		EC1D27000000000000000001 /* MinidiscWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = MinidiscWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		EC1D27000000000000000010 /* MinidiscWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MinidiscWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		EC1D27000000000000000030 /* Minidisc.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Minidisc.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -89,6 +92,138 @@
 				Info.plist,
 			);
 			target = DBA4A7502F9BBFCB008BC5A9 /* Minidisc */;
+		};
+		EC1D27000000000000000032 /* Exceptions for "Minidisc" folder in "MinidiscMac" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				"Minidisc-Simulator.entitlements",
+				App/MinidiscApp.swift,
+				CarPlay/CarPlayController.swift,
+				CarPlay/CarPlaySceneDelegate.swift,
+				DesignSystem/Components/DocumentImagePicker.swift,
+				DesignSystem/Components/ImagePickerController.swift,
+				DesignSystem/Components/JustifiedText.swift,
+				DesignSystem/Components/PlaylistCoverCarousel.swift,
+				DesignSystem/Components/PlaylistFeaturedArtistsShelf.swift,
+				DesignSystem/Components/SongRow.swift,
+				DesignSystem/Components/SongSelectionSheet.swift,
+				DesignSystem/Components/SquareCropView.swift,
+				DesignSystem/Components/SwipeBackEnabler.swift,
+				DesignSystem/Components/SystemShareSheet.swift,
+				DesignSystem/Components/SystemVolumeView.swift,
+				DesignSystem/Components/TrackSkipSwipeModifier.swift,
+				Info.plist,
+				Minidisc.entitlements,
+				Services/Intents/SiriMediaIntentHandler.swift,
+				Services/Watch/PhoneWatchBridge.swift,
+				Services/Widgets/WidgetArtworkWriter.swift,
+				Services/Widgets/WidgetSnapshotPublisher.swift,
+				Views/Browse/AddToPlaylistSheet.swift,
+				Views/Browse/AlbumDetailView.swift,
+				Views/Browse/AlbumsListView.swift,
+				Views/Browse/ArtistBestOfView.swift,
+				Views/Browse/ArtistDetailView.swift,
+				Views/Browse/ArtistInformationSheet.swift,
+				Views/Browse/ArtistListView.swift,
+				Views/Browse/CreatePlaylistSheet.swift,
+				Views/Browse/DownloadActivitySection.swift,
+				Views/Browse/DownloadedView.swift,
+				Views/Browse/EditPlaylistSheet.swift,
+				Views/Browse/FavoritesView.swift,
+				Views/Browse/FeaturedArtistAvatar.swift,
+				Views/Browse/LibraryFacetViews.swift,
+				Views/Browse/OfflineBrowsingEmptyView.swift,
+				Views/Browse/PlaylistCoverPicker.swift,
+				Views/Browse/PlaylistDetailView.swift,
+				Views/Browse/PlaylistListView.swift,
+				Views/Browse/RadioListView.swift,
+				Views/Browse/RecentlyAddedView.swift,
+				Views/Browse/SongsListView.swift,
+				Views/Discover/MoodArtwork.swift,
+				Views/Discover/MoodCard.swift,
+				Views/Lidarr/LidarrAlbumDetailView.swift,
+				Views/Lidarr/LidarrArtistDetailView.swift,
+				Views/Lidarr/LidarrCoverImage.swift,
+				Views/Lidarr/LidarrInteractiveSearchView.swift,
+				Views/Lidarr/LidarrLibraryView.swift,
+				Views/Lidarr/LidarrManualImportView.swift,
+				Views/Lidarr/LidarrQueueDetailSheet.swift,
+				Views/Lidarr/LidarrQueueView.swift,
+				Views/Lidarr/LidarrReleaseDetailView.swift,
+				Views/LocalMusic/LocalMusicBrowseView.swift,
+				Views/LocalMusic/LocalMusicCollectionView.swift,
+				Views/LocalMusic/LocalMusicFoldersView.swift,
+				Views/LocalMusic/LocalMusicView.swift,
+				Views/Main/AIRecommendationsView.swift,
+				Views/Main/AllFreshReleasesView.swift,
+				Views/Main/CarouselCollectionViews.swift,
+				Views/Main/DiscoverListeningCards.swift,
+				Views/Main/DiscoverView.swift,
+				Views/Main/FreshReleaseDetailSheet.swift,
+				Views/Main/FreshReleasesCard.swift,
+				Views/Main/FullPlayerView.swift,
+				Views/Main/HomeDestinationView.swift,
+				Views/Main/HomeListeningSections.swift,
+				Views/Main/HomeView.swift,
+				Views/Main/InlineQueueList.swift,
+				Views/Main/LibraryView.swift,
+				Views/Main/MainTabView.swift,
+				Views/Main/MiniPlayerAccessoryView.swift,
+				Views/Main/OfflineHomeCard.swift,
+				Views/Main/PlayerContainer.swift,
+				Views/Main/RootView.swift,
+				Views/Main/SearchResultsContent.swift,
+				Views/Main/SearchView.swift,
+				Views/Main/SmartSearchResultsView.swift,
+				Views/Main/TrackInformationSheet.swift,
+				Views/Onboarding/ConnectionErrorView.swift,
+				Views/Onboarding/OnboardingCompleteView.swift,
+				Views/Onboarding/OnboardingView.swift,
+				Views/Onboarding/OnboardingWelcomeView.swift,
+				Views/Onboarding/ServerFormView.swift,
+				Views/Settings/AcknowledgementsView.swift,
+				Views/Settings/EditServerView.swift,
+				Views/Settings/EqualizerView.swift,
+				Views/Settings/Integrations/AudioMuseSettingsView.swift,
+				Views/Settings/Integrations/ExternalProviderEditView.swift,
+				Views/Settings/Integrations/ExternalProvidersSettingsView.swift,
+				Views/Settings/Integrations/LidarrAddArtistSheet.swift,
+				Views/Settings/Integrations/LidarrArtistSearchView.swift,
+				Views/Settings/Integrations/LidarrSettingsView.swift,
+				Views/Settings/ListenBrainzSettingsView.swift,
+				Views/Settings/PlaybackDiagnosticsView.swift,
+				Views/Settings/Sections/CrossfadeSettingsSection.swift,
+				Views/Settings/Sections/MoodPlaylistSettingsSection.swift,
+				Views/Settings/Sections/OfflineFavoritesSettingsSection.swift,
+				Views/Settings/Sections/ReplayGainSettingsSection.swift,
+				Views/Settings/SettingsView.swift,
+				Views/Settings/SiriSettingsSection.swift,
+				Views/Wrapped/Components/WrappedCurrentYearCard.swift,
+				Views/Wrapped/Components/WrappedPeriodPicker.swift,
+				Views/Wrapped/Components/WrappedRecapMonthCard.swift,
+				Views/Wrapped/Components/WrappedStatHero.swift,
+				Views/Wrapped/Components/WrappedTopAlbumsSection.swift,
+				Views/Wrapped/Components/WrappedTopArtistsSection.swift,
+				Views/Wrapped/Components/WrappedTopTracksSection.swift,
+				Views/Wrapped/Components/WrappedYearCard.swift,
+				Views/Wrapped/Components/WrappedYearlyCard.swift,
+				Views/Wrapped/Story/Slides/WrappedClosingSlide.swift,
+				Views/Wrapped/Story/Slides/WrappedDiscoveriesSlide.swift,
+				Views/Wrapped/Story/Slides/WrappedIntroSlide.swift,
+				Views/Wrapped/Story/Slides/WrappedMinutesSlide.swift,
+				Views/Wrapped/Story/Slides/WrappedTopAlbumSlide.swift,
+				Views/Wrapped/Story/Slides/WrappedTopArtistSlide.swift,
+				Views/Wrapped/Story/Slides/WrappedTopGenreSlide.swift,
+				Views/Wrapped/Story/Slides/WrappedTopTrackSlide.swift,
+				Views/Wrapped/Story/WrappedShareCardView.swift,
+				Views/Wrapped/Story/WrappedSlideEntrance.swift,
+				Views/Wrapped/Story/WrappedStoryPlayerView.swift,
+				Views/Wrapped/Story/WrappedStoryProgressBar.swift,
+				Views/Wrapped/Story/WrappedStorySlideKind.swift,
+				Views/Wrapped/WrappedView.swift,
+				Views/Wrapped/WrappedYearlyListView.swift,
+			);
+			target = EC1D27000000000000000033 /* MinidiscMac */;
 		};
 		EC1D27000000000000000004 /* Exceptions for "MinidiscWidgets" folder in "MinidiscWidgets" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
@@ -104,6 +239,7 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				DBA4A8F62F9C0A1F008BC5A9 /* Exceptions for "Minidisc" folder in "Minidisc" target */,
+				EC1D27000000000000000032 /* Exceptions for "Minidisc" folder in "MinidiscMac" target */,
 			);
 			path = Minidisc;
 			sourceTree = "<group>";
@@ -139,6 +275,11 @@
 		EC1D27000000000000000012 /* WatchShared */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = WatchShared;
+			sourceTree = "<group>";
+		};
+		EC1D27000000000000000031 /* MinidiscMac */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = MinidiscMac;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -180,6 +321,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		EC1D27000000000000000035 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				EC1D2700000000000000003A /* SwiftSonic in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -191,6 +340,7 @@
 				EC1D27000000000000000002 /* MinidiscWidgets */,
 				EC1D27000000000000000011 /* MinidiscWatch */,
 				EC1D27000000000000000012 /* WatchShared */,
+				EC1D27000000000000000031 /* MinidiscMac */,
 				DBA4A7612F9BBFCC008BC5A9 /* MinidiscTests */,
 				DBA4A76B2F9BBFCC008BC5A9 /* MinidiscUITests */,
 				DBA4A7522F9BBFCB008BC5A9 /* Products */,
@@ -208,6 +358,7 @@
 				DBA4A7682F9BBFCC008BC5A9 /* MinidiscUITests.xctest */,
 				EC1D27000000000000000001 /* MinidiscWidgets.appex */,
 				EC1D27000000000000000010 /* MinidiscWatch.app */,
+				EC1D27000000000000000030 /* Minidisc.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -332,6 +483,31 @@
 			productReference = EC1D27000000000000000010 /* MinidiscWatch.app */;
 			productType = "com.apple.product-type.application";
 		};
+		EC1D27000000000000000033 /* MinidiscMac */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = EC1D27000000000000000037 /* Build configuration list for PBXNativeTarget "MinidiscMac" */;
+			buildPhases = (
+				EC1D27000000000000000034 /* Sources */,
+				EC1D27000000000000000035 /* Frameworks */,
+				EC1D27000000000000000036 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				EC1D27000000000000000031 /* MinidiscMac */,
+				DBA4A7532F9BBFCB008BC5A9 /* Minidisc */,
+				EC1D27000000000000000003 /* Shared */,
+			);
+			name = MinidiscMac;
+			packageProductDependencies = (
+				EC1D2700000000000000003B /* SwiftSonic */,
+			);
+			productName = MinidiscMac;
+			productReference = EC1D27000000000000000030 /* Minidisc.app */;
+			productType = "com.apple.product-type.application";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -357,6 +533,9 @@
 						CreatedOnToolsVersion = 27.1;
 					};
 					EC1D27000000000000000013 = {
+						CreatedOnToolsVersion = 27.1;
+					};
+					EC1D27000000000000000033 = {
 						CreatedOnToolsVersion = 27.1;
 					};
 				};
@@ -391,6 +570,7 @@
 				DBA4A7672F9BBFCC008BC5A9 /* MinidiscUITests */,
 				EC1D27000000000000000005 /* MinidiscWidgets */,
 				EC1D27000000000000000013 /* MinidiscWatch */,
+				EC1D27000000000000000033 /* MinidiscMac */,
 			);
 		};
 /* End PBXProject section */
@@ -434,6 +614,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		EC1D27000000000000000036 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				EC1D2700000000000000003C /* AppIcon.icon in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -466,6 +654,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		EC1D27000000000000000014 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EC1D27000000000000000034 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -632,11 +827,9 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Minidisc/Minidisc.entitlements;
 				"CODE_SIGN_ENTITLEMENTS[sdk=iphonesimulator*]" = "Minidisc/Minidisc-Simulator.entitlements";
-				"CODE_SIGN_ENTITLEMENTS[sdk=macosx*]" = "Minidisc/Minidisc-Mac.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 27;
 				DEAD_CODE_STRIPPING = YES;
-				DERIVE_MACCATALYST_PRODUCT_BUNDLE_IDENTIFIER = NO;
 				DEVELOPMENT_TEAM = JG6P86C33U;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -669,7 +862,7 @@
 				SDKROOT = iphoneos;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
-				SUPPORTS_MACCATALYST = YES;
+				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
@@ -679,7 +872,6 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				"TARGETED_DEVICE_FAMILY[sdk=macosx*]" = 6;
 				VERSIONING_SYSTEM = "apple-generic";
 			};
 			name = Debug;
@@ -692,11 +884,9 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Minidisc/Minidisc.entitlements;
 				"CODE_SIGN_ENTITLEMENTS[sdk=iphonesimulator*]" = "Minidisc/Minidisc-Simulator.entitlements";
-				"CODE_SIGN_ENTITLEMENTS[sdk=macosx*]" = "Minidisc/Minidisc-Mac.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 27;
 				DEAD_CODE_STRIPPING = YES;
-				DERIVE_MACCATALYST_PRODUCT_BUNDLE_IDENTIFIER = NO;
 				DEVELOPMENT_TEAM = JG6P86C33U;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -729,7 +919,7 @@
 				SDKROOT = iphoneos;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
-				SUPPORTS_MACCATALYST = YES;
+				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
@@ -739,7 +929,6 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				"TARGETED_DEVICE_FAMILY[sdk=macosx*]" = 6;
 				VERSIONING_SYSTEM = "apple-generic";
 			};
 			name = Release;
@@ -751,7 +940,6 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEAD_CODE_STRIPPING = YES;
-				DERIVE_MACCATALYST_PRODUCT_BUNDLE_IDENTIFIER = NO;
 				DEVELOPMENT_TEAM = JG6P86C33U;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
@@ -762,7 +950,7 @@
 				SDKROOT = iphoneos;
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
-				SUPPORTS_MACCATALYST = YES;
+				SUPPORTS_MACCATALYST = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = NO;
@@ -771,7 +959,6 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				"TARGETED_DEVICE_FAMILY[sdk=macosx*]" = 6;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Minidisc.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Minidisc";
 			};
 			name = Debug;
@@ -783,7 +970,6 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEAD_CODE_STRIPPING = YES;
-				DERIVE_MACCATALYST_PRODUCT_BUNDLE_IDENTIFIER = NO;
 				DEVELOPMENT_TEAM = JG6P86C33U;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
@@ -794,7 +980,7 @@
 				SDKROOT = iphoneos;
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
-				SUPPORTS_MACCATALYST = YES;
+				SUPPORTS_MACCATALYST = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = NO;
@@ -803,7 +989,6 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				"TARGETED_DEVICE_FAMILY[sdk=macosx*]" = 6;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Minidisc.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Minidisc";
 			};
 			name = Release;
@@ -1000,6 +1185,88 @@
 			};
 			name = Release;
 		};
+		EC1D27000000000000000038 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 27;
+				DEAD_CODE_STRIPPING = YES;
+				DEVELOPMENT_TEAM = JG6P86C33U;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SELECTED_FILES = readwrite;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Minidisc;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.music";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Minidisc needs access to your local network to connect to your Navidrome or Subsonic server.";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 27.0;
+				MARKETING_VERSION = 26.9.5;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ecliptik.minidisc;
+				PRODUCT_NAME = Minidisc;
+				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = macosx;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_TREAT_WARNINGS_AS_ERRORS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		EC1D27000000000000000039 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 27;
+				DEAD_CODE_STRIPPING = YES;
+				DEVELOPMENT_TEAM = JG6P86C33U;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SELECTED_FILES = readwrite;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Minidisc;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.music";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Minidisc needs access to your local network to connect to your Navidrome or Subsonic server.";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 27.0;
+				MARKETING_VERSION = 26.9.5;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ecliptik.minidisc;
+				PRODUCT_NAME = Minidisc;
+				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = macosx;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_TREAT_WARNINGS_AS_ERRORS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -1057,6 +1324,15 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		EC1D27000000000000000037 /* Build configuration list for PBXNativeTarget "MinidiscMac" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				EC1D27000000000000000038 /* Debug */,
+				EC1D27000000000000000039 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
@@ -1072,6 +1348,11 @@
 
 /* Begin XCSwiftPackageProductDependency section */
 		DBA4A77C2F9BE3C8008BC5A9 /* SwiftSonic */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DBA4A77B2F9BE3C8008BC5A9 /* XCRemoteSwiftPackageReference "swiftsonic" */;
+			productName = SwiftSonic;
+		};
+		EC1D2700000000000000003B /* SwiftSonic */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = DBA4A77B2F9BE3C8008BC5A9 /* XCRemoteSwiftPackageReference "swiftsonic" */;
 			productName = SwiftSonic;

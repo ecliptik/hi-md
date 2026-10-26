@@ -1,11 +1,11 @@
 #!/bin/sh
-# Builds Minidisc for the Mac (Mac Catalyst), signed to run locally, and opens it.
-# Until the app is signed with the team's provisioning profile, the keychain refuses a locally
-# signed Mac build (-34018), so server logins can't be saved yet.
+# Builds the native Mac app (the MinidiscMac target), signed to run locally, and opens it.
+# A locally signed build has no team identity, so keychain access can fail (-34018) until the
+# app is built team-signed from Xcode.
 set -eu
 cd "$(dirname "$0")/.."
 DERIVED="${DERIVED_DATA:-build/mac}"
-xcodebuild build -project Minidisc.xcodeproj -scheme Minidisc \
-    -destination 'platform=macOS,variant=Mac Catalyst' \
+xcodebuild build -project Minidisc.xcodeproj -scheme MinidiscMac \
+    -destination 'platform=macOS' \
     -derivedDataPath "$DERIVED" CODE_SIGN_IDENTITY=- -quiet
-open -n "$DERIVED/Build/Products/Debug-maccatalyst/Minidisc.app"
+open -n "$DERIVED/Build/Products/Debug/Minidisc.app"
