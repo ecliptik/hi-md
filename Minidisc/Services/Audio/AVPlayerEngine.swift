@@ -323,12 +323,14 @@ nonisolated final class AVPlayerEngine: AudioEngine, @unchecked Sendable {
         // track's silent lead-in first — seeking after the deck is audible would be heard.
         standbyStatusObserver = item.observe(\.status, options: [.new]) { [weak self] item, _ in
             guard let self else { return }
+            var failedTrackID: String?
+            defer { self.reportStandbyFailure(failedTrackID) }
             self.lock.lock()
             defer { self.lock.unlock() }
             guard item === self.preloadedItem else { return }
             if item.status == .failed {
                 Logger.player.warning("[ENGINE] standby preload failed — falling back to a cold transition")
-                self.clearPreloadedDeck()
+                failedTrackID = self.discardFailedStandby()
                 return
             }
             guard item.status == .readyToPlay else { return }
@@ -342,12 +344,14 @@ nonisolated final class AVPlayerEngine: AudioEngine, @unchecked Sendable {
                     toleranceAfter: .zero
                 ) { [weak self] completed in
                     guard let self else { return }
+                    var failedTrackID: String?
+                    defer { self.reportStandbyFailure(failedTrackID) }
                     self.lock.lock()
                     defer { self.lock.unlock() }
                     guard item === self.preloadedItem else { return }
                     guard completed else {
                         Logger.player.warning("[ENGINE] standby lead-in seek failed — using cold transition")
-                        self.clearPreloadedDeck()
+                        failedTrackID = self.discardFailedStandby()
                         return
                     }
                     self.prerollStandby(item)
@@ -356,6 +360,20 @@ nonisolated final class AVPlayerEngine: AudioEngine, @unchecked Sendable {
                 self.prerollStandby(item)
             }
         }
+    }
+
+    /// Clears a standby deck that failed to load, seek or preroll. Caller holds `lock` and passes
+    /// the returned track to `reportStandbyFailure` once it has unlocked.
+    private func discardFailedStandby() -> String? {
+        let trackID = preloadedTrackID
+        clearPreloadedDeck()
+        return trackID
+    }
+
+    /// Lets PlayerService retry the preload instead of leaving the next track to start cold.
+    private func reportStandbyFailure(_ trackID: String?) {
+        guard let trackID else { return }
+        delegate?.audioEngineStandbyPreloadDidFail(trackID: trackID)
     }
 
     /// A preload belongs to the track it follows. After a hand-off the engine has already promoted
@@ -372,12 +390,14 @@ nonisolated final class AVPlayerEngine: AudioEngine, @unchecked Sendable {
         standbyPreparationState = .preparing
         standbyPlayer.preroll(atRate: 1) { [weak self, weak item] succeeded in
             guard let self, let item else { return }
+            var failedTrackID: String?
+            defer { self.reportStandbyFailure(failedTrackID) }
             self.lock.lock()
             defer { self.lock.unlock() }
             guard item === self.preloadedItem else { return }
             guard succeeded else {
                 Logger.player.warning("[ENGINE] standby preroll failed — using cold transition")
-                self.clearPreloadedDeck()
+                failedTrackID = self.discardFailedStandby()
                 return
             }
             self.standbyPreparationState = .ready

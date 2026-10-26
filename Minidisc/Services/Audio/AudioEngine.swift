@@ -122,6 +122,9 @@ nonisolated protocol AudioEngineDelegate: AnyObject, Sendable {
     /// The current track finished on its own (end of file), not by a user stop/skip.
     func audioEngineDidReachEndOfTrack(_ transition: AudioEngineTrackEnd)
     func audioEngineDidError(_ failure: AudioEngineFailure, playbackToken: AudioEnginePlaybackToken)
+    /// The standby deck for `trackID` failed to load, seek past its lead-in or preroll, and was
+    /// dropped. The active track is unaffected; without a new preload the next track starts cold.
+    func audioEngineStandbyPreloadDidFail(trackID: String)
 }
 
 /// Synchronous, internally locked audio engine. PlayerService owns queue and session orchestration.

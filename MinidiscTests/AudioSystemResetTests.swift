@@ -26,6 +26,15 @@ private nonisolated final class ResetTestPlayerFactory: Sendable {
     }
 }
 
+private nonisolated final class StandbyFailureRecorder: AudioEngineDelegate, Sendable {
+    private let failures = Mutex<[String]>([])
+    var failedTrackIDs: [String] { failures.withLock { $0 } }
+    func audioEngineDidChangeState(_ state: AudioEngineState, playbackToken: AudioEnginePlaybackToken) {}
+    func audioEngineDidReachEndOfTrack(_ transition: AudioEngineTrackEnd) {}
+    func audioEngineDidError(_ failure: AudioEngineFailure, playbackToken: AudioEnginePlaybackToken) {}
+    func audioEngineStandbyPreloadDidFail(trackID: String) { failures.withLock { $0.append(trackID) } }
+}
+
 @MainActor
 @Suite("Audio system reset", .serialized, .timeLimit(.minutes(1)))
 struct AudioSystemResetTests {
@@ -96,6 +105,40 @@ struct AudioSystemResetTests {
         #expect(factory.players[2].currentItem != nil)
         #expect(nextToken.rawValue > oldToken.rawValue)
         #expect(!engine.isReady)
+    }
+
+    @Test func standbyThatFailsToLoadIsReportedForARetry() async throws {
+        let engine = AVPlayerEngine()
+        let recorder = StandbyFailureRecorder()
+        engine.delegate = recorder
+        let url = try silentWave()
+        let broken = FileManager.default.temporaryDirectory.appendingPathComponent("\(UUID()).wav")
+        try Data((0..<4_096).map { _ in UInt8.random(in: 0...255) }).write(to: broken)
+        defer {
+            engine.stop()
+            try? FileManager.default.removeItem(at: url)
+            try? FileManager.default.removeItem(at: broken)
+        }
+        engine.play(trackID: "first", url: url, headers: [:])
+        engine.preloadNext(
+            trackID: "next", url: broken, headers: [:],
+            crossfadeDuration: 0, leadInTrim: 0, replayGainDB: 0,
+            expectedCurrentTrackID: "first"
+        )
+        let deadline = ContinuousClock.now + .seconds(10)
+        while recorder.failedTrackIDs.isEmpty, ContinuousClock.now < deadline {
+            try await Task.sleep(for: .milliseconds(50))
+        }
+        #expect(recorder.failedTrackIDs == ["next"])
+        // Cancelling a healthy standby on purpose is not a failure.
+        engine.preloadNext(
+            trackID: "other", url: url, headers: [:],
+            crossfadeDuration: 0, leadInTrim: 0, replayGainDB: 0,
+            expectedCurrentTrackID: "first"
+        )
+        engine.cancelPreload()
+        try await Task.sleep(for: .milliseconds(300))
+        #expect(recorder.failedTrackIDs == ["next"])
     }
 
     @Test func preloadForATrackThatIsNoLongerCurrentIsIgnored() throws {

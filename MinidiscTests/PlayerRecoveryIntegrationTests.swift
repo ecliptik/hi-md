@@ -80,6 +80,8 @@ private nonisolated final class RecoveryTestEngine: AudioEngine, Sendable {
     func cancelPreload() {}
     func setTrackEndTrim(_ seconds: Double, expectedCurrentTrackID: String) {}
     func setTrackDuration(_ seconds: Double) {}
+    /// Acts like AVPlayerEngine dropping a standby item that failed to load or preroll.
+    func failStandby(trackID: String) { delegate?.audioEngineStandbyPreloadDidFail(trackID: trackID) }
     /// Standby preloads requested so far, as (track, track it follows).
     var preloads: [(trackID: String, expectedCurrentTrackID: String)] { storage.withLock { $0.preloads } }
     func preloadNext(
@@ -933,6 +935,40 @@ struct GaplessStandbyPreloadTests {
         try await Task.sleep(for: .milliseconds(1_200))
         #expect(await h.resolver.resolveCalls["b"] == PlayerService.maximumPrefetchAttempts, "\(h.report)")
         #expect(h.engine.preloads.isEmpty)
+        await h.player.stop()
+    }
+
+    @Test func standbyThatFailsToLoadIsPreloadedAgain() async throws {
+        let h = try RecoveryHarness(startupGrace: .seconds(10))
+        try await playNearTheEnd(h)
+        try await h.waitUntil { h.engine.preloads.count == 1 }
+        h.engine.failStandby(trackID: "b")
+        try await h.waitUntil { h.engine.preloads.count == 2 }
+        #expect(h.engine.preloads.map { $0.trackID } == ["b", "b"])
+        #expect(await h.resolver.resolveCalls["b"] == 2)
+        // The hand-off adopts the source of the second, working standby deck.
+        await h.player.handleEndOfTrack(AudioEngineTrackEnd(
+            endedPlaybackToken: h.engine.token, endedPosition: 120, promotedPlayback: nil
+        ))
+        #expect(h.state.currentTrack?.id == "b")
+        #expect(await h.resolver.resolveCalls["b"] == 2, "\(h.report)")
+        await h.player.stop()
+    }
+
+    @Test func standbyLoadFailuresShareTheRetryBudget() async throws {
+        let h = try RecoveryHarness(startupGrace: .seconds(10))
+        try await playNearTheEnd(h)
+        for attempt in 1...PlayerService.maximumPrefetchAttempts {
+            try await h.waitUntil { h.engine.preloads.count == attempt }
+            h.engine.failStandby(trackID: "b")
+        }
+        // Several more progress ticks: the exhausted track must not be preloaded again.
+        try await Task.sleep(for: .milliseconds(1_200))
+        #expect(h.engine.preloads.count == PlayerService.maximumPrefetchAttempts, "\(h.report)")
+        // A failure report for a deck that is no longer prepared is ignored.
+        h.engine.failStandby(trackID: "b")
+        try await Task.sleep(for: .milliseconds(300))
+        #expect(h.engine.preloads.count == PlayerService.maximumPrefetchAttempts)
         await h.player.stop()
     }
 
