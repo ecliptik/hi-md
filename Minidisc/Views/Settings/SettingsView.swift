@@ -795,6 +795,13 @@ private struct PlaybackSettingsView: View {
                 }
             }
             CrossfadeSettingsSection()
+            Section {
+                NavigationLink {
+                    AutoplaySettingsView()
+                } label: {
+                    SettingsRowLabel(title: "Autoplay", subtitle: "Keep the music going when the queue runs out.")
+                }
+            }
         }
         .formStyle(.grouped)
         .navigationTitle("Playback")

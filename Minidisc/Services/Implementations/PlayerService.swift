@@ -1408,9 +1408,10 @@ actor PlayerService: PlayerServiceProtocol {
 
     private func evaluateAutoExtend() async {
         let expectedQueueGeneration = queueGeneration
-        let (isEnabled, repeatMode, currentRadio, remaining, queueIds, seedTrackId) = await MainActor.run {
+        let (isEnabled, repeatMode, currentRadio, remaining, queueIds, seedTrackId, requested) = await MainActor.run {
             let remaining = state.queue.count - state.currentIndex - 1
-            return (state.isAutoExtendEnabled, state.repeatMode, state.currentRadio, remaining, Set(state.queue.map(\.id)), state.currentTrack?.id)
+            let requested = Array(state.queue.prefix(state.originalQueueEndIndex ?? state.queue.count))
+            return (state.isAutoExtendEnabled, state.repeatMode, state.currentRadio, remaining, Set(state.queue.map(\.id)), state.currentTrack?.id, requested)
         }
         guard expectedQueueGeneration == queueGeneration else { return }
         guard isEnabled, await MainActor.run(body: { state.currentTrack?.isLocalFile != true }) else { return }
@@ -1418,6 +1419,8 @@ actor PlayerService: PlayerServiceProtocol {
         guard currentRadio == nil else { return }
         guard autoExtendFetchTask == nil else { return }
         guard remaining <= 15 else { return }
+        // Album Direction: an album the listener chose may end the session instead of Autoplay.
+        guard await playbackPreferences.autoplayAlbumDirection.allowsExtending(requested: requested) else { return }
 
         Logger.player.info("Auto-extend triggered: \(remaining) tracks remaining, fetching 50 seeded on '\(seedTrackId ?? "none", privacy: .public)'")
 
@@ -3252,18 +3255,23 @@ actor PlayerService: PlayerServiceProtocol {
     }
 
     private func checkScrobbleThreshold() async {
-        guard let song = await MainActor.run(body: { state.currentTrack }) else { return }
-        fireScrobbleIfThresholdMet(song: song)
+        guard let (song, autoplayed) = await MainActor.run(body: {
+            state.currentTrack.map { ($0, state.isPlayingAutoplayedTrack) }
+        }) else { return }
+        let countsAsPlay = autoplayed ? await playbackPreferences.autoplayCountsAsPlays : true
+        fireScrobbleIfThresholdMet(song: song, countsAsPlay: countsAsPlay)
     }
 
     // Synchronous split keeps the tracker's one-shot threshold mutation free of reentrancy.
-    private func fireScrobbleIfThresholdMet(song: DisplayableSong) {
+    private func fireScrobbleIfThresholdMet(song: DisplayableSong, countsAsPlay: Bool) {
         let songId = song.id
         guard let startDate = playbackProgressTracker.scrobbleStartDateIfThresholdMet(
             trackDuration: song.duration
         ) else {
             return
         }
+        // The threshold is still consumed, so the song can't scrobble later in the same play.
+        guard countsAsPlay else { return }
         if !song.isLocalFile {
             Task { [libraryService] in
                 await libraryService.scrobble(songId: songId, submission: true, playedAt: startDate)
@@ -3596,7 +3604,9 @@ actor PlayerService: PlayerServiceProtocol {
         trigger: String = "unknown",
         finalProgress: TimeInterval? = nil
     ) async {
-        guard let song = await MainActor.run(body: { state.currentTrack }), !song.isLocalFile else { return }
+        guard let (song, autoplayed) = await MainActor.run(body: {
+            state.currentTrack.map { ($0, state.isPlayingAutoplayedTrack) }
+        }), !song.isLocalFile else { return }
         guard let serverId = await MainActor.run(body: { serverService.state.activeServer?.id }) else { return }
         await accumulatePlaybackProgress(finalProgress ?? engine.progress)
         let trackDuration = await MainActor.run { state.duration }
@@ -3608,6 +3618,10 @@ actor PlayerService: PlayerServiceProtocol {
         ) else {
             let durationListened = playbackProgressTracker.accumulatedTime
             Logger.player.debug("[STATS] Skip — durationListened=\(durationListened, format: .fixed(precision: 1))s < 30s for '\(song.title, privacy: .public)'")
+            return
+        }
+        if autoplayed, !(await playbackPreferences.autoplayCountsAsPlays) {
+            Logger.player.debug("[STATS] Skip — Autoplay songs don't count as plays")
             return
         }
 

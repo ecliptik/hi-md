@@ -67,6 +67,10 @@ final class PlayerState {
     var isAutoExtendEnabled: Bool
     /// Index separating requested tracks from the auto-extended tail; nil means no extension.
     var originalQueueEndIndex: Int?
+    /// Whether the current song is one Autoplay added rather than one the listener queued.
+    var isPlayingAutoplayedTrack: Bool {
+        originalQueueEndIndex.map { currentIndex >= $0 } ?? false
+    }
 
     init(isAutoExtendEnabled: Bool = false, waitingMessageDelay: Duration = .milliseconds(700)) {
         self.isAutoExtendEnabled = isAutoExtendEnabled
