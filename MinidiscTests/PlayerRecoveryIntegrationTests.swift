@@ -939,7 +939,7 @@ private nonisolated final class AudioDownloadStubProtocol: URLProtocol, @uncheck
             client?.urlProtocol(self, didFailWithError: URLError(.networkConnectionLost))
             return
         }
-        let respond = { [self] in
+        let respond: @Sendable () -> Void = { [self] in
             let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: "HTTP/1.1",
                                            headerFields: ["Content-Type": "audio/mpeg", "Content-Length": "\(Self.audio.count)"])!
             client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
