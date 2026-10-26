@@ -68,7 +68,7 @@ struct MacSearchView: View {
                     if !songs.isEmpty {
                         section("Songs") {
                             MacSongTable(songs: songs)
-                                .frame(height: CGFloat(songs.count) * 28 + 32)
+                                .frame(height: CGFloat(songs.count) * 28 + 48)
                         }
                     }
                 }

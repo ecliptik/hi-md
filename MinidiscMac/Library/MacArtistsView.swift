@@ -121,7 +121,7 @@ struct MacArtistDetailView: View {
                 if !model.topSongs.isEmpty {
                     section("Top Songs") {
                         MacSongTable(songs: Array(model.topSongs.prefix(10)))
-                            .frame(height: CGFloat(min(model.topSongs.count, 10)) * 28 + 32)
+                            .frame(height: CGFloat(min(model.topSongs.count, 10)) * 28 + 48)
                     }
                 }
                 if !model.albumReleases.isEmpty {
