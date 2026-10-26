@@ -13,8 +13,12 @@ struct ListenBrainzSettingsView: View {
                 Form {
                     aboutSection()
                     connectionSection(vm: vm)
-                    scrobblingToggleSection(vm: vm)
-                    scrobblingConfigSection(vm: vm)
+                    // Plays reach ListenBrainz through the server, so the scrobbling settings show
+                    // only when the app submits listens itself (ListenBrainzService.submitsListens).
+                    if container?.listenBrainzService.submitsListens == true {
+                        scrobblingToggleSection(vm: vm)
+                        scrobblingConfigSection(vm: vm)
+                    }
                 }
                 .formStyle(.grouped)
             } else {
@@ -37,7 +41,7 @@ struct ListenBrainzSettingsView: View {
 
     private func aboutSection() -> some View {
         Section {
-            Text("ListenBrainz is an open-source music scrobbling and recommendation service by the MetaBrainz Foundation. Minidisc can submit your listening history and surface personalized fresh releases and similar artists.")
+            Text("ListenBrainz is an open-source music recommendation service by the MetaBrainz Foundation. Minidisc uses it for personalized fresh releases and similar artists; your server sends it your plays.")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
             Button("Visit ListenBrainz →") {

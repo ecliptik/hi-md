@@ -74,12 +74,20 @@ actor ListenBrainzService {
     var pendingListenCount: Int { pendingQueue.count }
     var credentialMutationWaiterCount: Int { credentialMutationWaiters.count }
 
+    /// Plays reach ListenBrainz through the server: Navidrome records them and multi-scrobbler
+    /// relays them, and starred songs become ListenBrainz loves the same way. Submitting from the
+    /// app as well would count every play twice, so the app only reads from ListenBrainz. Tests
+    /// of the submission path turn it on.
+    nonisolated let submitsListens: Bool
+
     init(
+        submitsListens: Bool = false,
         client: ListenBrainzClient,
         keychain: any KeychainServiceProtocol,
         userDefaults: UserDefaults = .standard,
         queueFileURL: URL? = nil
     ) {
+        self.submitsListens = submitsListens
         self.client = client
         self.keychain = keychain
         self.userDefaults = userDefaults
@@ -488,6 +496,7 @@ actor ListenBrainzService {
     /// no token is stored. The 3-second delay and still-playing guard are applied by the caller.
     /// playing_now failures are NEVER queued — they are ephemeral and stale by flush time.
     func notifyTrackStarted(song: DisplayableSong) async {
+        guard submitsListens else { return }
         guard let accountGeneration = activeScrobblingAccountGeneration() else { return }
         guard let token = try? await keychain.retrieve(String.self, forKey: Self.scrobblingTokenKeychainKey) else { return }
         guard isCurrentActiveScrobblingAccount(accountGeneration) else { return }
@@ -505,6 +514,7 @@ actor ListenBrainzService {
     /// Submits a single completed listen to ListenBrainz. On transient failure the listen is
     /// persisted to the offline queue. On permanent failure (auth/4xx) it is dropped.
     func notifyScrobbleThreshold(song: DisplayableSong, startDate: Date) async {
+        guard submitsListens else { return }
         guard let accountGeneration = activeScrobblingAccountGeneration() else { return }
         guard let token = try? await keychain.retrieve(String.self, forKey: Self.scrobblingTokenKeychainKey) else { return }
         guard isCurrentActiveScrobblingAccount(accountGeneration) else { return }
@@ -540,7 +550,7 @@ actor ListenBrainzService {
     /// Flushes one captured batch. Set isFlushing before awaiting and remove only confirmed
     /// submissions so listens added during the POST are retained.
     func flushOfflineQueue() async {
-        guard !pendingQueue.isEmpty else { return }
+        guard submitsListens, !pendingQueue.isEmpty else { return }
         guard scrobblingEnabled, hasScrobblingToken else { return }
         guard scrobblingCredentialCommitOperation == nil else { return }
         guard !isFlushing else { return }

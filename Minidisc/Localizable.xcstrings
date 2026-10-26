@@ -28481,54 +28481,54 @@
         }
       }
     },
-    "ListenBrainz is an open-source music scrobbling and recommendation service by the MetaBrainz Foundation. Minidisc can submit your listening history and surface personalized fresh releases and similar artists." : {
+    "ListenBrainz is an open-source music recommendation service by the MetaBrainz Foundation. Minidisc uses it for personalized fresh releases and similar artists; your server sends it your plays." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ListenBrainz ist ein quelloffener Musik-Scrobbling- und Empfehlungsdienst der MetaBrainz Foundation. Minidisc kann deinen Hörverlauf übermitteln und personalisierte neue Veröffentlichungen sowie ähnliche Künstler anzeigen."
+            "value" : "ListenBrainz ist ein quelloffener Musikempfehlungsdienst der MetaBrainz Foundation. Minidisc nutzt ihn für personalisierte neue Veröffentlichungen und ähnliche Künstler; dein Server übermittelt ihm deine Wiedergaben."
           }
         },
         "el" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Το ListenBrainz είναι μια υπηρεσία ανοιχτού κώδικα για scrobbling και προτάσεις μουσικής από το MetaBrainz Foundation. Το Minidisc μπορεί να υποβάλλει το ιστορικό ακρόασής σας και να αναδεικνύει εξατομικευμένες νέες κυκλοφορίες και παρόμοιους καλλιτέχνες."
+            "value" : "Το ListenBrainz είναι μια υπηρεσία ανοιχτού κώδικα για προτάσεις μουσικής από το MetaBrainz Foundation. Το Minidisc το χρησιμοποιεί για εξατομικευμένες νέες κυκλοφορίες και παρόμοιους καλλιτέχνες· ο διακομιστής σας του στέλνει τις ακροάσεις σας."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ListenBrainz es un servicio de código abierto de scrobbling y recomendaciones de música de la MetaBrainz Foundation. Minidisc puede enviar tu historial de escucha y mostrarte novedades personalizadas y artistas similares."
+            "value" : "ListenBrainz es un servicio de código abierto de recomendaciones de música de la MetaBrainz Foundation. Minidisc lo usa para mostrarte novedades y artistas similares personalizados; tu servidor le envía tus reproducciones."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ListenBrainz est un service open source de scrobbling et de recommandations musicales de la MetaBrainz Foundation. Minidisc peut envoyer votre historique d'écoute et proposer des nouveautés et des artistes similaires personnalisés."
+            "value" : "ListenBrainz est un service open source de recommandations musicales de la MetaBrainz Foundation. Minidisc l'utilise pour proposer des nouveautés et des artistes similaires personnalisés ; votre serveur lui envoie vos écoutes."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ListenBrainz è un servizio open-source di scrobbling e consigli musicali della MetaBrainz Foundation. Minidisc può inviare la tua cronologia di ascolto e mostrare uscite recenti e artisti simili personalizzati."
+            "value" : "ListenBrainz è un servizio open-source di consigli musicali della MetaBrainz Foundation. Minidisc lo usa per mostrare uscite recenti e artisti simili personalizzati; il tuo server gli invia i tuoi ascolti."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ListenBrainzは、MetaBrainz Foundationによるオープンソースの音楽スクロブルおよびおすすめサービスです。Minidiscは再生履歴を送信し、パーソナライズされた新着リリースや類似アーティストを表示できます。"
+            "value" : "ListenBrainzは、MetaBrainz Foundationによるオープンソースの音楽おすすめサービスです。Minidiscはパーソナライズされた新着リリースや類似アーティストの表示に使用します。再生履歴はサーバーから送信されます。"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ListenBrainz 是由 MetaBrainz Foundation 提供的开源音乐 scrobbling 和推荐服务。Minidisc 可以提交你的收听历史，并呈现个性化的最新发行和相似艺人。"
+            "value" : "ListenBrainz 是由 MetaBrainz Foundation 提供的开源音乐推荐服务。Minidisc 用它呈现个性化的最新发行和相似艺人；你的收听记录由服务器发送给它。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ListenBrainz 是由 MetaBrainz Foundation 提供的開源音樂播放記錄與推薦服務。Minidisc 可以提交你的聆聽記錄，並呈現個人化的最新發行和相似藝人。"
+            "value" : "ListenBrainz 是由 MetaBrainz Foundation 提供的開源音樂推薦服務。Minidisc 用它呈現個人化的最新發行和相似藝人；你的聆聽記錄由伺服器傳送給它。"
           }
         }
       }

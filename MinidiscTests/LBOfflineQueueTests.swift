@@ -53,6 +53,7 @@ private func configuredService(
     let keychain = SubmitMockKeychain()
     let defaults = UserDefaults(suiteName: "test.queue.\(UUID().uuidString)")!
     let service = ListenBrainzService(
+        submitsListens: true,
         client: ListenBrainzClient(transport: validateTransport),
         keychain: keychain,
         userDefaults: defaults,
@@ -121,6 +122,7 @@ struct QueueFileTests {
         try await keychain.store("alice", forKey: "app.minidisc.listenbrainz.username")
         defaults.set(true, forKey: "app.minidisc.listenbrainz.scrobbling.isEnabled")
         let s2 = ListenBrainzService(
+            submitsListens: true,
             client: ListenBrainzClient(transport: t2),
             keychain: keychain,
             userDefaults: defaults,
@@ -140,6 +142,7 @@ struct QueueFileTests {
         let keychain = SubmitMockKeychain()
         let defaults = UserDefaults(suiteName: "test.queue.\(UUID().uuidString)")!
         let service = ListenBrainzService(
+            submitsListens: true,
             client: ListenBrainzClient(transport: ProgrammableTransport()),
             keychain: keychain,
             userDefaults: defaults,

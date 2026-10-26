@@ -204,6 +204,7 @@ private func makeReentrancyService() -> (
         .appendingPathComponent("listenbrainz-reentrancy-\(UUID().uuidString).json")
     let defaultsSuiteName = "test.listenbrainz.reentrancy.\(UUID().uuidString)"
     let service = ListenBrainzService(
+        submitsListens: true,
         client: ListenBrainzClient(transport: transport),
         keychain: keychain,
         userDefaults: UserDefaults(suiteName: defaultsSuiteName)!,
@@ -476,6 +477,7 @@ struct ListenBrainzReentrancyTests {
         #expect(!snapshot.isEnabled)
 
         let restartedService = ListenBrainzService(
+            submitsListens: true,
             client: ListenBrainzClient(transport: components.transport),
             keychain: components.keychain,
             userDefaults: UserDefaults(suiteName: components.defaultsSuiteName)!,
@@ -597,6 +599,7 @@ struct ListenBrainzReentrancyTests {
         )
         let replacementTransport = ReentrancyTransport()
         let replacementService = ListenBrainzService(
+            submitsListens: true,
             client: ListenBrainzClient(transport: replacementTransport),
             keychain: replacementKeychain,
             userDefaults: replacementDefaults,
