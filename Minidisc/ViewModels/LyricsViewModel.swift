@@ -17,10 +17,26 @@ final class LyricsViewModel {
     var selectedLanguage: String?
     var autoScrollEnabled: Bool = true
     private(set) var isUserScrolling: Bool = false
+    /// Where the lyrics views should scroll next: set when the current line moves while the
+    /// lyrics follow the song, and when a scrub or seek makes them follow again.
+    private(set) var scrollRequest: ScrollRequest?
+    /// The clock the views read, replaceable in tests.
+    @ObservationIgnored var now: () -> Date = { .now }
+
+    /// A line to bring to the middle: gliding for a few lines, cutting straight there for more.
+    nonisolated struct ScrollRequest: Equatable, Sendable {
+        let index: Int
+        let animated: Bool
+        /// Distinguishes two requests for the same line.
+        let revision: Int
+    }
 
     private var lyricsList: LyricsList?
     private var trackingTask: Task<Void, Never>?
     private var resumeTask: Task<Void, Never>?
+    @ObservationIgnored private var clockTimeoutTask: Task<Void, Never>?
+    @ObservationIgnored private var isObservingClock = false
+    @ObservationIgnored private var handledSeekRevision: Int
     /// How many views show these lyrics: the player's lyrics panel and the full-screen karaoke
     /// view can overlap while one is presented over the other.
     private var visibleCount = 0
@@ -48,11 +64,13 @@ final class LyricsViewModel {
         self.lyricsService = lyricsService
         self.playerService = playerService
         self.playerState = playerState
+        handledSeekRevision = playerState.lyricsClock.seekRevision
     }
 
     isolated deinit {
         trackingTask?.cancel()
         resumeTask?.cancel()
+        clockTimeoutTask?.cancel()
     }
 
     // MARK: - Load
@@ -88,10 +106,15 @@ final class LyricsViewModel {
 
     // MARK: - Line tracking
 
+    /// The song position the lyrics show: a scrub or seek in progress, else the player's.
+    private var lyricsTimeMs: Int {
+        Int(playerState.lyricsClock.time(playbackPosition: playerState.position, at: now()) * 1000)
+    }
+
     /// Moves the current line to the playback position now, rather than on the next tracking tick,
     /// so the lyrics open on the line being sung.
     func syncToPlayback() {
-        update(elapsedMs: Int(playerState.position * 1000))
+        update(elapsedMs: lyricsTimeMs)
     }
 
     func update(elapsedMs: Int) {
@@ -110,7 +133,68 @@ final class LyricsViewModel {
             }
         }
         if newIndex != currentLineIndex {
+            let previous = currentLineIndex
             currentLineIndex = newIndex
+            if let newIndex, autoScrollEnabled, !isUserScrolling {
+                requestScroll(to: newIndex, animated: LyricsScrollPolicy.animates(from: previous, to: newIndex))
+            }
+        }
+    }
+
+    private func requestScroll(to index: Int, animated: Bool) {
+        scrollRequest = ScrollRequest(index: index, animated: animated, revision: (scrollRequest?.revision ?? 0) &+ 1)
+    }
+
+    // MARK: - Scrubbing and seeking
+
+    /// A scrubber moved or a seek was asked for: the line follows at once, and a new scrub or
+    /// seek makes the lyrics follow the song again, even after the listener scrolled them away.
+    func lyricsClockChanged() {
+        let clock = playerState.lyricsClock
+        if clock.seekRevision != handledSeekRevision {
+            handledSeekRevision = clock.seekRevision
+            followAgain()
+        }
+        syncToPlayback()
+        // Paused, nothing else would move the line back if the seek never lands.
+        clockTimeoutTask?.cancel()
+        clockTimeoutTask = nil
+        guard clock.pendingSeek != nil else { return }
+        clockTimeoutTask = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(LyricsClock.catchUpTimeout + 0.05))
+            guard !Task.isCancelled else { return }
+            self?.syncToPlayback()
+        }
+    }
+
+    /// Follows the song again and scrolls to the line now being sung, straight there: where the
+    /// listener scrolled to is unknown.
+    private func followAgain() {
+        resumeTask?.cancel()
+        resumeTask = nil
+        isUserScrolling = false
+        autoScrollEnabled = true
+        let before = currentLineIndex
+        syncToPlayback()
+        if let index = currentLineIndex, index == before {
+            requestScroll(to: index, animated: false)
+        }
+    }
+
+    /// Watches the player's scrubs and seeks while a lyrics view shows these lyrics.
+    private func observeLyricsClock() {
+        guard isShown, !isObservingClock else { return }
+        isObservingClock = true
+        withObservationTracking {
+            _ = playerState.lyricsClock
+        } onChange: { [weak self] in
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                self.isObservingClock = false
+                guard self.isShown else { return }
+                self.lyricsClockChanged()
+                self.observeLyricsClock()
+            }
         }
     }
 
@@ -121,6 +205,8 @@ final class LyricsViewModel {
         guard lineIndex < structured.line.count else { return }
         guard let startMs = structured.line[lineIndex].start else { return }
         let targetSeconds = TimeInterval(startMs + structured.offset) / 1000.0
+        // Highlights the line now, before the player gets there.
+        playerState.noteSeek(to: targetSeconds, at: now())
         Task { [weak self] in
             await self?.playerService.seek(to: targetSeconds)
         }
@@ -167,6 +253,11 @@ final class LyricsViewModel {
         if !isShown {
             resumeTask?.cancel()
             resumeTask = nil
+            clockTimeoutTask?.cancel()
+            clockTimeoutTask = nil
+        } else {
+            handledSeekRevision = playerState.lyricsClock.seekRevision
+            observeLyricsClock()
         }
         reconcileTracking()
     }
@@ -190,7 +281,7 @@ final class LyricsViewModel {
                     return
                 }
                 guard let self else { return }
-                self.update(elapsedMs: Int(self.playerState.position * 1000))
+                self.syncToPlayback()
             }
         }
     }

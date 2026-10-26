@@ -12,7 +12,11 @@ final class PlayerState {
     /// Every structural queue edit invalidates row actions captured before that edit, including
     /// edits involving two occurrences of the same song.
     @ObservationIgnored private(set) var queueRevision: UInt64 = 0
-    var currentTrack: DisplayableSong?
+    var currentTrack: DisplayableSong? {
+        didSet {
+            if oldValue?.id != currentTrack?.id, !lyricsClock.isIdle { lyricsClock.reset() }
+        }
+    }
     var queue: [DisplayableSong] = [] {
         didSet { queueRevision &+= 1 }
     }
@@ -47,7 +51,14 @@ final class PlayerState {
         if !isPlaybackAvailable { return String(localized: "Reconnect to resume") }
         return nil
     }
-    var position: TimeInterval = 0
+    var position: TimeInterval = 0 {
+        didSet {
+            guard lyricsClock.pendingSeek != nil else { return }
+            lyricsClock.settle(playbackPosition: position, at: .now)
+        }
+    }
+    /// Where the lyrics are: a scrub or seek in progress, else `position`. See `LyricsClock`.
+    private(set) var lyricsClock = LyricsClock()
     var duration: TimeInterval = 0
     var repeatMode: RepeatMode = .off
     var isShuffled: Bool = false
@@ -113,6 +124,26 @@ final class PlayerState {
             self.visibleWaitingReason = reason
             self.waitingMessageTask = nil
         }
+    }
+
+    // MARK: - Scrubbing and seeking
+
+    /// The song position the lyrics show now.
+    var lyricsTime: TimeInterval { lyricsClock.time(playbackPosition: position, at: .now) }
+
+    /// A scrubber is being dragged to `position`; the lyrics follow before the seek.
+    func noteScrub(to position: TimeInterval) {
+        lyricsClock.scrub(to: position)
+    }
+
+    /// The drag ended without seeking.
+    func cancelScrub() {
+        lyricsClock.cancelScrub()
+    }
+
+    /// A seek to `target` was asked for; the lyrics show it until the player gets there.
+    func noteSeek(to target: TimeInterval, at now: Date = .now) {
+        lyricsClock.seek(to: target, at: now)
     }
 
     // MARK: - Derived UI state

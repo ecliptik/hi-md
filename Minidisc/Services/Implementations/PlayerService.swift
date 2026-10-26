@@ -1950,7 +1950,13 @@ actor PlayerService: PlayerServiceProtocol {
             Logger.player.warning("seek ignored — non-finite target")
             return
         }
-        guard await MainActor.run(body: { !state.isLiveStream }) else {
+        // Every seek, wherever it comes from (a scrubber, a lyric line, the lock screen, Previous
+        // restarting the song), moves the lyrics to its target now rather than when it lands.
+        guard await MainActor.run(body: {
+            guard !state.isLiveStream else { return false }
+            state.noteSeek(to: target)
+            return true
+        }) else {
             Logger.player.debug("seek ignored — live stream mode")
             return
         }

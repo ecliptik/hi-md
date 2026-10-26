@@ -8,6 +8,7 @@ struct LyricsView: View {
     @State private var showsKaraoke = false
     @State private var visibility = LyricsVisibilityHandoff()
     @Environment(\.lyricsTypography) private var typography
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         Group {
@@ -89,13 +90,10 @@ struct LyricsView: View {
                     proxy.scrollTo(index, anchor: .center)
                 }
             }
-            .onChange(of: viewModel.currentLineIndex) { _, newIndex in
-                guard viewModel.autoScrollEnabled,
-                      !viewModel.isUserScrolling,
-                      let newIndex else { return }
-                withAnimation(.easeInOut(duration: 0.3)) {
-                    proxy.scrollTo(newIndex, anchor: .center)
-                }
+            .onChange(of: viewModel.scrollRequest) { _, request in
+                guard let request else { return }
+                LyricsScrolling.scroll(proxy, to: request, reduceMotion: reduceMotion,
+                                       animation: .easeInOut(duration: 0.3))
             }
             .onScrollPhaseChange { _, newPhase in
                 switch newPhase {
@@ -219,5 +217,20 @@ struct LyricsView: View {
     private func displayName(for lang: String) -> String {
         guard lang != "und", lang != "xxx" else { return "—" }
         return Locale.current.localizedString(forLanguageCode: lang)?.capitalized ?? lang.uppercased()
+    }
+}
+
+/// Brings a lyrics view's line to the middle as its view model asks: gliding over a few lines,
+/// straight there after a seek or a long scrub, and always straight there with Reduce Motion.
+enum LyricsScrolling {
+    static func scroll(_ proxy: ScrollViewProxy, to request: LyricsViewModel.ScrollRequest,
+                       reduceMotion: Bool, animation: Animation) {
+        if request.animated, !reduceMotion {
+            withAnimation(animation) { proxy.scrollTo(request.index, anchor: .center) }
+        } else {
+            var transaction = Transaction()
+            transaction.disablesAnimations = true
+            withTransaction(transaction) { proxy.scrollTo(request.index, anchor: .center) }
+        }
     }
 }
