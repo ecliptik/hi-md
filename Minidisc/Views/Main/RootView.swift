@@ -19,7 +19,9 @@ struct RootView: View {
         content
             // The accent chosen in Settings > Appearance; reading it here redraws on change.
             .tint(Color.minidiscAccent)
-            .environment(\.minidiscPlayingAccent, .minidiscAccent)
+            // The text shade: the playing row's title is text, and the fill shade is under 4.5:1
+            // on grouped and raised rows in dark mode.
+            .environment(\.minidiscPlayingAccent, .minidiscTextAccent)
             // The server may have become reachable or unreachable while the app was away, or a
             // different server may now be active; neither always changes the network path.
             .onChange(of: scenePhase) { _, phase in

@@ -139,19 +139,27 @@ struct SongRow: View {
                 )
                     .overlay {
                         if isCurrentTrack {
+                            // White bars over a 50% scrim keep 4:1 on a white cover; accent bars
+                            // over the 45% scrim were 1.4:1.
                             ZStack {
-                                Color.black.opacity(0.45)
+                                Color.black.opacity(0.5)
                                 NowPlayingBarsIndicator(isPlaying: isPlaying)
+                                    .environment(\.minidiscPlayingAccent, .white)
                             }
                             .clipShape(RoundedRectangle(cornerRadius: coverArtCornerRadius))
                         }
                     }
                     .overlay(alignment: .topLeading) {
                         if isFavorite {
+                            // A dark disc under the star, so it shows on any cover (it vanished on
+                            // gold artwork): the accent's dark text shade keeps 4.2:1 or more on it.
                             Image(systemName: "star.fill")
                                 .font(.system(size: 8, weight: .bold))
-                                .foregroundStyle(playingAccent)
-                                .padding(3)
+                                .foregroundStyle(Color.minidiscTextAccent)
+                                .padding(2)
+                                .background(Color.black.opacity(0.7), in: Circle())
+                                .environment(\.colorScheme, .dark)
+                                .padding(2)
                         }
                     }
             } else {
@@ -161,7 +169,7 @@ struct SongRow: View {
                     } else {
                         Text(verbatim: numberLabel)
                             .font(.minidiscCellSubtitle)
-                            .foregroundStyle(secondaryColor.opacity(0.72))
+                            .foregroundStyle(secondaryColor)
                             .opacity(isFavorite ? 0 : 1)
                         if isFavorite {
                             Image(systemName: "star.fill")
@@ -214,7 +222,7 @@ struct SongRow: View {
             if song.isDownloaded {
                 Image(systemName: "arrow.down.circle.fill")
                     .font(.minidiscCaption)
-                    .foregroundStyle(secondaryColor.opacity(0.6))
+                    .foregroundStyle(secondaryColor)
             } else if isDownloading {
                 ProgressView()
                     .scaleEffect(0.7)
@@ -225,7 +233,7 @@ struct SongRow: View {
                 if song.duration > 0 {
                     Text(Duration.seconds(song.duration).formatted(.time(pattern: .minuteSecond)))
                         .font(.minidiscCaption)
-                        .foregroundStyle(secondaryColor.opacity(0.6))
+                        .foregroundStyle(secondaryColor)
                         .monospacedDigit()
                 }
             case .menu:
