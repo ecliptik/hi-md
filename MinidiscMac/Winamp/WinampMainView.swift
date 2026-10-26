@@ -15,6 +15,8 @@ final class WinampWindow: NSWindow {
         // Only the title bar drags the window, as in Winamp; the view starts that drag itself.
         isMovableByWindowBackground = false
         isReleasedWhenClosed = false
+        // Winamp mode reopens and places the window itself.
+        isRestorable = false
         collectionBehavior = [.fullScreenNone]
         title = "Winamp"
     }
@@ -90,6 +92,14 @@ final class WinampMainView: NSView {
         layer.minificationFilter = .nearest
         layer.contentsGravity = .resize
         layer.contents = WinampMainRenderer.render(state, skin: skin, sprites: sprites)
+    }
+
+    /// The same picture for snapshots and `cacheDisplay`, which draw rather than read the layer.
+    override func draw(_ dirtyRect: NSRect) {
+        guard let context = NSGraphicsContext.current?.cgContext,
+              let image = WinampMainRenderer.render(state, skin: skin, sprites: sprites) else { return }
+        context.interpolationQuality = .none
+        context.draw(image, in: bounds)
     }
 
     override var acceptsFirstResponder: Bool { true }
