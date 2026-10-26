@@ -24,7 +24,7 @@ struct ToastView: View {
 
             if case .undoQueueRemoval = toast.action {
                 Text("Undo").font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Color.minidiscAccent)
+                    .foregroundStyle(Color.minidiscTextAccent)
                     .padding(.leading, MinidiscSpacing.s)
             } else if toast.action != nil {
                 Image(systemName: "chevron.forward")

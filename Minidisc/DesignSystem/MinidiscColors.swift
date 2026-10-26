@@ -30,6 +30,9 @@ public enum MinidiscColors {
 
     public static let textTertiary = Color("MinidiscTextTertiary")
 
+    /// Accent-coloured text on tinted or raised surfaces; see `Color.minidiscTextAccent`.
+    @MainActor static var textAccent: Color { Color.minidiscTextAccent }
+
     // MARK: — Structure
     public static let separator = Color("MinidiscSeparator")
 
