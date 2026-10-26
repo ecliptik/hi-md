@@ -12,9 +12,20 @@ extension View {
 
 private struct ContainerLifecycle: ViewModifier {
     let container: AppContainer?
+    @Environment(\.scenePhase) private var scenePhase
+
+    private struct FavoritesSyncIdentity: Hashable { let serverID: UUID?; let online: Bool; let active: Bool }
 
     func body(content: Content) -> some View {
         content
+            // Hearts read the local favorites store, so refresh it from the server's stars on
+            // connecting and whenever the app comes forward: stars may change on other devices.
+            .task(id: FavoritesSyncIdentity(serverID: container?.serverState.activeServer?.id,
+                                            online: container?.serverState.isOnline == true,
+                                            active: scenePhase == .active)) {
+                guard let container, container.serverState.isOnline, scenePhase == .active else { return }
+                try? await container.favoritesService.syncFromServer()
+            }
             .task(id: container?.serverState.libraryIndexPreparationSnapshot) {
                 guard let container else { return }
                 let snapshot = container.serverState.libraryIndexPreparationSnapshot

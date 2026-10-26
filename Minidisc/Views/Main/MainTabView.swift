@@ -132,10 +132,6 @@ struct MainTabView: View {
             selectedTab = .library
         }
 
-        .task(id: container?.serverState.isOnline) {
-            guard container?.serverState.isOnline == true else { return }
-            try? await container?.favoritesService.syncFromServer()
-        }
         // Widget links, Spotlight results and Shortcuts "Open" actions, which can arrive during
         // launch. MinidiscApp queues every opened URL in the router.
         .onChange(of: container?.linkRouter.pending, initial: true) {
