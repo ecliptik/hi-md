@@ -235,6 +235,55 @@ actor ListenBrainzClient {
         }
     }
 
+    // MARK: - Top artists
+
+    /// The user's most-listened artists from ListenBrainz statistics. A user without statistics
+    /// yet (204) or an unknown user (404) has none. Username is never logged.
+    func topArtists(forUser username: String, range: String = "quarter", count: Int = 15) async throws -> [LBTopArtistDTO] {
+        guard Self.isValidUsernameFormat(username) else { throw ListenBrainzError.invalidUsername }
+        var components = URLComponents()
+        components.scheme = "https"
+        components.host = "api.listenbrainz.org"
+        components.path = "/1/stats/user/\(username)/artists"
+        components.queryItems = [
+            URLQueryItem(name: "range", value: range),
+            URLQueryItem(name: "count", value: String(count))
+        ]
+        guard let url = components.url else { throw ListenBrainzError.invalidUsername }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+
+        let (data, response): (Data, HTTPURLResponse)
+        do {
+            (data, response) = try await transport.send(request)
+        } catch let error as ListenBrainzError {
+            throw error
+        } catch {
+            throw ListenBrainzError.network(error)
+        }
+
+        Logger.listenBrainz.debug("topArtists HTTP \(response.statusCode, privacy: .public)")
+
+        switch response.statusCode {
+        case 200:
+            break
+        case 204, 404:
+            return []
+        case 429:
+            let delay = response.value(forHTTPHeaderField: "Retry-After").flatMap { TimeInterval($0) }
+            throw ListenBrainzError.rateLimited(retryAfter: delay)
+        default:
+            throw ListenBrainzError.httpError(statusCode: response.statusCode)
+        }
+
+        do {
+            return try JSONDecoder().decode(LBTopArtistsResponse.self, from: data).payload.artists
+        } catch {
+            throw ListenBrainzError.decoding(error)
+        }
+    }
+
     // MARK: - Submit listens
 
     /// Submits a playing_now notification. Does not include a listened_at timestamp.
