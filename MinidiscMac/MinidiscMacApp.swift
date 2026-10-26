@@ -41,6 +41,28 @@ struct MinidiscMacApp: App {
             }
         }
 
+        // MARK: MiniPlayer
+
+        // Window > MiniPlayer (⌥⌘M), as in the Music app. A floating window that keeps its size
+        // and place; closing it doesn't stop playback.
+        Window("MiniPlayer", id: MacMiniPlayer.windowID) {
+            if let container = activeContainer {
+                MacMiniPlayer(container: container, interface: interface)
+                    .environment(\.appContainer, container)
+                    .environment(container.dominantColorExtractor)
+                    .environment(container.artworkImageCache)
+                    .modelContainer(container.modelContainer)
+                    .environment(container.toastService)
+            } else {
+                ProgressView()
+                    .padding()
+            }
+        }
+        .keyboardShortcut("m", modifiers: [.command, .option])
+        .windowLevel(.floating)
+        .windowResizability(.contentSize)
+        .defaultPosition(.topTrailing)
+
         Settings {
             if let container = activeContainer {
                 MacSettingsView()

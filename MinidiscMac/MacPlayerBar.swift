@@ -58,13 +58,15 @@ struct MacPlayerBar: View {
 struct MacTransportControls: View {
     let commands: PlaybackCommandState
     var showsModes = true
+    /// The Now Playing view's bigger buttons.
+    var isLarge = false
 
     @Environment(MacPlayback.self) private var playback
     @Environment(\.minidiscPlayingAccent) private var playingAccent
 
     var body: some View {
         let state = playback.state
-        HStack(spacing: 16) {
+        HStack(spacing: isLarge ? 32 : 16) {
             if showsModes {
                 Button {
                     playback.toggleShuffle()
@@ -87,8 +89,8 @@ struct MacTransportControls: View {
 
             Button(action: playback.togglePlayPause) {
                 Image(systemName: state.wantsPlayback ? "pause.fill" : "play.fill")
-                    .font(.title)
-                    .frame(width: 28)
+                    .font(isLarge ? .system(size: 40) : .title)
+                    .frame(width: isLarge ? 48 : 28)
                     .contentTransition(.symbolEffect(.replace))
             }
             .disabled(!commands.canTogglePlayback)
@@ -113,7 +115,7 @@ struct MacTransportControls: View {
                 .help("Repeat")
             }
         }
-        .font(.title3)
+        .font(isLarge ? .title : .title3)
         .buttonStyle(.borderless)
     }
 
@@ -135,17 +137,35 @@ private struct MacNowPlayingDisplay: View {
     var body: some View {
         let state = playback.state
         HStack(spacing: 10) {
-            Group {
-                if let radio = state.currentRadio {
-                    CoverArtView(id: radio.coverArt ?? radio.id, size: 96, cornerRadius: 4, placeholderSystemImage: "dot.radiowaves.left.and.right")
-                } else if let track = state.currentTrack {
-                    CoverArtView(id: track.coverArtId ?? track.id, size: 96, cornerRadius: 4)
-                } else {
-                    MinidiscLogoView(isSpinning: false)
-                        .padding(4)
+            // The artwork opens the large Now Playing view, as the Music app's does.
+            Button {
+                navigator.showNowPlaying()
+            } label: {
+                Group {
+                    if let radio = state.currentRadio {
+                        CoverArtView(id: radio.coverArt ?? radio.id, size: 96, cornerRadius: 4, placeholderSystemImage: "dot.radiowaves.left.and.right")
+                    } else if let track = state.currentTrack {
+                        CoverArtView(id: track.coverArtId ?? track.id, size: 96, cornerRadius: 4)
+                    } else {
+                        MinidiscLogoView(isSpinning: false)
+                            .padding(4)
+                    }
                 }
+                .frame(width: 44, height: 44)
+                .overlay(alignment: .bottomTrailing) {
+                    Image(systemName: "arrow.up.left.and.arrow.down.right")
+                        .font(.system(size: 8, weight: .bold))
+                        .padding(3)
+                        .background(.regularMaterial, in: Circle())
+                        .padding(2)
+                        .accessibilityHidden(true)
+                }
+                .contentShape(Rectangle())
             }
-            .frame(width: 44, height: 44)
+            .buttonStyle(.plain)
+            .accessibilityLabel("Now Playing")
+            .accessibilityHint("Opens the large player with lyrics and the queue.")
+            .help("Now Playing")
 
             VStack(spacing: 2) {
                 if let radio = state.currentRadio {
@@ -188,6 +208,9 @@ private struct MacNowPlayingDisplay: View {
 /// Elapsed time, the position slider and the time remaining. While dragging, the slider shows the
 /// drag position and seeks once on release.
 struct MacScrubber: View {
+    /// The times' colour; secondary unless the Now Playing backdrop needs its own for contrast.
+    var timeStyle: AnyShapeStyle = AnyShapeStyle(.secondary)
+
     @Environment(MacPlayback.self) private var playback
     @State private var dragPosition: TimeInterval?
 
@@ -220,7 +243,7 @@ struct MacScrubber: View {
         }
         .font(.caption2)
         .monospacedDigit()
-        .foregroundStyle(.secondary)
+        .foregroundStyle(timeStyle)
     }
 }
 

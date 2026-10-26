@@ -17,6 +17,7 @@ struct MacCommands: Commands {
         let state = container?.playerState
         // Read here, not only inside bindings, so the menus update when these change.
         let shownPane = navigator.inspector
+        let isNowPlayingShown = navigator.isNowPlayingShown
         let isShuffled = state?.isShuffled == true
         let repeatMode = state?.repeatMode ?? .off
 
@@ -67,6 +68,9 @@ struct MacCommands: Commands {
         }
 
         CommandGroup(before: .sidebar) {
+            Toggle("Now Playing", isOn: Binding(get: { isNowPlayingShown }, set: { navigator.isNowPlayingShown = $0 }))
+                .keyboardShortcut("f", modifiers: [.command, .shift])
+                .disabled(container == nil)
             Toggle("Lyrics", isOn: inspectorBinding(.lyrics, shown: shownPane, navigator: navigator))
                 .keyboardShortcut("l", modifiers: [.command, .option])
                 .disabled(commands?.canShowLyrics != true && shownPane != .lyrics)

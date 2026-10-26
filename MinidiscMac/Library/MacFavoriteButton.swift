@@ -4,7 +4,7 @@ import SwiftUI
 /// Whether one album, artist or song is starred, read from the same `FavoriteRecord` store the
 /// iPhone's hearts query. Star and unstar write that store first, so every heart and menu item
 /// showing the item changes together, and a failed server call puts it back.
-private struct FavoriteMatches<Content: View>: View {
+struct FavoriteMatches<Content: View>: View {
     @Query private var matches: [FavoriteRecord]
     private let content: (FavoriteToggle) -> Content
 
@@ -43,6 +43,7 @@ struct MacFavoriteButton: View {
             .accessibilityLabel(Text("Favorite"))
             .accessibilityValue(Text(toggle.accessibilityValue))
             .accessibilityHint(Text(toggle.actionTitle))
+            .accessibilityAddTraits(toggle.isFavorite ? .isSelected : [])
             .disabled(!playback.container.serverState.isOnline)
         }
     }
