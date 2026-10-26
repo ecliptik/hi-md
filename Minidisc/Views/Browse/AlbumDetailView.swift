@@ -79,6 +79,10 @@ struct AlbumDetailView: View {
     private var isAlbumFavorite: Bool { !albumFavoriteMatches.isEmpty }
     private var isOnline: Bool { container?.serverState.isOnline == true }
     private var albumCoverId: String { viewModel?.coverArtId ?? coverArtId ?? albumId }
+    /// "Playing from" this album.
+    private var playbackContext: PlaybackContext {
+        .album(id: albumId, name: viewModel?.albumName ?? initialName, coverArtId: albumCoverId)
+    }
     /// Every cover id the override must cover so it's resolved from ANY surface: the album cover + each song's
     /// own cover id (these can differ from the album's while pointing at the same artwork — e.g. the full player).
     private var albumThemeIds: [String] {
@@ -233,6 +237,7 @@ struct AlbumDetailView: View {
                 AlbumPlaybackActions(
                     albumId: albumId,
                     songs: songs,
+                    playbackContext: playbackContext,
                     mode: mode,
                     viewModel: viewModel,
                     downloadedAlbumTracks: downloadedAlbumTracks,
@@ -284,7 +289,7 @@ struct AlbumDetailView: View {
                             onTap: { index in
                                 Task {
                                     do {
-                                        try await container?.playerService.play(tracks: songs, startIndex: index)
+                                        try await container?.playerService.play(tracks: songs, startIndex: index, context: playbackContext)
                                     } catch {
                                         Logger.player.error("[PLAYBACK] play failed: \(error, privacy: .public)")
                 if !UserFacingError.isCancellation(error) {
@@ -395,7 +400,11 @@ struct AlbumDetailView: View {
                         Divider()
                         Button("Instant Mix", systemImage: instantMixSymbol) {
                             HapticFeedback.medium.trigger()
-                            startInstantMix(from: .album(id: albumId), using: container)
+                            startInstantMix(
+                                from: .album(id: albumId),
+                                using: container,
+                                context: .instantMix(seed: .album, id: albumId, name: viewModel?.albumName ?? initialName)
+                            )
                         }
                         .disabled(displaySongs().isEmpty || !isOnline)
                         Divider()
@@ -741,6 +750,7 @@ private struct AlbumMetadataLine: View {
 private struct AlbumPlaybackActions: View {
     let albumId: String
     let songs: [DisplayableSong]
+    let playbackContext: PlaybackContext
     let mode: AlbumDetailMode
     let viewModel: AlbumDetailViewModel?
     let downloadedAlbumTracks: [DownloadedTrack]
@@ -758,7 +768,9 @@ private struct AlbumPlaybackActions: View {
                     HapticFeedback.medium.trigger()
                     Task {
                         guard !songs.isEmpty else { return }
-                        await container?.toastService.perform { try await container?.playerService.play(tracks: songs.shuffled(), startIndex: 0) }
+                        await container?.toastService.perform {
+                            try await container?.playerService.play(tracks: songs.shuffled(), startIndex: 0, context: playbackContext)
+                        }
                     }
                 } label: {
                     AlbumCircularActionLabel(
@@ -770,7 +782,8 @@ private struct AlbumPlaybackActions: View {
                 .disabled(songs.isEmpty)
                 .accessibilityLabel("Shuffle")
 
-                PlayMenuButton(songs: songs, fillColor: playFillColor, labelColor: playLabelColor)
+                PlayMenuButton(songs: songs, fillColor: playFillColor, labelColor: playLabelColor,
+                               context: playbackContext)
                     .frame(maxWidth: 220)
             }
             .buttonStyle(.plain)

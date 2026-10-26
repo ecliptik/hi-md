@@ -373,7 +373,8 @@ private struct SongActions: View {
             if !song.isLocalFile {
                 Section {
                     Button {
-                        startInstantMix(from: .song(id: song.id), using: container, startingWith: song)
+                        startInstantMix(from: .song(id: song.id), using: container, startingWith: song,
+                                        context: songMixContext(song))
                     } label: {
                         Label("Instant Mix", systemImage: instantMixSymbol)
                     }

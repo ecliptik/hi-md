@@ -7,6 +7,8 @@ struct PlayMenuButton: View {
     var fillColor: Color
     var labelColor: Color
     var height: CGFloat? = 48
+    /// Where Play says the queue came from.
+    var context: PlaybackContext? = nil
     /// Replaces the default "play from the first song", e.g. to apply a sort order.
     var onPlay: (() -> Void)? = nil
 
@@ -39,7 +41,12 @@ struct PlayMenuButton: View {
             HapticFeedback.medium.trigger()
             if let onPlay { return onPlay() }
             let songs = songs
-            Task { await container?.toastService.perform { try await container?.playerService.play(tracks: songs, startIndex: 0) } }
+            let context = context
+            Task {
+                await container?.toastService.perform {
+                    try await container?.playerService.play(tracks: songs, startIndex: 0, context: context)
+                }
+            }
         }
         .menuStyle(.button)
         .buttonStyle(.plain)

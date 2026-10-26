@@ -194,7 +194,10 @@ struct MusicIntentService {
             let tracks = try await self.tracks(reference, context: context)
             try await self.validate(context)
             guard !tracks.isEmpty else { throw MusicIntentError.empty }
-            return PreparedPlaybackQueue(tracks: tracks, startIndex: 0)
+            return PreparedPlaybackQueue(
+                tracks: tracks, startIndex: 0,
+                context: .mood(mood, playlistId: reference.resourceID)
+            )
         })
     }
 
