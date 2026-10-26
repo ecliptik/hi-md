@@ -7,6 +7,7 @@ struct LyricsView: View {
     private static let secondary = Color.white.opacity(PlayerBackgroundPalette.secondaryOpacity)
     @State private var showsKaraoke = false
     @State private var visibility = LyricsVisibilityHandoff()
+    @Environment(\.lyricsTypography) private var typography
 
     var body: some View {
         Group {
@@ -43,7 +44,7 @@ struct LyricsView: View {
     @ViewBuilder
     private func loadedContent(_ structured: StructuredLyrics) -> some View {
         VStack(spacing: 0) {
-            header
+            if showsHeader { header }
             lyricsScroll(structured)
                 .mask {
                     VStack(spacing: 0) {
@@ -61,7 +62,7 @@ struct LyricsView: View {
     private func lyricsScroll(_ structured: StructuredLyrics) -> some View {
         ScrollViewReader { proxy in
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: 32) {
+                LazyVStack(alignment: .leading, spacing: typography.lineSpacing) {
                     ForEach(Array(structured.line.enumerated()), id: \.offset) { index, line in
                         LyricsLineView(
                             value: line.value,
@@ -74,7 +75,7 @@ struct LyricsView: View {
                         .id(index)
                     }
                 }
-                .padding(.horizontal, 8)
+                .padding(.horizontal, typography.horizontalInset)
                 .padding(.vertical, 200)
             }
             .scrollIndicators(.hidden)
@@ -134,29 +135,37 @@ struct LyricsView: View {
 
             Spacer()
 
-            Button {
-                showsKaraoke = true
-            } label: {
-                Image(systemName: "arrow.up.left.and.arrow.down.right")
-                    .font(.title3)
-                    .foregroundStyle(.white.opacity(0.8))
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Full Screen Lyrics")
+            if typography.showsHeaderButtons {
+                Button {
+                    showsKaraoke = true
+                } label: {
+                    Image(systemName: "arrow.up.left.and.arrow.down.right")
+                        .font(.title3)
+                        .foregroundStyle(.white.opacity(0.8))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Full Screen Lyrics")
 
-            Button {
-                viewModel.autoScrollEnabled.toggle()
-            } label: {
-                Image(systemName: viewModel.autoScrollEnabled
-                    ? "arrow.up.arrow.down.circle.fill"
-                    : "arrow.up.arrow.down.circle")
-                    .font(.title3)
-                    .foregroundStyle(.white.opacity(0.8))
+                Button {
+                    viewModel.autoScrollEnabled.toggle()
+                } label: {
+                    Image(systemName: viewModel.autoScrollEnabled
+                        ? "arrow.up.arrow.down.circle.fill"
+                        : "arrow.up.arrow.down.circle")
+                        .font(.title3)
+                        .foregroundStyle(.white.opacity(0.8))
+                }
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
         }
-        .padding(.horizontal, 32)
+        .padding(.horizontal, typography.headerInset)
         .padding(.vertical, 12)
+    }
+
+    /// Without its buttons the header has nothing to show unless there's a language to pick, so
+    /// the lines start at the top.
+    private var showsHeader: Bool {
+        typography.showsHeaderButtons || viewModel.availableLanguages.count > 1
     }
 
     // MARK: - Empty states

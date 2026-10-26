@@ -10,6 +10,15 @@ nonisolated enum NowPlayingSidePane: String, CaseIterable, Sendable {
     static func resolved(_ requested: NowPlayingSidePane, canShowLyrics: Bool) -> NowPlayingSidePane {
         requested == .lyrics && !canShowLyrics ? .queue : requested
     }
+
+    /// Clicking a pane's button: it shows that pane, or hides the side pane when that pane is
+    /// already showing, so Lyrics turns the lyrics on and off.
+    static func afterClicking(_ clicked: NowPlayingSidePane, requested: NowPlayingSidePane, isHidden: Bool,
+                              canShowLyrics: Bool) -> (requested: NowPlayingSidePane, isHidden: Bool) {
+        let shown = resolved(requested, canShowLyrics: canShowLyrics)
+        if !isHidden, shown == clicked { return (requested, true) }
+        return (clicked, false)
+    }
 }
 
 /// Text for the Now Playing views.
@@ -49,12 +58,40 @@ nonisolated enum NowPlayingText {
     }
 }
 
-/// The MiniPlayer window's two sizes: the controls alone, or with lyrics or the queue below.
-nonisolated enum MiniPlayerLayout {
-    static let width: Double = 320
-    static let compactHeight: Double = 156
-    static let expandedHeight: Double = 520
-    static let minimumExpandedHeight: Double = 360
+/// The Mac Now Playing view's sizes for a window: the player column grows with the window, as
+/// the Music app's does, and the artwork takes what the height leaves after the controls.
+nonisolated struct NowPlayingMetrics: Equatable, Sendable {
+    /// Points around the content and between the player and the side pane.
+    static let horizontalInset: Double = 48
+    static let verticalInset: Double = 64
+    static let columnGap: Double = 56
+    /// The column's width at scale 1.
+    static let baseColumn: Double = 360
 
-    static func height(expanded: Bool) -> Double { expanded ? expandedHeight : compactHeight }
+    /// 1 in the smallest window, up to 1.6 on a large screen.
+    let scale: Double
+    /// The artwork's side, which is also the width of the song, the scrubber and the transport.
+    let artworkSide: Double
+    /// The side pane's width, or 0 when it's hidden.
+    let paneWidth: Double
+
+    var titleSize: Double { (22 * scale).rounded() }
+    var subtitleSize: Double { (17 * scale).rounded() }
+    var timeSize: Double { (11 * scale).rounded() }
+    var transportSize: Double { (24 * scale).rounded() }
+    var playSize: Double { (44 * scale).rounded() }
+    var columnSpacing: Double { (22 * scale).rounded() }
+
+    /// What the column needs under the artwork: the song, the scrubber, the transport and gaps.
+    static func controlsHeight(scale: Double) -> Double { 230 * scale }
+
+    init(width: Double, height: Double, showsPane: Bool) {
+        let content = max(width - 2 * Self.horizontalInset, 0)
+        let column = showsPane ? max((content - Self.columnGap) / 2, 0) : min(content, 720)
+        let scale = min(max(column / Self.baseColumn, 1), 1.6)
+        self.scale = scale
+        let byHeight = height - 2 * Self.verticalInset - Self.controlsHeight(scale: scale)
+        artworkSide = max(min(column, byHeight, 720), 200)
+        paneWidth = showsPane ? column : 0
+    }
 }

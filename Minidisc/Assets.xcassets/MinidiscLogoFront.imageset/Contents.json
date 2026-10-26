@@ -3,6 +3,10 @@
     {
       "filename" : "MinidiscLogoFront.png",
       "idiom" : "universal"
+    },
+    {
+      "filename" : "MinidiscLogoFront-mac.png",
+      "idiom" : "mac"
     }
   ],
   "info" : {

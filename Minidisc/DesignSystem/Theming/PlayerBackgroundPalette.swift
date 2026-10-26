@@ -24,6 +24,39 @@ enum PlayerBackgroundPalette {
         }
     }
 
+    /// The Mac players' backdrop: `colors(from:)`, except that a near-grey cover (a white,
+    /// black or grey sleeve) takes a hint of `accent`, more at the top than the bottom, so it
+    /// reads as a tinted gradient instead of flat grey. The stops are capped as before.
+    static func tintedColors(from samples: [Color], accent: Color) -> [Color] {
+        guard let accentRGB = WCAGContrast.RGB(accent.rgbComponents) else { return colors(from: samples) }
+        return samples.enumerated().map { index, sample in
+            guard let rgb = WCAGContrast.RGB(sample.rgbComponents) else { return .black }
+            let fraction = Double(index) / Double(max(samples.count - 1, 1))
+            let tinted = Self.tinted(rgb, toward: accentRGB, fraction: fraction)
+            let stop = capped(tinted, depth: 1 - 0.12 * fraction)
+            return Color(red: stop.red, green: stop.green, blue: stop.blue)
+        }
+    }
+
+    /// Below this saturation a stop counts as grey.
+    nonisolated static let neutralSaturation = 0.12
+
+    /// `color` blended toward `accent` when it's nearly grey: 45% at the top stop (`fraction`
+    /// 0) to 25% at the bottom one. Coloured stops are left alone.
+    nonisolated static func tinted(_ color: WCAGContrast.RGB, toward accent: WCAGContrast.RGB,
+                                   fraction: Double) -> WCAGContrast.RGB {
+        let high = max(color.red, color.green, color.blue)
+        let low = min(color.red, color.green, color.blue)
+        let saturation = high > 0 ? (high - low) / high : 0
+        guard saturation < neutralSaturation else { return color }
+        let amount = 0.45 - 0.2 * min(max(fraction, 0), 1)
+        // A black sleeve has no brightness to tint, so it borrows some before blending.
+        let base = high < 0.2 ? WCAGContrast.RGB(red: 0.35, green: 0.35, blue: 0.35) : color
+        return WCAGContrast.RGB(red: base.red + (accent.red - base.red) * amount,
+                                green: base.green + (accent.green - base.green) * amount,
+                                blue: base.blue + (accent.blue - base.blue) * amount)
+    }
+
     /// One backdrop stop: `color` scaled by `depth`, then darkened until its luminance is at most
     /// `maxLuminance`. Convex interpolation between such sRGB stops stays under the cap, so a
     /// light stripe cannot cross the controls.

@@ -32,6 +32,11 @@ struct MacInspector: View {
 /// lyrics stay loaded while the song plays, so switching panes doesn't fetch them again.
 struct MacLyricsPane: View {
     let container: AppContainer
+    /// Shares the loaded lyrics with controls outside the pane (the Now Playing view's follow
+    /// and full-screen buttons, the MiniPlayer's menu).
+    var session: MacLyricsSession? = nil
+    /// The Mac's full-screen lyrics: huge centred lines instead of the player's column.
+    var isFullScreen = false
 
     @State private var viewModel: LyricsViewModel?
 
@@ -42,9 +47,14 @@ struct MacLyricsPane: View {
         Group {
             if let track = playerState.currentTrack, !track.isLocalFile, !playerState.isLiveStream {
                 if let viewModel {
-                    LyricsView(viewModel: viewModel)
-                        .id(track.id)
-                        .padding(.horizontal, 12)
+                    if isFullScreen {
+                        MacFullScreenLyricsLines(viewModel: viewModel)
+                            .id(track.id)
+                    } else {
+                        LyricsView(viewModel: viewModel)
+                            .id(track.id)
+                            .padding(.horizontal, 12)
+                    }
                 } else {
                     ProgressView()
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -56,6 +66,9 @@ struct MacLyricsPane: View {
         }
         .task(id: LyricsKey(trackID: trackID, source: container.lyricsSettings.source)) {
             await loadLyrics()
+        }
+        .onChange(of: viewModel.map(ObjectIdentifier.init), initial: true) {
+            session?.viewModel = viewModel
         }
     }
 
@@ -77,6 +90,19 @@ struct MacLyricsPane: View {
                                     playerService: container.playerService, playerState: container.playerState)
         viewModel = model
         await model.load()
+    }
+}
+
+/// The lyrics a MacLyricsPane has loaded, for the controls around it.
+@Observable
+@MainActor
+final class MacLyricsSession {
+    var viewModel: LyricsViewModel?
+
+    /// Lyrics to follow or show full screen, not a loading or empty state.
+    var hasLyrics: Bool {
+        if case .loaded = viewModel?.state { return true }
+        return false
     }
 }
 
@@ -136,7 +162,7 @@ struct MacQueuePane: View {
             } else {
                 List(selection: $selection) {
                     ForEach(entries) { entry in
-                        MacQueueRow(song: entry.song)
+                        MacQueueRow(song: entry.song, isOnBackdrop: isOnBackdrop)
                             .tag(entry.id)
                     }
                     .onMove { offsets, destination in
@@ -203,6 +229,12 @@ private struct MacQueueEntry: Identifiable {
 
 private struct MacQueueRow: View {
     let song: DisplayableSong
+    var isOnBackdrop = false
+
+    /// Over the artwork backdrop the system secondary falls under 4.5:1, so it uses the player's.
+    private var secondary: AnyShapeStyle {
+        isOnBackdrop ? AnyShapeStyle(Color.white.opacity(NowPlayingText.secondaryOpacity)) : AnyShapeStyle(.secondary)
+    }
 
     var body: some View {
         HStack(spacing: 10) {
@@ -214,7 +246,7 @@ private struct MacQueueRow: View {
                 if let artist = song.artist {
                     Text(artist)
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(secondary)
                         .lineLimit(1)
                 }
             }
@@ -222,7 +254,7 @@ private struct MacQueueRow: View {
             Text(Duration.seconds(song.duration).formatted(.time(pattern: .minuteSecond)))
                 .font(.caption)
                 .monospacedDigit()
-                .foregroundStyle(.secondary)
+                .foregroundStyle(secondary)
         }
         .padding(.vertical, 2)
     }
