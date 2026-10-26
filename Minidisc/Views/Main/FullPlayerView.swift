@@ -841,7 +841,11 @@ private struct ScrubberView: View {
     private var positionBinding: Binding<TimeInterval> {
         Binding(
             get: { (isDragging || isSeeking) ? displayPosition : playerState.position },
-            set: { newValue in displayPosition = newValue }
+            set: { newValue in
+                displayPosition = newValue
+                // The lyrics follow the drag before the seek.
+                if isDragging { playerState.noteScrub(to: newValue) }
+            }
         )
     }
 
@@ -855,6 +859,7 @@ private struct ScrubberView: View {
                     if !editing {
                         isSeeking = true
                         let target = displayPosition
+                        playerState.noteSeek(to: target)
                         Task {
                             defer { isSeeking = false }
                             await playerService?.seek(to: target)
@@ -872,6 +877,9 @@ private struct ScrubberView: View {
                 overridePosition: (isDragging || isSeeking) ? displayPosition : nil,
                 color: secondaryContentColor
             )
+        }
+        .onDisappear {
+            if isDragging { playerState.cancelScrub() }
         }
     }
 }

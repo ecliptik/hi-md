@@ -38,8 +38,19 @@ final class MacPlayback {
         Task { await container.toastService.perform { try await self.player.skipToPrevious() } }
     }
 
+    /// Seeks, moving the lyrics to `position` at once rather than when the player gets there.
     func seek(to position: TimeInterval) async {
+        state.noteSeek(to: position)
         await player.seek(to: position)
+    }
+
+    /// A scrubber is being dragged: the lyrics follow it before the seek.
+    func scrub(to position: TimeInterval) {
+        state.noteScrub(to: position)
+    }
+
+    func cancelScrub() {
+        state.cancelScrub()
     }
 
     func toggleShuffle() {

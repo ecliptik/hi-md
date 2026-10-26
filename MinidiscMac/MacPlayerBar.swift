@@ -219,6 +219,8 @@ struct MacScrubber: View {
 
     @Environment(MacPlayback.self) private var playback
     @State private var dragPosition: TimeInterval?
+    @State private var isEditing = false
+    @State private var keyboardSeek: Task<Void, Never>?
 
     var body: some View {
         let state = playback.state
@@ -230,11 +232,34 @@ struct MacScrubber: View {
             Slider(
                 value: Binding(
                     get: { min(dragPosition ?? state.position, max(duration, 0)) },
-                    set: { dragPosition = $0 }
+                    set: { newValue in
+                        dragPosition = newValue
+                        // The lyrics follow the drag before the seek.
+                        playback.scrub(to: newValue)
+                        if !isEditing {
+                            // The arrow keys or VoiceOver: no drag to wait for, so seek once the
+                            // presses pause, unless a drag starts first.
+                            keyboardSeek?.cancel()
+                            keyboardSeek = Task {
+                                try? await Task.sleep(for: .milliseconds(200))
+                                guard !Task.isCancelled, !isEditing else { return }
+                                await playback.seek(to: newValue)
+                                if !isEditing { dragPosition = nil }
+                            }
+                        }
+                    }
                 ),
                 in: 0...max(duration, 1)
             ) { editing in
-                guard !editing, let target = dragPosition else { return }
+                isEditing = editing
+                guard !editing else {
+                    keyboardSeek?.cancel()
+                    return
+                }
+                guard let target = dragPosition else {
+                    playback.cancelScrub()
+                    return
+                }
                 Task {
                     await playback.seek(to: target)
                     dragPosition = nil
@@ -250,6 +275,10 @@ struct MacScrubber: View {
         .font(timeFont)
         .monospacedDigit()
         .foregroundStyle(timeStyle)
+        .onDisappear {
+            keyboardSeek?.cancel()
+            if isEditing || dragPosition != nil { playback.cancelScrub() }
+        }
     }
 }
 

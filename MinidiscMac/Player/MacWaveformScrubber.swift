@@ -31,7 +31,10 @@ struct MacWaveformScrubber: View {
                     .gesture(DragGesture(minimumDistance: 0)
                         .onChanged { value in
                             guard canSeek else { return }
-                            dragPosition = Self.position(at: value.location.x, width: proxy.size.width, duration: duration)
+                            let position = Self.position(at: value.location.x, width: proxy.size.width, duration: duration)
+                            dragPosition = position
+                            // The lyrics follow the drag before the seek.
+                            playback.scrub(to: position)
                         }
                         .onEnded { value in
                             guard canSeek else { return }
@@ -60,6 +63,9 @@ struct MacWaveformScrubber: View {
         .monospacedDigit()
         .foregroundStyle(Self.secondary)
         .opacity(canSeek || state.currentTrack == nil ? 1 : 0.6)
+        .onDisappear {
+            if state.lyricsClock.isScrubbing { playback.cancelScrub() }
+        }
     }
 
     private static func time(_ seconds: TimeInterval) -> String {
