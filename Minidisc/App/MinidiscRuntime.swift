@@ -16,7 +16,11 @@ final class MinidiscRuntime {
         if let initialization { return try await initialization.value }
         let task = Task {
             if let load { return try await load() }
+            #if os(macOS)
+            return try await MinidiscMacApp.makeContainer(diagnostics: diagnostics)
+            #else
             return try await MinidiscApp.makeContainer(diagnostics: diagnostics)
+            #endif
         }
         initialization = task
         do {
