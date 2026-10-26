@@ -488,8 +488,9 @@ extension AppContainer {
 
         for track in tracks {
             guard track.filePath.hasSuffix(".mpeg") else { continue }
+            // The suffix comes from the server, so only a known audio extension may rename the file.
             let desiredExt: String
-            if let s = track.suffix, !s.isEmpty {
+            if let s = SafeFileName.audioExtension(track.suffix) {
                 desiredExt = s
             } else {
                 desiredExt = Self.audioExtFromMime(track.mimeType)
@@ -498,8 +499,12 @@ extension AppContainer {
 
             let oldPath = track.filePath
             let newPath = String(oldPath.dropLast(".mpeg".count)) + ".\(desiredExt)"
-            let oldURL = downloadsDir.appendingPathComponent(oldPath)
-            let newURL = downloadsDir.appendingPathComponent(newPath)
+            guard let oldURL = SafeFileName.url(forRelativePath: oldPath, in: downloadsDir),
+                  let newURL = SafeFileName.url(forRelativePath: newPath, in: downloadsDir) else {
+                Logger.migration.warning("[ExtMigration] Path outside the downloads folder, skipping: '\(oldPath, privacy: .public)'")
+                skippedCount += 1
+                continue
+            }
 
             guard FileManager.default.fileExists(atPath: oldURL.path) else {
                 Logger.migration.warning("[ExtMigration] File missing, skipping: '\(oldPath, privacy: .public)'")

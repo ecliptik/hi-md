@@ -3,7 +3,8 @@ import SwiftData
 import Testing
 @testable import Minidisc
 
-@Suite("User cover persistence")
+// Serialized: these tests share the real cover folder, and clearAllCovers() deletes it wholesale.
+@Suite("User cover persistence", .serialized)
 @MainActor
 struct UserCoverPersistenceTests {
     private func makeService() throws -> DownloadService {

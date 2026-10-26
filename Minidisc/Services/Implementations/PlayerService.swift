@@ -60,6 +60,9 @@ nonisolated struct PlaybackNetworkRecoveryTiming: Sendable {
     var stallGrace: Duration = .seconds(5)
     var retryDelay: Duration = .seconds(2)
     var validationDelay: Duration = .seconds(2)
+    /// First wait before re-resolving a failed standby preload; later attempts wait longer.
+    /// Preloading starts 15 s before the transition, so all attempts fit well inside that window.
+    var prefetchRetryDelay: Duration = .seconds(1)
 }
 
 /// Bounds automatic stream rebuilds without permanently wedging recovery after one early failure.
@@ -173,6 +176,12 @@ actor PlayerService: PlayerServiceProtocol {
     private var cacheDownloadTask: Task<Void, Never>?
     private let cacheSession: URLSession
     private var prefetchScheduled = false
+    /// The standby preload runs here rather than inside the progress tick, so a slow resolve
+    /// cannot hold up position, scrobbling or Now Playing updates.
+    private var prefetchTask: Task<Void, Never>?
+    /// The next track whose preload used up its retry budget. The tick leaves it alone until the
+    /// prefetch context changes; the transition to it then starts cold.
+    private var prefetchExhaustedTrackID: String?
     /// Invalidates a preload resolution already suspended in MediaResolver when its context changes.
     private var prefetchGeneration: UInt64 = 0
     /// Exact source already loaded by the standby deck. Keeping it beside the engine hand-off lets
@@ -184,6 +193,10 @@ actor PlayerService: PlayerServiceProtocol {
         let playbackGeneration: UInt64
         let prefetchGeneration: UInt64
         let expectedCurrentIndex: Int
+        /// What a retry needs if the engine later drops this standby deck.
+        let song: DisplayableSong
+        let expectedCurrentTrackID: String
+        let attempt: Int
     }
     private var preparedNextPlayback: PreparedNextPlayback?
     private var latestNetworkPathEvent: NetworkPathEvent = .initial
@@ -3281,7 +3294,10 @@ actor PlayerService: PlayerServiceProtocol {
 
     private func cancelPendingPrefetch() {
         prefetchGeneration &+= 1
+        prefetchTask?.cancel()
+        prefetchTask = nil
         prefetchScheduled = false
+        prefetchExhaustedTrackID = nil
         preparedNextPlayback = nil
     }
 
@@ -3368,43 +3384,150 @@ actor PlayerService: PlayerServiceProtocol {
         guard PlayerService.shouldSchedulePrefetch(crossfadeDuration: crossfadeConfig.duration, remaining: remaining) else { return }
 
         let nextIndex = currentIndex + 1
-        let resolved: (nextSong: DisplayableSong, serverId: UUID?)? = await MainActor.run {
-            guard state.queue.indices.contains(nextIndex) else { return nil }
+        let resolved: (nextSong: DisplayableSong, serverId: UUID?, currentTrackID: String)? = await MainActor.run {
+            guard let current = state.currentTrack,
+                  state.queue.indices.contains(nextIndex) else { return nil }
             let next = state.queue[nextIndex]
             let serverId = next.isLocalFile ? nil : serverService.state.activeServer?.id
             guard next.isLocalFile || serverId != nil else { return nil }
-            return (next, serverId)
+            return (next, serverId, current.id)
         }
-        guard let resolved else { return }
+        // Overlapping ticks can both get this far; only the first one schedules.
+        guard let resolved, !prefetchScheduled,
+              prefetchExhaustedTrackID != resolved.nextSong.id else { return }
 
         prefetchScheduled = true
         Logger.player.debug("[PREFETCH] scheduling standby preload for '\(resolved.nextSong.title, privacy: .public)' (remaining=\(String(format: "%.1f", remaining))s)")
         let generation = playbackGeneration
         let requestedPrefetchGeneration = prefetchGeneration
-        await preloadNextForGapless(
-            nextSong: resolved.nextSong,
-            serverId: resolved.serverId,
-            generation: generation,
-            prefetchGeneration: requestedPrefetchGeneration
-        )
+        prefetchTask = Task { [weak self] in
+            await self?.runStandbyPreload(
+                nextSong: resolved.nextSong,
+                serverId: resolved.serverId,
+                expectedCurrentTrackID: resolved.currentTrackID,
+                generation: generation,
+                prefetchGeneration: requestedPrefetchGeneration
+            )
+        }
+    }
+
+    nonisolated static let maximumPrefetchAttempts = 3
+
+    /// Backoff before the given retry (1-based): one, then two retry delays.
+    nonisolated static func prefetchRetryDelay(base: Duration, retry: Int) -> Duration {
+        base * max(1, retry)
+    }
+
+    private enum StandbyPreloadOutcome {
+        case preloaded
+        /// Repeat One, or the queue or playback moved on while the preload was in flight.
+        case skipped
+        case resolveFailed
+    }
+
+    /// Retries a failed resolve a few times, so one transient error doesn't leave the next track
+    /// to start cold with a gap. Every exit without a standby deck clears `prefetchScheduled`.
+    /// `firstAttempt` is above 1 when the engine dropped a standby deck an earlier attempt loaded.
+    private func runStandbyPreload(
+        nextSong: DisplayableSong,
+        serverId: UUID?,
+        expectedCurrentTrackID: String,
+        generation: UInt64,
+        prefetchGeneration: UInt64,
+        firstAttempt: Int = 1
+    ) async {
+        var attempt = firstAttempt
+        var outcome: StandbyPreloadOutcome
+        while true {
+            if attempt > 1 {
+                let delay = Self.prefetchRetryDelay(base: networkRecoveryTiming.prefetchRetryDelay, retry: attempt - 1)
+                Logger.player.info(
+                    "[PREFETCH] retrying standby preload for '\(nextSong.id, privacy: .public)' in \(delay, privacy: .public) (attempt \(attempt)/\(Self.maximumPrefetchAttempts))"
+                )
+                do {
+                    try await Task.sleep(for: delay)
+                } catch {
+                    return
+                }
+            }
+            outcome = await preloadNextForGapless(
+                nextSong: nextSong,
+                serverId: serverId,
+                expectedCurrentTrackID: expectedCurrentTrackID,
+                generation: generation,
+                prefetchGeneration: prefetchGeneration,
+                attempt: attempt
+            )
+            guard outcome == .resolveFailed, attempt < Self.maximumPrefetchAttempts else { break }
+            attempt += 1
+        }
+        // A cancelled or superseded run must not touch the state of the one that replaced it.
+        guard !Task.isCancelled, prefetchGeneration == self.prefetchGeneration else { return }
+        prefetchTask = nil
+        switch outcome {
+        case .preloaded:
+            break
+        case .skipped:
+            prefetchScheduled = false
+        case .resolveFailed:
+            Logger.player.warning(
+                "[PREFETCH] giving up on standby preload for '\(nextSong.id, privacy: .public)' after \(attempt) attempts — the transition will start cold"
+            )
+            prefetchExhaustedTrackID = nextSong.id
+            prefetchScheduled = false
+        }
+    }
+
+    /// The engine dropped a standby deck that failed to load, seek or preroll. The preload is
+    /// tried again within the same budget as a failed resolve, so the next track still starts warm.
+    func handleStandbyPreloadFailure(trackID: String) async {
+        guard let prepared = preparedNextPlayback,
+              prepared.trackID == trackID,
+              prepared.playbackGeneration == playbackGeneration,
+              prepared.prefetchGeneration == prefetchGeneration else { return }
+        preparedNextPlayback = nil
+        guard prepared.attempt < Self.maximumPrefetchAttempts else {
+            Logger.player.warning(
+                "[PREFETCH] standby deck for '\(trackID, privacy: .public)' failed after \(prepared.attempt) attempts — the transition will start cold"
+            )
+            prefetchExhaustedTrackID = trackID
+            prefetchScheduled = false
+            return
+        }
+        let generation = playbackGeneration
+        let requestedPrefetchGeneration = prefetchGeneration
+        prefetchTask?.cancel()
+        prefetchTask = Task { [weak self] in
+            await self?.runStandbyPreload(
+                nextSong: prepared.song,
+                serverId: prepared.serverID,
+                expectedCurrentTrackID: prepared.expectedCurrentTrackID,
+                generation: generation,
+                prefetchGeneration: requestedPrefetchGeneration,
+                firstAttempt: prepared.attempt + 1
+            )
+        }
     }
 
     /// Preloads the next item except under Repeat One; album pairs can suppress crossfade.
     private func preloadNextForGapless(
         nextSong: DisplayableSong,
         serverId: UUID?,
+        expectedCurrentTrackID: String,
         generation: UInt64,
-        prefetchGeneration: UInt64
-    ) async {
+        prefetchGeneration: UInt64,
+        attempt: Int
+    ) async -> StandbyPreloadOutcome {
         let songId = nextSong.id
         guard await isPrefetchContextValid(
             songId: songId,
             serverId: serverId,
+            expectedCurrentTrackID: expectedCurrentTrackID,
             generation: generation,
             prefetchGeneration: prefetchGeneration
-        ) else { return }
+        ) else { return .skipped }
         let repeatMode = await MainActor.run { state.repeatMode }
-        guard repeatMode != .one else { return }
+        guard repeatMode != .one else { return .skipped }
 
         let isPair = await isNextAlbumSequencePair(songId: songId)
         let overlap = Self.effectiveCrossfadeOverlap(
@@ -3413,46 +3536,53 @@ actor PlayerService: PlayerServiceProtocol {
             isGaplessPair: isPair
         )
 
-        guard let source = try? await resolveSource(nextSong, serverId: serverId) else {
+        let source: MediaSource
+        do {
+            source = try await resolveSource(nextSong, serverId: serverId)
+        } catch {
             Logger.player.warning("[CROSSFADE] unable to resolve next track '\(songId, privacy: .public)' for preload")
-            return
+            return .resolveFailed
         }
         let trim = await gaplessTrim(nextSongId: songId, serverId: serverId, isPair: isPair, overlap: overlap)
         guard await isPrefetchContextValid(
             songId: songId,
             serverId: serverId,
+            expectedCurrentTrackID: expectedCurrentTrackID,
             generation: generation,
             prefetchGeneration: prefetchGeneration
         ) else {
             Logger.player.debug("[PREFETCH] discarded stale preload for '\(songId, privacy: .public)'")
-            return
+            return .skipped
         }
         let replayGainConfig = await MainActor.run { replayGainSettings.config }
         guard await isPrefetchContextValid(
             songId: songId,
             serverId: serverId,
+            expectedCurrentTrackID: expectedCurrentTrackID,
             generation: generation,
             prefetchGeneration: prefetchGeneration
         ) else {
             Logger.player.debug("[PREFETCH] discarded stale ReplayGain preload for '\(songId, privacy: .public)'")
-            return
+            return .skipped
         }
         let replayGainDB = ReplayGainService.gainDB(track: nextSong, config: replayGainConfig)
         let expectedCurrentIndex = await MainActor.run { state.currentIndex }
         guard await isPrefetchContextValid(
             songId: songId,
             serverId: serverId,
+            expectedCurrentTrackID: expectedCurrentTrackID,
             generation: generation,
             prefetchGeneration: prefetchGeneration
-        ) else { return }
-        engine.setTrackEndTrim(trim.leadOut)
+        ) else { return .skipped }
+        engine.setTrackEndTrim(trim.leadOut, expectedCurrentTrackID: expectedCurrentTrackID)
         engine.preloadNext(
             trackID: songId,
             url: source.url,
             headers: source.customHeaders,
             crossfadeDuration: overlap,
             leadInTrim: trim.leadIn,
-            replayGainDB: replayGainDB
+            replayGainDB: replayGainDB,
+            expectedCurrentTrackID: expectedCurrentTrackID
         )
         preparedNextPlayback = PreparedNextPlayback(
             trackID: songId,
@@ -3460,16 +3590,21 @@ actor PlayerService: PlayerServiceProtocol {
             source: source,
             playbackGeneration: generation,
             prefetchGeneration: prefetchGeneration,
-            expectedCurrentIndex: expectedCurrentIndex
+            expectedCurrentIndex: expectedCurrentIndex,
+            song: nextSong,
+            expectedCurrentTrackID: expectedCurrentTrackID,
+            attempt: attempt
         )
         Logger.player.info(
             "[CROSSFADE] preloaded next='\(songId, privacy: .public)' configured=\(self.crossfadeConfig.duration, format: .fixed(precision: 1))s gaplessPair=\(isPair, privacy: .public) overlap=\(overlap, format: .fixed(precision: 1))s replayGain=\(replayGainDB, format: .fixed(precision: 2))dB trimIn=\(trim.leadIn, format: .fixed(precision: 3))s trimOut=\(trim.leadOut, format: .fixed(precision: 3))s"
         )
+        return .preloaded
     }
 
     private func isPrefetchContextValid(
         songId: String,
         serverId: UUID?,
+        expectedCurrentTrackID: String,
         generation: UInt64,
         prefetchGeneration: UInt64
     ) async -> Bool {
@@ -3481,7 +3616,7 @@ actor PlayerService: PlayerServiceProtocol {
             return state.queue.indices.contains(nextIndex)
                 && (state.queue[nextIndex].isLocalFile || serverService.state.activeServer?.id == serverId)
                 && state.queue[nextIndex].id == songId
-                && state.currentTrack != nil
+                && state.currentTrack?.id == expectedCurrentTrackID
         }
     }
 
@@ -4016,7 +4151,7 @@ actor PlayerService: PlayerServiceProtocol {
                 Logger.player.debug("Cache download cancelled for '\(songId, privacy: .public)'")
             } else {
                 playbackDiagnostics.record(.cache(.failed(code: (error as NSError).code)))
-                Logger.player.debug("Cache download failed for '\(songId, privacy: .public)': \(error, privacy: .public)")
+                Logger.player.debug("Cache download failed for '\(songId, privacy: .public)': \(error.logSafe, privacy: .public)")
             }
         }
     }
@@ -4809,6 +4944,11 @@ nonisolated final class AudioEngineBridge: AudioEngineDelegate, Sendable {
     func audioEngineDidError(_ failure: AudioEngineFailure, playbackToken: AudioEnginePlaybackToken) {
         guard let service = currentService() else { return }
         Task { await service.handleEngineError(failure, playbackToken: playbackToken) }
+    }
+
+    func audioEngineStandbyPreloadDidFail(trackID: String) {
+        guard let service = currentService() else { return }
+        Task { await service.handleStandbyPreloadFailure(trackID: trackID) }
     }
 
     private func currentService() -> PlayerService? {

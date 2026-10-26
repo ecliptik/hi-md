@@ -78,6 +78,7 @@ private nonisolated final class FailureRecorder: AudioEngineDelegate, Sendable {
     func audioEngineDidError(_ failure: AudioEngineFailure, playbackToken: AudioEnginePlaybackToken) {
         failures.withLock { $0.append(failure.diagnosticDescription) }
     }
+    func audioEngineStandbyPreloadDidFail(trackID: String) {}
 }
 
 @Suite("FLAC streaming", .serialized, .timeLimit(.minutes(1)))

@@ -122,6 +122,9 @@ nonisolated protocol AudioEngineDelegate: AnyObject, Sendable {
     /// The current track finished on its own (end of file), not by a user stop/skip.
     func audioEngineDidReachEndOfTrack(_ transition: AudioEngineTrackEnd)
     func audioEngineDidError(_ failure: AudioEngineFailure, playbackToken: AudioEnginePlaybackToken)
+    /// The standby deck for `trackID` failed to load, seek past its lead-in or preroll, and was
+    /// dropped. The active track is unaffected; without a new preload the next track starts cold.
+    func audioEngineStandbyPreloadDidFail(trackID: String)
 }
 
 /// Synchronous, internally locked audio engine. PlayerService owns queue and session orchestration.
@@ -158,13 +161,16 @@ nonisolated protocol AudioEngine: AnyObject, Sendable {
     /// adopts the pre-buffered source; any other ID discards it.
     /// `leadInTrim` skips that many seconds of silence at the start of the preloaded track, so a
     /// gapless pair butts together instead of playing the encoder's padding.
+    /// `expectedCurrentTrackID` is the track the preload follows. A preload resolved while the engine
+    /// was already promoting that standby deck arrives late; the engine ignores it.
     func preloadNext(
         trackID: String,
         url: URL,
         headers: [String: String],
         crossfadeDuration: Double,
         leadInTrim: Double,
-        replayGainDB: Float
+        replayGainDB: Float,
+        expectedCurrentTrackID: String
     )
 
     /// Drops a pending standby deck without touching the active track.
@@ -172,7 +178,8 @@ nonisolated protocol AudioEngine: AnyObject, Sendable {
 
     /// Ends the CURRENT track `seconds` early, cutting its trailing silence. 0 restores the full
     /// length. Only meaningful ahead of a gapless hand-off; a crossfade wants the real tail.
-    func setTrackEndTrim(_ seconds: Double)
+    /// Ignored unless `expectedCurrentTrackID` is still the active track.
+    func setTrackEndTrim(_ seconds: Double, expectedCurrentTrackID: String)
 
     /// The authoritative length of the current track from library metadata, for engines whose own
     /// duration estimate drifts (transcoded/VBR streams) and would mistime transitions.

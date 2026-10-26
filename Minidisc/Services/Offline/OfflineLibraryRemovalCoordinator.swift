@@ -139,8 +139,8 @@ actor OfflineLibraryRemovalCoordinator {
     private func removeFiles(at relativePaths: Set<String>) {
         let fileManager = FileManager.default
         for relativePath in relativePaths.sorted() {
-            let fileURL = downloadsDirectory.appendingPathComponent(relativePath)
-            guard fileManager.fileExists(atPath: fileURL.path) else { continue }
+            guard let fileURL = SafeFileName.url(forRelativePath: relativePath, in: downloadsDirectory),
+                  fileManager.fileExists(atPath: fileURL.path) else { continue }
             do {
                 try fileManager.removeItem(at: fileURL)
             } catch {
