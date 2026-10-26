@@ -111,7 +111,7 @@ struct SongsListView: View {
                         .listRowBackground(Color.clear)
                 }
                 playShuffleHeader(songs)
-                ForEach(Array(songs.enumerated()), id: \.element.id) { index, song in
+                ForEach(songs.enumerated(), id: \.element.id) { index, song in
                     SongRow(song: song, index: index + 1, showCoverArt: true, isFavorite: favoriteIDs.contains(song.id))
                         .contentShape(Rectangle())
                         .onTapGesture { play(songs, at: index) }

@@ -15,7 +15,7 @@ enum LibrarySearchScope: String, CaseIterable, Identifiable, Hashable {
     }
 }
 
-enum LibrarySearchMatch: Identifiable {
+nonisolated enum LibrarySearchMatch: Identifiable, Sendable {
     case song(DisplayableSong)
     case album(AlbumID3)
     case artist(ArtistID3)
@@ -58,36 +58,85 @@ enum LibrarySearchMatch: Identifiable {
     }
 }
 
+/// A query normalised once, so ranking many candidates doesn't fold and split it per comparison.
+nonisolated struct LibrarySearchQuery: Equatable, Sendable {
+    let text: String
+    let tokens: [Substring]
+
+    init(_ query: String) {
+        text = LibrarySearchRanking.normalized(query)
+        tokens = text.split(separator: " ")
+    }
+
+    var isEmpty: Bool { text.isEmpty }
+}
+
+/// A candidate with its title and detail normalised once. The offline snapshot builds these when it
+/// loads, so a keystroke only scores them.
+nonisolated struct LibrarySearchEntry: Sendable {
+    let match: LibrarySearchMatch
+    let title: String
+    let titleWords: [Substring]
+    /// The title followed by the normalised detail, for the last-resort token match.
+    let combined: String
+
+    init(_ match: LibrarySearchMatch) {
+        self.match = match
+        title = LibrarySearchRanking.normalized(match.title)
+        titleWords = title.split(separator: " ")
+        combined = title + " " + LibrarySearchRanking.normalized(match.detail)
+    }
+}
+
 /// Ranks existing catalogue matches without a second request. Stable ties keep the list from
 /// moving as partial results arrive. Playlist matching uses the cached server-scoped list.
-enum LibrarySearchRanking {
+///
+/// Each candidate is scored once and sorted on the stored score. The comparators are unchanged, so
+/// the order is the one that scoring inside the comparator produced.
+nonisolated enum LibrarySearchRanking {
     static func matches(query: String, results: SearchResult3?, playlists: [Playlist]) -> [LibrarySearchMatch] {
-        guard !normalized(query).isEmpty else { return [] }
+        let query = LibrarySearchQuery(query)
+        guard !query.isEmpty else { return [] }
         var values: [LibrarySearchMatch] = (results?.artist ?? [])
             .filter { ($0.albumCount ?? 0) > 0 }.map(LibrarySearchMatch.artist)
         values += (results?.album ?? []).map(LibrarySearchMatch.album)
         values += (results?.song ?? []).map { .song(DisplayableSong(from: $0)) }
-        values += playlists.map(LibrarySearchMatch.playlist).filter { score($0, query: query) > 0 }
+        var scored = values.map { (match: $0, score: score(LibrarySearchEntry($0), query: query)) }
+        scored += playlists.map { (match: LibrarySearchMatch.playlist($0), score: score(LibrarySearchEntry(.playlist($0)), query: query)) }
+            .filter { $0.score > 0 }
         var seen = Set<String>()
-        return values.filter { seen.insert($0.id).inserted }.sorted { lhs, rhs in
-            let a = score(lhs, query: query), b = score(rhs, query: query)
-            if a != b { return a > b }
-            let order = lhs.title.localizedStandardCompare(rhs.title)
-            return order == .orderedSame ? lhs.id < rhs.id : order == .orderedAscending
-        }
+        return scored.filter { seen.insert($0.match.id).inserted }.sorted { lhs, rhs in
+            if lhs.score != rhs.score { return lhs.score > rhs.score }
+            let order = lhs.match.title.localizedStandardCompare(rhs.match.title)
+            return order == .orderedSame ? lhs.match.id < rhs.match.id : order == .orderedAscending
+        }.map(\.match)
+    }
+
+    /// Ranks pre-normalised entries and drops those that don't match. Used for downloaded music.
+    static func rank(_ entries: [LibrarySearchEntry], query: LibrarySearchQuery) -> [LibrarySearchMatch] {
+        guard !query.isEmpty else { return [] }
+        return entries.compactMap { entry -> (match: LibrarySearchMatch, score: Int)? in
+            let score = score(entry, query: query)
+            return score > 0 ? (entry.match, score) : nil
+        }.sorted {
+            $0.score == $1.score
+                ? $0.match.title.localizedStandardCompare($1.match.title) == .orderedAscending
+                : $0.score > $1.score
+        }.map(\.match)
     }
 
     static func score(_ match: LibrarySearchMatch, query: String) -> Int {
-        let query = normalized(query)
+        score(LibrarySearchEntry(match), query: LibrarySearchQuery(query))
+    }
+
+    static func score(_ entry: LibrarySearchEntry, query: LibrarySearchQuery) -> Int {
         guard !query.isEmpty else { return 0 }
-        let title = normalized(match.title)
-        if title == query { return 1_000 }
-        if title.hasPrefix(query) { return 800 }
-        let tokens = query.split(separator: " ")
-        if title.contains(query) { return 600 }
-        if tokens.allSatisfy({ token in title.split(separator: " ").contains { $0.hasPrefix(token) } }) { return 500 }
-        let combined = title + " " + normalized(match.detail)
-        return tokens.allSatisfy { combined.contains($0) } ? 200 : 0
+        let title = entry.title
+        if title == query.text { return 1_000 }
+        if title.hasPrefix(query.text) { return 800 }
+        if title.contains(query.text) { return 600 }
+        if query.tokens.allSatisfy({ token in entry.titleWords.contains { $0.hasPrefix(token) } }) { return 500 }
+        return query.tokens.allSatisfy { entry.combined.contains($0) } ? 200 : 0
     }
 
     static func normalized(_ text: String) -> String {

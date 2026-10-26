@@ -240,7 +240,10 @@ final class WinampMainWindowController: NSObject, NSWindowDelegate, WinampMainVi
         }
         state.title = WinampMarquee.visibleText(fullTitle, step: marqueeStep)
         if playback != .stopped, let id = player.currentTrack?.id, let info = trackInfo[id] {
-            let streamLimit = player.currentTrack?.isDownloaded == true ? nil : container.streamSettings.currentQuality.subsonicMaxBitRate
+            // A converted stream plays at the conversion bitrate; an original one at the file's own.
+            let streamLimit = player.currentTrack.flatMap { track in
+                track.isDownloaded ? nil : container.streamSettings.currentPolicy.request(for: track.streamTraits).maxBitRate
+            }
             state.kbps = WinampTrackInfoFormat.kbps(WinampTrackInfoFormat.effectiveBitRate(file: info.bitRate, maxBitRate: streamLimit))
             state.khz = WinampTrackInfoFormat.khz(info.samplingRate)
             if let channels = info.channelCount {

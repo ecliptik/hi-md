@@ -156,47 +156,51 @@ struct InlineQueueList: View {
     var secondaryContentColor: Color = .secondary
     var loadArtwork: Bool = true
 
+    /// Rows shown before "Show More". A queue from the Songs tab can hold 200,000 tracks; listing
+    /// them all made every skip diff that many rows on the MainActor the engine's transitions use.
+    static let pageSize = 200
+
+    @State private var rowLimit = Self.pageSize
+    /// Occurrence counts change only with the queue, not on a skip.
+    @State private var occurrences = DerivedValueCache<UInt64, [Int]>()
+    @State private var rows = DerivedValueCache<RowsKey, [QueueUpcomingRow]>()
+
+    private struct RowsKey: Equatable {
+        let generation: UInt64
+        let revision: UInt64
+        let currentIndex: Int
+        let currentTrackID: String?
+        let limit: Int
+    }
+
     var body: some View {
-        let entries = QueueRowSnapshot.capture(playerState)
+        let entries = upcomingRows()
         if entries.isEmpty {
             EmptyStateView(systemImage: "list.bullet", title: "Nothing up next",
                            subtitle: "Tracks you add to the queue appear here.")
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
-            ReorderableQueueList(entries: entries, queueCount: playerState.queue.count,
+            let hiddenCount = playerState.queue.count - (entries[entries.count - 1].index + 1)
+            ReorderableQueueList(entries: entries, queueCount: playerState.queue.count, hiddenCount: hiddenCount,
                                  contentColor: contentColor, secondaryContentColor: secondaryContentColor,
-                                 loadArtwork: loadArtwork)
+                                 loadArtwork: loadArtwork, onShowMore: { rowLimit += Self.pageSize })
         }
     }
-}
 
-private struct QueueRowSnapshot: Identifiable {
-    struct ID: Hashable {
-        let generation: UInt64
-        let songID: String
-        let occurrence: Int
-    }
-    let id: ID
-    let song: DisplayableSong
-    let selection: QueueTrackSelection
-
-    @MainActor
-    static func capture(_ state: PlayerState) -> [Self] {
-        var occurrences: [String: Int] = [:]
-        return state.queue.enumerated().compactMap { index, song in
-            let occurrence = occurrences[song.id, default: 0]
-            occurrences[song.id] = occurrence + 1
-            guard index > state.currentIndex,
-                  let selection = QueueTrackSelection(playerState: state, destinationIndex: index,
-                                                      destinationTrackID: song.id) else { return nil }
-            return Self(id: ID(generation: state.queueGeneration, songID: song.id, occurrence: occurrence),
-                        song: song, selection: selection)
+    private func upcomingRows() -> [QueueUpcomingRow] {
+        let queue = playerState.queue
+        let key = RowsKey(generation: playerState.queueGeneration, revision: playerState.queueRevision,
+                          currentIndex: playerState.currentIndex, currentTrackID: playerState.currentTrack?.id,
+                          limit: rowLimit)
+        return rows.value(for: key) {
+            let counts = occurrences.value(for: key.revision) { QueueUpcomingRow.occurrences(in: queue) }
+            return QueueUpcomingRow.upcoming(in: playerState, occurrences: counts, limit: rowLimit)
         }
     }
 }
 
 private struct QueueEntryRow: View {
-    let entry: QueueRowSnapshot
+    let entry: QueueUpcomingRow
     let contentColor: Color
     let secondaryContentColor: Color
     let loadArtwork: Bool
@@ -213,17 +217,19 @@ private struct QueueEntryRow: View {
             .accessibilityIdentifier("queue.track.\(entry.song.id).\(entry.id.occurrence)")
             .onTapGesture {
                 HapticFeedback.medium.trigger()
+                guard let selection = container.flatMap({ entry.selection(in: $0.playerState) }) else { return }
                 Task {
                     await container?.toastService.perform {
-                        _ = try await container?.playerService.selectQueueTrack(entry.selection)
+                        _ = try await container?.playerService.selectQueueTrack(selection)
                     }
                 }
             }
     }
 
     private func remove() {
+        guard let selection = container.flatMap({ entry.selection(in: $0.playerState) }) else { return }
         Task {
-            guard let removal = await container?.playerService.removeQueueTrack(entry.selection) else { return }
+            guard let removal = await container?.playerService.removeQueueTrack(selection) else { return }
             HapticFeedback.light.trigger()
             container?.toastService.show(String(localized: "Removed from queue"), subtitle: removal.song.title,
                                          style: .success, duration: 6, coverArtId: removal.song.coverArtId,
@@ -233,11 +239,14 @@ private struct QueueEntryRow: View {
 }
 
 private struct ReorderableQueueList: View {
-    let entries: [QueueRowSnapshot]
+    let entries: [QueueUpcomingRow]
     let queueCount: Int
+    /// Upcoming songs after the last row shown.
+    let hiddenCount: Int
     let contentColor: Color
     let secondaryContentColor: Color
     let loadArtwork: Bool
+    let onShowMore: () -> Void
     @Environment(\.appContainer) private var container
 
     var body: some View {
@@ -250,22 +259,33 @@ private struct ReorderableQueueList: View {
             // Apply row traits outside the reorderable wrapper so List receives them.
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)
+            if hiddenCount > 0 {
+                Button("Show More", action: onShowMore)
+                    .font(.minidiscBody)
+                    .foregroundStyle(secondaryContentColor)
+                    .frame(maxWidth: .infinity)
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+                    .accessibilityIdentifier("queue.showMore")
+            }
         }
-        .reorderContainer(for: QueueRowSnapshot.self) { difference in
+        .reorderContainer(for: QueueUpcomingRow.self) { difference in
             guard difference.sources.count == 1,
                   let source = difference.sources.first,
-                  let entry = entries.first(where: { $0.id == source }) else { return }
+                  let entry = entries.first(where: { $0.id == source }),
+                  let selection = container.flatMap({ entry.selection(in: $0.playerState) }) else { return }
             let destination: Int
             switch difference.destination.position {
             case .before(let id):
                 guard let target = entries.first(where: { $0.id == id }) else { return }
-                destination = target.selection.destinationIndex
+                destination = target.index
             case .end:
-                destination = queueCount
+                // Past the last row shown, which is the end of the queue only when nothing is hidden.
+                destination = hiddenCount > 0 ? entries[entries.count - 1].index + 1 : queueCount
             }
-            Logger.player.debug("Queue drag requested: \(entry.selection.destinationIndex) → \(destination)")
+            Logger.player.debug("Queue drag requested: \(selection.destinationIndex) → \(destination)")
             HapticFeedback.light.trigger()
-            Task { await container?.playerService.moveQueueTrack(entry.selection, toIndex: destination) }
+            Task { await container?.playerService.moveQueueTrack(selection, toIndex: destination) }
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)

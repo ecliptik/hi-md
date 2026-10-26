@@ -1,7 +1,8 @@
 import SwiftUI
 
-// Reading ArtworkImageCache from a view body observes its whole dictionary and
-// refreshes every cover when any entry changes. Resolve one id from a task instead.
+// ArtworkImageCache's storage is not observed, so a read in a view body is a snapshot
+// that never updates when the cover arrives. The body reads it once so a RAM hit renders
+// on the first pass; everything else resolves from a task.
 /// Resolves cover art through the shared cache, then falls back to AsyncImage.
 /// Sizes of at least 480 points use the hero tier unless `tier` overrides it.
 struct CoverArtView: View {
@@ -46,6 +47,9 @@ private struct CoverArtViewContent: View {
     @State private var displayedId: String?
     /// The server has no artwork for this id (it answered with its stand-in image).
     @State private var hasNoArtwork = false
+    @State private var ramHit = RAMSnapshot()
+    /// Re-runs the body after the task drops a snapshot it was showing.
+    @State private var snapshotClears = 0
 
     init(id: String, size: Int?, tier: ArtworkTier?, cornerRadius: CGFloat, placeholderSystemImage: String, initialImage: PlatformImage?, loadingEnabled: Bool = true) {
         self.id = id
@@ -62,9 +66,26 @@ private struct CoverArtViewContent: View {
         tier ?? ((size ?? 0) >= 480 ? .hero : .thumb)
     }
 
+    /// The RAM-cache hit for this id, tier and upload version, read once when the body first sees
+    /// them. The cache isn't observed, so this is a snapshot; the task still resolves everything else.
+    private func ramSnapshot() -> PlatformImage? {
+        guard loadingEnabled else { return nil }
+        let tier = resolvedTier
+        return ramHit.image(for: id, key: "\(id)@\(tier.rawValue):\(coverArtUploadVersion)") {
+            artworkCache.cachedImage(for: id, tier: tier)
+        }
+    }
+
+    /// The image the body shows: this id's own state first, then a RAM hit, then whatever an
+    /// earlier id left until the task replaces it.
+    private func shownImage(snapshot: PlatformImage?) -> PlatformImage? {
+        displayedId == id ? (cachedImage ?? snapshot) : (snapshot ?? cachedImage)
+    }
+
     var body: some View {
+        let _ = snapshotClears
         ZStack {
-            if let cached = cachedImage {
+            if let cached = shownImage(snapshot: ramSnapshot()) {
                 Image(platformImage: cached)
                     .resizable()
                     .scaledToFill()
@@ -80,13 +101,9 @@ private struct CoverArtViewContent: View {
                     case .failure:
                         placeholder
                     case .empty:
-                        GeometryReader { geo in
-                            SkeletonBlock(
-                                width: geo.size.width,
-                                height: geo.size.height,
-                                cornerRadius: cornerRadius
-                            )
-                        }
+                        // Static: a repeating pulse per cover kept the render loop busy while scrolling.
+                        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                            .fill(Color.primary.opacity(0.05))
                     @unknown default:
                         EmptyView()
                     }
@@ -95,14 +112,15 @@ private struct CoverArtViewContent: View {
         }
         .task(id: "\(loadingEnabled):\(id):\(coverArtUploadVersion)") {
             guard loadingEnabled else { return }
-            url = nil
-            hasNoArtwork = false
+            if url != nil { url = nil }
+            if hasNoArtwork { hasNoArtwork = false }
             let t = resolvedTier
             let online = container?.serverState.isOnline ?? true
 
-            // Task reads do not create the global observation dependency avoided above.
+            // A RAM hit applies at once, without waiting on the load path. When the body already
+            // shows it from the snapshot, leave the state alone so the cover doesn't render twice.
             if let ram = artworkCache.cachedImage(for: id, tier: t) {
-                apply(ram, for: id)
+                if shownImage(snapshot: ramSnapshot()) !== ram { apply(ram, for: id) }
                 return
             }
 
@@ -113,26 +131,27 @@ private struct CoverArtViewContent: View {
             }
 
             if id.hasPrefix("local:") || artworkCache.hasNoArtwork(id) {
+                if ramHit.clear() { snapshotClears += 1 }
                 cachedImage = nil
                 displayedId = nil
                 hasNoArtwork = !id.hasPrefix("local:")
                 return
             }
-            if displayedId == id { return }
+            if displayedId == id || ramSnapshot() != nil { return }
 
             // Prefer the tiered cache, then the untagged file stored for offline tracks.
             for diskId in ["\(id)@\(t.rawValue)", id] {
                 if let baseURL = await container?.downloadService.localCoverArtURL(forId: diskId),
-                   let image = await Self.decodedImage(at: baseURL, maxDimension: t.decodePixels) {
+                   let decoded = await Self.decodedImage(at: baseURL, maxDimension: t.decodePixels) {
                     guard !Task.isCancelled else { return }
                     // A download from before the app recognised the server's stand-in image.
-                    if ServerPlaceholderArtwork.matches(image) {
+                    if decoded.isServerPlaceholder {
                         cachedImage = nil
                         displayedId = nil
                         hasNoArtwork = true
                         return
                     }
-                    apply(image, for: id)
+                    apply(decoded.image, for: id)
                     return
                 }
                 guard !Task.isCancelled else { return }
@@ -159,10 +178,10 @@ private struct CoverArtViewContent: View {
 
     /// Decodes a local cover file off the main actor at `maxDimension`, reusing the cache's ImageIO
     /// thumbnail path so the base-file fallback decodes identically to the tiered cache.
-    private static func decodedImage(at url: URL, maxDimension: Int) async -> PlatformImage? {
+    private static func decodedImage(at url: URL, maxDimension: Int) async -> DecodedArtwork? {
         await Task.detached(priority: .userInitiated) {
-            guard let data = try? Data(contentsOf: url) else { return nil as PlatformImage? }
-            return ArtworkImageCache.thumbnailImage(from: data, maxDimension: maxDimension)
+            guard let data = try? Data(contentsOf: url) else { return nil as DecodedArtwork? }
+            return ArtworkImageCache.thumbnailImage(from: data, maxDimension: maxDimension).map(DecodedArtwork.init)
         }.value
     }
 
@@ -190,4 +209,34 @@ private struct CoverArtViewContent: View {
     }
 
     private static let musicPlaceholder = "music.note"
+}
+
+/// The RAM hit a cover's body last showed, read once per id, tier and upload version. A miss after
+/// the version changes keeps showing the id's earlier image until the task replaces it, as the
+/// view's own state does. Not observable: the body writes it, and that must not invalidate the view.
+@MainActor
+private final class RAMSnapshot {
+    private var key: String?
+    private var id: String?
+    private var image: PlatformImage?
+
+    func image(for id: String, key: String, read: () -> PlatformImage?) -> PlatformImage? {
+        if key != self.key {
+            self.key = key
+            if let hit = read() {
+                image = hit
+            } else if id != self.id {
+                image = nil
+            }
+            self.id = id
+        }
+        return image
+    }
+
+    /// The task found nothing to show: stop showing the snapshot until the key changes. Returns
+    /// whether it was showing one, in which case the body has to run again.
+    func clear() -> Bool {
+        defer { image = nil }
+        return image != nil
+    }
 }

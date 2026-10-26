@@ -28,11 +28,12 @@ struct DomainSettingsPersistenceTests {
         let (defaults, suiteName) = isolatedDefaults()
         defer { defaults.removePersistentDomain(forName: suiteName) }
 
-        let replayGain = ReplayGainSettings(defaults: defaults)
+        let limiter = LimiterParameters()
+        let replayGain = ReplayGainSettings(defaults: defaults, limiterParameters: limiter)
         replayGain.enabled = true
         replayGain.mode = .album
         replayGain.preAmp = 30
-        replayGain.preventClipping = false
+        replayGain.limiter = false
 
         let crossfade = CrossfadeSettings(defaults: defaults)
         crossfade.duration = 5.5
@@ -41,11 +42,12 @@ struct DomainSettingsPersistenceTests {
         let lyrics = LyricsSettings(defaults: defaults)
         lyrics.source = .lrclib
 
-        let restoredReplayGain = ReplayGainSettings(defaults: defaults)
+        let restoredReplayGain = ReplayGainSettings(defaults: defaults, limiterParameters: limiter)
         #expect(restoredReplayGain.enabled)
         #expect(restoredReplayGain.mode == .album)
         #expect(restoredReplayGain.preAmp == ReplayGainSettings.maxPreAmp)
-        #expect(!restoredReplayGain.preventClipping)
+        #expect(!restoredReplayGain.limiter)
+        #expect(!limiter.isEnabled)
 
         let restoredCrossfade = CrossfadeSettings(defaults: defaults)
         #expect(restoredCrossfade.duration == 5.5)

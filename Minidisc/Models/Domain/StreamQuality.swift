@@ -1,36 +1,163 @@
+import AVFoundation
 import Foundation
 
-/// Original audio or server-transcoded MP3. MP3 supports progressive playback without
-/// requiring container metadata at the end of the stream.
-nonisolated enum StreamQuality: String, CaseIterable, Identifiable, Sendable {
-    case original
-    case mp3_320
-    case mp3_192
+/// Music above this bitrate is converted before it streams. Chosen separately for Wi-Fi and cellular.
+nonisolated enum StreamThreshold: String, CaseIterable, Identifiable, Sendable {
+    /// Never convert, unless the engine can't play the format.
+    case maximum
+    case mbps2
+    case mbps1
+    case kbps320
+    case kbps256
+    case kbps192
+    case kbps160
+    case kbps128
 
     var id: String { rawValue }
 
+    var title: LocalizedStringResource {
+        switch self {
+        case .maximum: "Maximum"
+        case .mbps2: "\(2) Mbps"
+        case .mbps1: "\(1) Mbps"
+        case .kbps320, .kbps256, .kbps192, .kbps160, .kbps128: "\(kbps ?? 0) kbps"
+        }
+    }
+
+    /// The bitrate limit in kbps; nil for Maximum.
+    var kbps: Int? {
+        switch self {
+        case .maximum: nil
+        case .mbps2: 2000
+        case .mbps1: 1000
+        case .kbps320: 320
+        case .kbps256: 256
+        case .kbps192: 192
+        case .kbps160: 160
+        case .kbps128: 128
+        }
+    }
+}
+
+/// The bitrate a converted song is streamed at.
+nonisolated enum ConversionBitrate: Int, CaseIterable, Identifiable, Sendable {
+    case kbps256 = 256
+    case kbps192 = 192
+    case kbps160 = 160
+    case kbps128 = 128
+    case kbps96 = 96
+    case kbps64 = 64
+
+    var id: Int { rawValue }
+    var kbps: Int { rawValue }
+    var title: LocalizedStringResource { "\(kbps) kbps" }
+
+    static let recommended: ConversionBitrate = .kbps128
+}
+
+/// The codec the server converts to. Not a user setting: it is the best one this device plays
+/// gaplessly. Navidrome's default Opus transcoding writes Ogg Opus; AVFoundation trims its
+/// pre-skip and end padding sample-exactly and seeks in it, so a converted album stays gapless.
+/// ADTS AAC carries no priming information and leaves a short gap, so it is only the fallback
+/// where Ogg Opus can't play.
+nonisolated enum ConversionCodec: String, Sendable, CaseIterable {
+    case opus
+    case aac
+    case mp3
+
+    /// The Subsonic `format` value; Navidrome ships transcodings with these names.
+    var subsonicFormat: String { rawValue }
+
+    /// Codec names stay untranslated.
     var displayName: String {
         switch self {
-        case .original: return "Original"
-        case .mp3_320:  return "MP3 320 kbps"
-        case .mp3_192:  return "MP3 192 kbps"
+        case .opus: "Opus"
+        case .aac: "AAC"
+        case .mp3: "MP3"
         }
     }
 
-    /// Subsonic `format` query param. `nil` = no override (server serves the original file).
-    var subsonicFormat: String? {
-        switch self {
-        case .original: return nil
-        case .mp3_320, .mp3_192: return "mp3"
-        }
+    static let preferred = ConversionCodec.preferred(isPlayable: AVURLAsset.isPlayableExtendedMIMEType)
+
+    static func preferred(isPlayable: (String) -> Bool) -> ConversionCodec {
+        if isPlayable("audio/ogg; codecs=opus") { return .opus }
+        if isPlayable("audio/aac") { return .aac }
+        return .mp3
+    }
+}
+
+/// What the Subsonic metadata says about a song's original file.
+nonisolated struct StreamSourceTraits: Sendable, Equatable {
+    /// The file extension, such as `flac`.
+    let suffix: String?
+    /// The average bitrate in kbps.
+    let bitRate: Int?
+    let channelCount: Int?
+
+    init(suffix: String?, bitRate: Int?, channelCount: Int? = nil) {
+        self.suffix = suffix?.lowercased()
+        self.bitRate = bitRate
+        self.channelCount = channelCount
+    }
+}
+
+/// The `format` and `maxBitRate` sent with a stream request.
+nonisolated struct StreamRequest: Sendable, Equatable {
+    let format: String
+    let maxBitRate: Int?
+
+    static let original = StreamRequest(format: rawFormat, maxBitRate: nil)
+    static let rawFormat = "raw"
+
+    static func converted(to codec: ConversionCodec, at bitrate: ConversionBitrate) -> StreamRequest {
+        StreamRequest(format: codec.subsonicFormat, maxBitRate: bitrate.kbps)
     }
 
-    /// Subsonic `maxBitRate` query param (kbps). `nil` = no bitrate constraint.
-    var subsonicMaxBitRate: Int? {
-        switch self {
-        case .original: return nil
-        case .mp3_320:  return 320
-        case .mp3_192:  return 192
+    var isOriginal: Bool { format == Self.rawFormat }
+}
+
+/// Decides, song by song, whether to stream the original file or ask the server to convert it.
+nonisolated struct StreamQualityPolicy: Sendable, Equatable {
+    let threshold: StreamThreshold
+    let conversion: ConversionBitrate
+    let codec: ConversionCodec
+
+    /// File types AVFoundation plays directly. Anything else, such as Ogg Vorbis, WMA, WavPack,
+    /// Monkey's Audio or DSD, is converted whatever the threshold. Opus counts only when the
+    /// device plays Ogg Opus.
+    static func canPlayOriginal(suffix: String, opusPlayable: Bool = ConversionCodec.preferred == .opus) -> Bool {
+        if suffix == "opus" { return opusPlayable }
+        return playableSuffixes.contains(suffix)
+    }
+
+    private static let playableSuffixes: Set<String> = [
+        "mp3", "aac", "m4a", "m4b", "mp4", "alac", "flac", "wav", "wave",
+        "aif", "aiff", "aifc", "caf", "ac3", "eac3",
+    ]
+
+    func request(for traits: StreamSourceTraits?) -> StreamRequest {
+        request(for: traits, opusPlayable: codec == .opus)
+    }
+
+    func request(for traits: StreamSourceTraits?, opusPlayable: Bool) -> StreamRequest {
+        let convert = StreamRequest.converted(to: codec, at: conversion)
+        if let suffix = traits?.suffix, !suffix.isEmpty,
+           !Self.canPlayOriginal(suffix: suffix, opusPlayable: opusPlayable) {
+            return convert
         }
+        guard let limit = threshold.kbps else { return .original }
+        guard let bitRate = traits?.bitRate, bitRate > 0 else {
+            // Without a bitrate the size is unknown; under a limit, converting is the safe side.
+            return convert
+        }
+        // A conversion never helps a file that is already no larger than its result.
+        guard bitRate > limit, bitRate > conversion.kbps else { return .original }
+        return convert
+    }
+}
+
+extension DisplayableSong {
+    nonisolated var streamTraits: StreamSourceTraits {
+        StreamSourceTraits(suffix: audioFormat, bitRate: bitRate, channelCount: channelCount)
     }
 }

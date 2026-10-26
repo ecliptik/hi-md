@@ -10,9 +10,8 @@ struct KaraokeLyricsView: View {
     @Bindable var viewModel: LyricsViewModel
     @Environment(\.appContainer) private var container
     @Environment(\.dismiss) private var dismiss
-    /// The view model this view counts as visible. The player hands over a new one when the
-    /// song changes, which must be marked visible too.
-    @State private var shown: LyricsViewModel?
+    /// The player hands over a new view model when the song changes, which must be marked visible too.
+    @State private var visibility = LyricsVisibilityHandoff()
 
     private var track: DisplayableSong? { container?.playerState.currentTrack }
 
@@ -36,16 +35,11 @@ struct KaraokeLyricsView: View {
         #if os(iOS)
         .statusBarHidden()
         #endif
-        .onChange(of: ObjectIdentifier(viewModel), initial: true) {
-            shown?.setVisible(false)
-            viewModel.setVisible(true)
-            shown = viewModel
-        }
+        .onChange(of: ObjectIdentifier(viewModel), initial: true) { visibility.show(viewModel) }
         .onChange(of: viewModel.isPlaying) { viewModel.reconcileTracking() }
         .onAppear { setIdleTimerDisabled(true) }
         .onDisappear {
-            shown?.setVisible(false)
-            shown = nil
+            visibility.hide()
             setIdleTimerDisabled(false)
         }
     }

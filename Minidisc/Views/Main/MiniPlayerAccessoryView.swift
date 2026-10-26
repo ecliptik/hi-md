@@ -231,6 +231,7 @@ struct MiniPlayerAccessoryView: View {
         .buttonStyle(.borderless)
         .disabled(!isAvailable)
         .accessibilityLabel(isPlaying ? "Pause" : "Play")
+        .accessibilityIdentifier("player.mini.playPause")
     }
 
     private var swipeSkipGesture: some Gesture {

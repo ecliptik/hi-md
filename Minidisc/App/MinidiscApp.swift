@@ -95,7 +95,8 @@ struct MinidiscApp: App {
                 currentPosition: container.playerState.position,
                 queue: container.playerState.queue,
                 currentTrack: container.playerState.currentTrack,
-                repeatMode: container.playerState.repeatMode
+                repeatMode: container.playerState.repeatMode,
+                queueRevision: container.playerState.queueRevision
             )
             Task { await container.sessionService.save(playerState: snapshot) }
             Logger.session.info("App backgrounded — session flushed")

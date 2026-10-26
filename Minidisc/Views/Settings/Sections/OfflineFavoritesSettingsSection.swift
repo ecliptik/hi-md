@@ -27,6 +27,13 @@ struct OfflineFavoritesSettingsSection: View {
                 set: { settings.cacheUpcomingSongs = $0 }
             ))
             .accessibilityIdentifier("auto-cache-upcoming-toggle")
+            // Upcoming songs and the playing song use cellular data by their own rules
+            // (Settings > Playback > Caching); this applies to the automatic copies above.
+            Toggle("Use cellular data", isOn: Binding(
+                get: { settings.cacheOverCellular },
+                set: { settings.cacheOverCellular = $0 }
+            ))
+            .accessibilityIdentifier("auto-cache-cellular-toggle")
 
             LabeledContent("Disk usage") {
                 usageText
@@ -63,7 +70,7 @@ struct OfflineFavoritesSettingsSection: View {
         } header: {
             Text("Auto-Caching")
         } footer: {
-            Text("Favorites, the \(OfflineFavoritesSync.recentAlbumLimit) most recently played albums and pinned albums and playlists are saved automatically, outside Downloads and the stream cache limit; turning one off removes only its automatic copies. Upcoming songs go into the stream cache. Uses the stream cache format and cellular data settings.")
+            Text("Favorites, the \(OfflineFavoritesSync.recentAlbumLimit) most recently played albums and pinned albums and playlists are saved automatically, outside Downloads and the stream cache limit; turning one off removes only its automatic copies. They use the stream cache format, and cellular data only when turned on here. Upcoming songs go into the stream cache; Caching sets how far ahead.")
         }
         .task { await sync.refreshUsage() }
     }

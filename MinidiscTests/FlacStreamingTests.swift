@@ -78,6 +78,7 @@ private nonisolated final class FailureRecorder: AudioEngineDelegate, Sendable {
     func audioEngineDidError(_ failure: AudioEngineFailure, playbackToken: AudioEnginePlaybackToken) {
         failures.withLock { $0.append(failure.diagnosticDescription) }
     }
+    func audioEngineStandbyPreloadDidFail(trackID: String) {}
 }
 
 @Suite("FLAC streaming", .serialized, .timeLimit(.minutes(1)))
@@ -132,7 +133,8 @@ struct FlacStreamingTests {
         #expect(AudioContainer.flac.mimeType == "audio/flac")
         #expect(AudioContainer.mp3.mimeType == "audio/mpeg")
         #expect(AudioContainer.mp4.mimeType == "audio/mp4")
-        #expect(AudioContainer.ogg.mimeType == nil)
+        // Ogg is named only where Ogg Opus plays, as Opus conversions arrive in it.
+        #expect(AudioContainer.ogg.mimeType == (ConversionCodec.preferred == .opus ? "audio/ogg" : nil))
     }
 
     @Test func unidentifiedContainerFailuresAreRecognised() {

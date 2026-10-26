@@ -11,8 +11,9 @@ import Synchronization
 /// Two AVPlayer decks alternate active and standby roles for gapless playback and crossfades.
 /// A recursive lock protects deck roles and transition state across control calls and callbacks.
 /// ReplayGain boosts use an audio processing tap because AVPlayer.volume cannot exceed 1. The same
-/// tap runs the equalizer, so it is also installed whenever the equalizer is on, and copies
-/// samples to `VisualizerTap` while a visualiser is attached.
+/// tap runs the equalizer, the stereo fold-down of multichannel sources and the peak limiter, so it
+/// is also installed whenever the equalizer is on or a multichannel track is to be folded down, and
+/// copies samples to `VisualizerTap` while a visualiser is attached.
 nonisolated final class AVPlayerEngine: AudioEngine, @unchecked Sendable {
     private enum StandbyPreparationState {
         case idle
@@ -115,6 +116,7 @@ nonisolated final class AVPlayerEngine: AudioEngine, @unchecked Sendable {
     private var timeControlObservers: [NSKeyValueObservation] = []
     private var equalizerObserver: (any NSObjectProtocol)?
     private var visualizerObserver: (any NSObjectProtocol)?
+    private var downmixObserver: (any NSObjectProtocol)?
     private var statusObserver: NSKeyValueObservation?
     private var endObserver: NSObjectProtocol?
     private var failObserver: NSObjectProtocol?
@@ -136,6 +138,11 @@ nonisolated final class AVPlayerEngine: AudioEngine, @unchecked Sendable {
             forName: VisualizerTap.attachmentDidChange, object: VisualizerTap.shared, queue: nil
         ) { [weak self] _ in
             self?.equalizerSettingsDidChange()
+        }
+        downmixObserver = NotificationCenter.default.addObserver(
+            forName: DownmixParameters.didChange, object: DownmixParameters.shared, queue: nil
+        ) { [weak self] _ in
+            self?.downmixSettingsDidChange()
         }
     }
 
@@ -188,6 +195,7 @@ nonisolated final class AVPlayerEngine: AudioEngine, @unchecked Sendable {
     deinit {
         if let equalizerObserver { NotificationCenter.default.removeObserver(equalizerObserver) }
         if let visualizerObserver { NotificationCenter.default.removeObserver(visualizerObserver) }
+        if let downmixObserver { NotificationCenter.default.removeObserver(downmixObserver) }
         replayGainTaskA?.cancel()
         replayGainTaskB?.cancel()
         overlapTimer?.cancel()
@@ -215,6 +223,22 @@ nonisolated final class AVPlayerEngine: AudioEngine, @unchecked Sendable {
             options[AVURLAssetOverrideMIMETypeKey] = mimeType
         }
         return options
+    }
+
+    /// Seconds of audio AVPlayer is asked to buffer ahead of the playhead for a remote item. Four
+    /// minutes rides out a cellular dead zone, and most songs are then buffered to the end within
+    /// seconds of starting. Local files keep the system default (0): they never wait for data.
+    nonisolated static let remoteForwardBufferDuration: TimeInterval = 240
+
+    nonisolated static func preferredForwardBufferDuration(for url: URL) -> TimeInterval {
+        url.isFileURL ? 0 : remoteForwardBufferDuration
+    }
+
+    /// Every item, on either deck, is built here so both get the same buffering policy.
+    private static func makeItem(asset: AVURLAsset) -> AVPlayerItem {
+        let item = AVPlayerItem(asset: asset)
+        item.preferredForwardBufferDuration = preferredForwardBufferDuration(for: asset.url)
+        return item
     }
 
     // MARK: - AudioEngine
@@ -249,7 +273,7 @@ nonisolated final class AVPlayerEngine: AudioEngine, @unchecked Sendable {
 
         resetDecks()
         let asset = AVURLAsset(url: url, options: Self.assetOptions(headers: headers))
-        let item = AVPlayerItem(asset: asset)
+        let item = Self.makeItem(asset: asset)
         attachItemObservers(item)
         currentItem = item
         currentAsset = asset
@@ -264,10 +288,10 @@ nonisolated final class AVPlayerEngine: AudioEngine, @unchecked Sendable {
         return playbackToken
     }
 
-    func setTrackEndTrim(_ seconds: Double) {
+    func setTrackEndTrim(_ seconds: Double, expectedCurrentTrackID: String) {
         lock.lock()
         defer { lock.unlock() }
-        guard let item = currentItem else { return }
+        guard let item = currentItem, isCurrentTrackForPreload(expectedCurrentTrackID) else { return }
         guard seconds > 0 else {
             item.forwardPlaybackEndTime = .invalid
             return
@@ -285,11 +309,18 @@ nonisolated final class AVPlayerEngine: AudioEngine, @unchecked Sendable {
         headers: [String: String],
         crossfadeDuration: Double,
         leadInTrim: Double,
-        replayGainDB: Float
+        replayGainDB: Float,
+        expectedCurrentTrackID: String
     ) {
         lock.lock()
         defer { lock.unlock() }
         guard currentItem != nil else { return }
+        guard isCurrentTrackForPreload(expectedCurrentTrackID) else {
+            Logger.player.debug(
+                "[ENGINE] ignored stale preload track='\(trackID, privacy: .public)' expectedCurrent='\(expectedCurrentTrackID, privacy: .public)'"
+            )
+            return
+        }
         if trackID == preloadedTrackID {
             pendingOverlap = crossfadeDuration
             if crossfadeDuration > 0 {
@@ -301,7 +332,7 @@ nonisolated final class AVPlayerEngine: AudioEngine, @unchecked Sendable {
         }
         clearPreloadedDeck()
         let asset = AVURLAsset(url: url, options: Self.assetOptions(headers: headers))
-        let item = AVPlayerItem(asset: asset)
+        let item = Self.makeItem(asset: asset)
         standbyPlayer.replaceCurrentItem(with: item)
         preloadedItem = item
         preloadedAsset = asset
@@ -324,12 +355,14 @@ nonisolated final class AVPlayerEngine: AudioEngine, @unchecked Sendable {
         // track's silent lead-in first — seeking after the deck is audible would be heard.
         standbyStatusObserver = item.observe(\.status, options: [.new]) { [weak self] item, _ in
             guard let self else { return }
+            var failedTrackID: String?
+            defer { self.reportStandbyFailure(failedTrackID) }
             self.lock.lock()
             defer { self.lock.unlock() }
             guard item === self.preloadedItem else { return }
             if item.status == .failed {
                 Logger.player.warning("[ENGINE] standby preload failed — falling back to a cold transition")
-                self.clearPreloadedDeck()
+                failedTrackID = self.discardFailedStandby()
                 return
             }
             guard item.status == .readyToPlay else { return }
@@ -343,12 +376,14 @@ nonisolated final class AVPlayerEngine: AudioEngine, @unchecked Sendable {
                     toleranceAfter: .zero
                 ) { [weak self] completed in
                     guard let self else { return }
+                    var failedTrackID: String?
+                    defer { self.reportStandbyFailure(failedTrackID) }
                     self.lock.lock()
                     defer { self.lock.unlock() }
                     guard item === self.preloadedItem else { return }
                     guard completed else {
                         Logger.player.warning("[ENGINE] standby lead-in seek failed — using cold transition")
-                        self.clearPreloadedDeck()
+                        failedTrackID = self.discardFailedStandby()
                         return
                     }
                     self.prerollStandby(item)
@@ -359,6 +394,27 @@ nonisolated final class AVPlayerEngine: AudioEngine, @unchecked Sendable {
         }
     }
 
+    /// Clears a standby deck that failed to load, seek or preroll. Caller holds `lock` and passes
+    /// the returned track to `reportStandbyFailure` once it has unlocked.
+    private func discardFailedStandby() -> String? {
+        let trackID = preloadedTrackID
+        clearPreloadedDeck()
+        return trackID
+    }
+
+    /// Lets PlayerService retry the preload instead of leaving the next track to start cold.
+    private func reportStandbyFailure(_ trackID: String?) {
+        guard let trackID else { return }
+        delegate?.audioEngineStandbyPreloadDidFail(trackID: trackID)
+    }
+
+    /// A preload belongs to the track it follows. After a hand-off the engine has already promoted
+    /// that standby deck, so until PlayerService adopts it every preload for the old track is stale.
+    /// Caller holds `lock`.
+    private func isCurrentTrackForPreload(_ expectedCurrentTrackID: String) -> Bool {
+        currentTrackID == expectedCurrentTrackID && handedOffTrackID == nil
+    }
+
     /// `readyToPlay` only means that the item can begin loading. A standby deck becomes eligible
     /// for promotion only after AVPlayer confirms that its media pipeline has actually been primed.
     private func prerollStandby(_ item: AVPlayerItem) {
@@ -366,12 +422,14 @@ nonisolated final class AVPlayerEngine: AudioEngine, @unchecked Sendable {
         standbyPreparationState = .preparing
         standbyPlayer.preroll(atRate: 1) { [weak self, weak item] succeeded in
             guard let self, let item else { return }
+            var failedTrackID: String?
+            defer { self.reportStandbyFailure(failedTrackID) }
             self.lock.lock()
             defer { self.lock.unlock() }
             guard item === self.preloadedItem else { return }
             guard succeeded else {
                 Logger.player.warning("[ENGINE] standby preroll failed — using cold transition")
-                self.clearPreloadedDeck()
+                failedTrackID = self.discardFailedStandby()
                 return
             }
             self.standbyPreparationState = .ready
@@ -523,6 +581,16 @@ nonisolated final class AVPlayerEngine: AudioEngine, @unchecked Sendable {
         lock.lock()
         defer { lock.unlock() }
         return currentItem == nil
+    }
+
+    var bufferedDuration: TimeInterval {
+        lock.lock()
+        defer { lock.unlock() }
+        guard let ranges = currentItem?.loadedTimeRanges else { return 0 }
+        return ranges.reduce(0) { total, value in
+            let seconds = CMTimeGetSeconds(value.timeRangeValue.duration)
+            return seconds.isFinite ? total + max(0, seconds) : total
+        }
     }
 
     // MARK: - Transition machinery (all called with the lock held)
@@ -1063,7 +1131,7 @@ nonisolated final class AVPlayerEngine: AudioEngine, @unchecked Sendable {
         }
         Logger.player.info("[ENGINE] reopening stream as \(mimeType, privacy: .public) after an unidentified container")
         let asset = AVURLAsset(url: url, options: Self.assetOptions(headers: headers, mimeType: mimeType))
-        let item = AVPlayerItem(asset: asset)
+        let item = Self.makeItem(asset: asset)
         item.forwardPlaybackEndTime = failedItem.forwardPlaybackEndTime
         attachItemObservers(item)
         currentItem = item
@@ -1127,7 +1195,8 @@ nonisolated final class AVPlayerEngine: AudioEngine, @unchecked Sendable {
         }
         previousTask?.cancel()
 
-        guard Self.requiresAudioTap(linearGain: context.gain) else { return }
+        // Whether a fold-down is needed depends on the track's channel count, known only once loaded.
+        guard Self.requiresAudioTap(linearGain: context.gain) || DownmixParameters.shared.isEnabled else { return }
         // `item` and `asset` are intentionally not captured by the Task: both are non-Sendable
         // Objective-C references. The asynchronous worker resolves them from the locked engine state.
         let request = makeReplayGainInstallRequest(context: context, trackID: trackID)
@@ -1182,12 +1251,18 @@ nonisolated final class AVPlayerEngine: AudioEngine, @unchecked Sendable {
             return
         }
         guard !Task.isCancelled else { return }
+        let formats = (try? await track.load(.formatDescriptions)) ?? []
+        guard !Task.isCancelled else { return }
+        let channelCount = formats.first
+            .flatMap { CMAudioFormatDescriptionGetStreamBasicDescription($0)?.pointee.mChannelsPerFrame }
+            .map(Int.init) ?? 2
+        let channelLabels = formats.first.flatMap(DownmixMatrix.channelLabels(of:))
 
         let installed = lock.withLock {
             guard let target = replayGainTarget(for: request),
-                  Self.requiresAudioTap(linearGain: target.context.gain),
+                  Self.requiresAudioTap(linearGain: target.context.gain, channelCount: channelCount),
                   !target.context.tapInstalled,
-                  let tap = Self.makeReplayGainTap(context: target.context) else { return false }
+                  let tap = Self.makeReplayGainTap(context: target.context, channelLabels: channelLabels) else { return false }
 
             let params = AVMutableAudioMixInputParameters(track: track)
             params.audioTapProcessor = tap
@@ -1241,11 +1316,15 @@ nonisolated final class AVPlayerEngine: AudioEngine, @unchecked Sendable {
         linearGain > 1
     }
 
-    /// A ReplayGain boost, the equalizer or an attached visualiser needs the tap.
+    /// A ReplayGain boost, the equalizer, an attached visualiser or a multichannel track to fold down
+    /// needs the tap.
     nonisolated static func requiresAudioTap(linearGain: Float,
                                              equalizerEnabled: Bool = EqualizerParameters.shared.isEnabled,
-                                             visualizerAttached: Bool = VisualizerTap.shared.isAttached) -> Bool {
+                                             visualizerAttached: Bool = VisualizerTap.shared.isAttached,
+                                             channelCount: Int = 2,
+                                             downmixEnabled: Bool = DownmixParameters.shared.isEnabled) -> Bool {
         requiresReplayGainTap(linearGain: linearGain) || equalizerEnabled || visualizerAttached
+            || (downmixEnabled && channelCount > 2)
     }
 
     /// Turning the equalizer on, or attaching a visualiser, mid-song installs the tap on the playing
@@ -1253,12 +1332,26 @@ nonisolated final class AVPlayerEngine: AudioEngine, @unchecked Sendable {
     private func equalizerSettingsDidChange() {
         lock.withLock {
             guard EqualizerParameters.shared.isEnabled || VisualizerTap.shared.isAttached else { return }
-            if let trackID = currentTrackID, !activeContext.tapInstalled {
-                installReplayGainTapIfNeeded(context: activeContext, trackID: trackID)
-            }
-            if let trackID = preloadedTrackID, !standbyContext.tapInstalled {
-                installReplayGainTapIfNeeded(context: standbyContext, trackID: trackID)
-            }
+            installMissingTaps()
+        }
+    }
+
+    /// Turning the fold-down on mid-song installs the tap on multichannel items. Turning it off
+    /// leaves installed taps in place; they pass every channel through.
+    private func downmixSettingsDidChange() {
+        lock.withLock {
+            guard DownmixParameters.shared.isEnabled else { return }
+            installMissingTaps()
+        }
+    }
+
+    /// Caller holds `lock`. Each install checks for itself whether its item needs a tap.
+    private func installMissingTaps() {
+        if let trackID = currentTrackID, !activeContext.tapInstalled {
+            installReplayGainTapIfNeeded(context: activeContext, trackID: trackID)
+        }
+        if let trackID = preloadedTrackID, !standbyContext.tapInstalled {
+            installReplayGainTapIfNeeded(context: standbyContext, trackID: trackID)
         }
     }
 
@@ -1266,8 +1359,11 @@ nonisolated final class AVPlayerEngine: AudioEngine, @unchecked Sendable {
         tapInstalled ? 1 : min(linearGain, 1)
     }
 
-    private static func makeReplayGainTap(context: ReplayGainTapContext) -> MTAudioProcessingTap? {
-        let storage = AudioTapStorage(context: context)
+    private static func makeReplayGainTap(
+        context: ReplayGainTapContext,
+        channelLabels: [AudioChannelLabel]?
+    ) -> MTAudioProcessingTap? {
+        let storage = AudioTapStorage(context: context, channelLabels: channelLabels)
         let clientInfo = UnsafeMutableRawPointer(Unmanaged.passRetained(storage).toOpaque())
         var callbacks = MTAudioProcessingTapCallbacks(
             version: kMTAudioProcessingTapCallbacksVersion_0,
@@ -1323,13 +1419,17 @@ private nonisolated func replayGainTapInit(
 }
 
 /// One per tap: the deck's ReplayGain context, shared across that deck's items, and the
-/// equalizer's filter state, which belongs to this tap's item alone.
+/// fold-down, equalizer and limiter state, which belong to this tap's item alone. Both decks read
+/// the same shared settings, so during a crossfade each one is levelled and limited alike.
 private nonisolated final class AudioTapStorage: @unchecked Sendable {
     let context: ReplayGainTapContext
+    let downmix: StereoDownmixProcessor
     let equalizer = EqualizerProcessor()
+    let limiter = PeakLimiter()
 
-    init(context: ReplayGainTapContext) {
+    init(context: ReplayGainTapContext, channelLabels: [AudioChannelLabel]?) {
         self.context = context
+        downmix = StereoDownmixProcessor(labels: channelLabels)
     }
 }
 
@@ -1344,11 +1444,11 @@ private nonisolated func audioTapPrepare(
 ) {
     let storage = Unmanaged<AudioTapStorage>.fromOpaque(MTAudioProcessingTapGetStorage(tap)).takeUnretainedValue()
     let format = processingFormat.pointee
-    storage.equalizer.prepare(
-        sampleRate: format.mSampleRate,
-        channels: Int(format.mChannelsPerFrame),
-        interleaved: format.mFormatFlags & kAudioFormatFlagIsNonInterleaved == 0
-    )
+    let channels = Int(format.mChannelsPerFrame)
+    let interleaved = format.mFormatFlags & kAudioFormatFlagIsNonInterleaved == 0
+    storage.downmix.prepare(channels: channels, interleaved: interleaved)
+    storage.equalizer.prepare(sampleRate: format.mSampleRate, channels: channels, interleaved: interleaved)
+    storage.limiter.prepare(sampleRate: format.mSampleRate, channels: channels, interleaved: interleaved)
     storage.context.visualizer.sampleRate = format.mSampleRate
 }
 
@@ -1363,16 +1463,22 @@ private nonisolated func replayGainTapProcess(
     let status = MTAudioProcessingTapGetSourceAudio(tap, numberFrames, bufferListInOut, flagsOut, nil, numberFramesOut)
     guard status == noErr else { return }
     let storage = Unmanaged<AudioTapStorage>.fromOpaque(MTAudioProcessingTapGetStorage(tap)).takeUnretainedValue()
-    // Copies the final post-EQ, post-ReplayGain samples; returns at once with no visualiser attached.
-    defer { storage.context.visualizer.write(UnsafeMutableAudioBufferListPointer(bufferListInOut), frames: Int(numberFramesOut.pointee)) }
-    storage.equalizer.process(UnsafeMutableAudioBufferListPointer(bufferListInOut), frames: Int(numberFramesOut.pointee))
+    let buffers = UnsafeMutableAudioBufferListPointer(bufferListInOut)
+    let frames = Int(numberFramesOut.pointee)
+    // Copies the final samples, after the limiter; returns at once with no visualiser attached.
+    defer { storage.context.visualizer.write(buffers, frames: frames) }
+    // Fold down first, so the equalizer, gain and limiter work on what is actually heard.
+    storage.downmix.process(buffers, frames: frames)
+    storage.equalizer.process(buffers, frames: frames)
     var gain = storage.context.gain
-    guard gain != 1.0 else { return }
-    // Tap audio is 32-bit float; a flat multiply is correct whether channels are interleaved or not.
-    for buffer in UnsafeMutableAudioBufferListPointer(bufferListInOut) {
-        guard let data = buffer.mData else { continue }
-        let count = Int(buffer.mDataByteSize) / MemoryLayout<Float>.size
-        let samples = data.assumingMemoryBound(to: Float.self)
-        vDSP_vsmul(samples, 1, &gain, samples, 1, vDSP_Length(count))
+    if gain != 1.0 {
+        // Tap audio is 32-bit float; a flat multiply is correct whether channels are interleaved or not.
+        for buffer in buffers {
+            guard let data = buffer.mData else { continue }
+            let count = Int(buffer.mDataByteSize) / MemoryLayout<Float>.size
+            let samples = data.assumingMemoryBound(to: Float.self)
+            vDSP_vsmul(samples, 1, &gain, samples, 1, vDSP_Length(count))
+        }
     }
+    storage.limiter.process(buffers, frames: frames)
 }

@@ -66,6 +66,8 @@ private struct CollectionGrid: View {
                         Link(destination: item.url) {
                             cell(item)
                         }
+                        // Small and medium widgets show only the cover, so VoiceOver had just "link".
+                        .accessibilityLabel(Text(item.title))
                     }
                 }
                 Spacer(minLength: 0)

@@ -157,9 +157,14 @@ final class ArtworkImageCache {
     /// written to the persisted cover store. Set by AppContainer at launch and by the Settings toggle.
     var persistCoversEnabled = true
 
-    private var cache: [String: PlatformImage] = [:]
-    private var accessOrder: [String] = []
+    // The cache's storage is not view state. Observing it let a synchronous read in a body (the
+    // initial cover of a pushed playlist, say) re-run that body whenever any other cover finished
+    // loading, rebuilding whole track lists mid-scroll. Views load through `load` in a task instead.
+    @ObservationIgnored private var cache: [String: PlatformImage] = [:]
+    @ObservationIgnored private var accessOrder: [String] = []
     private let maxEntries = 110
+    /// Decoded bytes held at most: every thumbnail plus about a dozen heroes.
+    private let maxBytes = 96 * 1_048_576
 
     private let coverArtURLProvider: CoverArtURLProvider
     private let localCoverURLProvider: LocalCoverURLProvider
@@ -175,26 +180,26 @@ final class ArtworkImageCache {
     /// Per-cover `Last-Modified` + last-checked, so a cached cover is re-verified on a slow cadence.
     private let revalidationStore: CoverRevalidationStore
     /// Shares one fetch and decode per tiered cache key.
-    private var inFlight: [String: InFlightLoad] = [:]
-    private var revalidating: [String: RevalidationEntry] = [:]
+    @ObservationIgnored private var inFlight: [String: InFlightLoad] = [:]
+    @ObservationIgnored private var revalidating: [String: RevalidationEntry] = [:]
     /// Invalidates every older operation on a whole-cache clear.
-    private var cacheEpoch: UInt64 = 0
+    @ObservationIgnored private var cacheEpoch: UInt64 = 0
     /// Invalidates older loads and revalidations for one logical cover across both tiers.
-    private var coverGenerations: [String: UInt64] = [:]
-    private var completedLoadCount = 0
-    private var completedRevalidationCount = 0
+    @ObservationIgnored private var coverGenerations: [String: UInt64] = [:]
+    @ObservationIgnored private var completedLoadCount = 0
+    @ObservationIgnored private var completedRevalidationCount = 0
     /// Per-cover disk mutation barrier. Reads, removes and persists are serialized, while network
     /// fetches stay outside the critical section. Generation checks connect those short critical
     /// sections into a transaction, so cancellation remains prompt and stale bytes cannot be
     /// persisted after a newer invalidation.
-    private var diskAccessOwners: Set<String> = []
-    private var diskAccessWaiters: [String: [DiskAccessWaiter]] = [:]
+    @ObservationIgnored private var diskAccessOwners: Set<String> = []
+    @ObservationIgnored private var diskAccessWaiters: [String: [DiskAccessWaiter]] = [:]
     /// Ids whose revalidation failed this run (offline / error). Skipped until relaunch so an
     /// offline session doesn't fire a HEAD per cover on every scroll.
-    private var revalidationDeferred: Set<String> = []
+    @ObservationIgnored private var revalidationDeferred: Set<String> = []
     /// Covers the server answered with its own stand-in image, and when to ask again. A `no-store`
     /// stand-in means the server is still resolving the artwork, so it is asked for again at once.
-    private var missingArtwork: [String: Date] = [:]
+    @ObservationIgnored private var missingArtwork: [String: Date] = [:]
     private static let missingArtworkRecheck: TimeInterval = 10 * 60
 
     convenience init(
@@ -452,9 +457,9 @@ final class ArtworkImageCache {
                     coverGeneration: coverGeneration
                 ) else { return nil }
                 guard await decodeGate.acquireOrCancel() else { return nil }
-                let image = await Task.detached(priority: .utility) {
+                let decoded = await Task.detached(priority: .utility) {
                     let diskStart = CFAbsoluteTimeGetCurrent()
-                    guard let data = try? Data(contentsOf: localURL) else { return nil as PlatformImage? }
+                    guard let data = try? Data(contentsOf: localURL) else { return nil as DecodedArtwork? }
                     let diskMs = Int((CFAbsoluteTimeGetCurrent() - diskStart) * 1000)
                     let decodeStart = CFAbsoluteTimeGetCurrent()
                     let image = ArtworkImageCache.thumbnailImage(from: data, maxDimension: maxDim)
@@ -464,7 +469,7 @@ final class ArtworkImageCache {
                     } else {
                         Logger.artworkCache.debug("[DISK] id=\(coverArtId, privacy: .public) tier=\(tier.rawValue, privacy: .public) disk=\(diskMs)ms decode=\(decodeMs)ms")
                     }
-                    return image
+                    return image.map(DecodedArtwork.init)
                 }.value
                 await decodeGate.release()
                 guard canCommitLoad(
@@ -474,7 +479,8 @@ final class ArtworkImageCache {
                     epoch: epoch,
                     coverGeneration: coverGeneration
                 ) else { return nil }
-                if let image, ServerPlaceholderArtwork.matches(image) {
+                let image = decoded?.image
+                if decoded?.isServerPlaceholder == true {
                     // Saved by an earlier build: forget it and show the app's own placeholder.
                     noteMissingArtwork(coverArtId, recheckAfter: Self.missingArtworkRecheck)
                     await removeCoverOperation(tieredDiskId)
@@ -567,7 +573,7 @@ final class ArtworkImageCache {
             Logger.artworkCache.warning("[NET-COVER] failed (decode) id=\(coverArtId, privacy: .public) duration=\(Int(Date().timeIntervalSince(t0) * 1000))ms")
             return nil
         }
-        if ServerPlaceholderArtwork.matches(image) {
+        if await DecodedArtwork.isServerPlaceholder(image) {
             Logger.artworkCache.debug("[NET-COVER] server placeholder id=\(coverArtId, privacy: .public)")
             noteMissingArtwork(coverArtId, recheckAfter: Self.missingArtworkRecheck)
             return nil
@@ -984,10 +990,27 @@ final class ArtworkImageCache {
     private func store(image: PlatformImage, forKey key: String) {
         cache[key] = image
         touch(key)
-        while cache.count > maxEntries, let oldest = accessOrder.first {
-            cache.removeValue(forKey: oldest)
-            accessOrder.removeFirst()
+        // A hero cover decodes to about 5.8 MB, so the entry count alone could let the cache pass
+        // 100 MB. Past the count, evict the oldest entry; past the byte budget, the oldest hero, so
+        // the full player doesn't push list thumbnails out. Never the cover just stored.
+        var bytes = cache.values.reduce(0) { $0 + $1.decodedByteCount }
+        while cache.count > maxEntries || (bytes > maxBytes && cache.count > 1) {
+            let overCount = cache.count > maxEntries
+            let heroSuffix = "@\(ArtworkTier.hero.rawValue)"
+            guard let victim = overCount ? accessOrder.first
+                    : accessOrder.first(where: { $0 != key && $0.hasSuffix(heroSuffix) }) ?? accessOrder.first else { break }
+            bytes -= cache.removeValue(forKey: victim)?.decodedByteCount ?? 0
+            accessOrder.removeAll { $0 == victim }
         }
+    }
+
+    /// Drops the hero tier on a memory warning. Thumbnails are small and on screen in most lists;
+    /// a hero is re-read from disk the next time the player or a header shows it.
+    func trimForMemoryWarning() {
+        let heroes = cache.keys.filter { $0.hasSuffix("@\(ArtworkTier.hero.rawValue)") }
+        for key in heroes { cache.removeValue(forKey: key) }
+        accessOrder.removeAll { heroes.contains($0) }
+        Logger.artworkCache.info("ArtworkImageCache: memory warning, dropped \(heroes.count) hero covers")
     }
 
     private func touch(_ key: String) {

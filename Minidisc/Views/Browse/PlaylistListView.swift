@@ -8,6 +8,7 @@ struct PlaylistListView: View {
     @Environment(\.appContainer) private var container
     @State private var viewModel: PlaylistListViewModel?
     @State private var showCreateSheet = false
+    @State private var searchText = ""
 
     var body: some View {
         Group {
@@ -20,6 +21,7 @@ struct PlaylistListView: View {
         .minidiscContentWidth()
         .navigationTitle("Playlists")
         .toolbarTitleDisplayMode(.inline)
+        .searchable(text: $searchText, prompt: "Find a playlist")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button {
@@ -74,17 +76,21 @@ struct PlaylistListView: View {
                 subtitle: "Create playlists on your server to see them here."
             )
         } else {
+            let newest = vm.newestAlbum(matching: searchText)
+            let bestOf = vm.bestOfPlaylists(matching: searchText)
+            let playlists = PlaylistListViewModel.filter(displayedPlaylists(vm), matching: searchText)
+            let showsDerived = hasDerivedPlaylists(vm) && (newest != nil || !bestOf.isEmpty)
             List {
-                if hasDerivedPlaylists(vm) {
+                if showsDerived {
                     Section("Made For You") {
-                        if let newest = vm.newestAlbum {
+                        if let newest {
                             NavigationLink(value: HomeDestination.recentlyAdded(
                                 coverArtId: newest.coverArt ?? newest.id
                             )) {
                                 RecentlyAddedPlaylistRow(coverArtId: newest.coverArt ?? newest.id)
                             }
                         }
-                        ForEach(vm.bestOfPlaylists) { bestOf in
+                        ForEach(bestOf) { bestOf in
                             NavigationLink(value: HomeDestination.artistBestOf(
                                 artistId: bestOf.artistId,
                                 artistName: bestOf.artistName,
@@ -97,13 +103,18 @@ struct PlaylistListView: View {
                 }
                 // Label the server playlists only when there's a derived section above to tell them apart
                 // from — on its own the header would just repeat the screen title.
-                if !hasDerivedPlaylists(vm) {
-                    serverPlaylistRows(vm)
-                } else if !displayedPlaylists(vm).isEmpty {
-                    Section("Playlists") { serverPlaylistRows(vm) }
+                if !showsDerived {
+                    serverPlaylistRows(playlists, vm: vm)
+                } else if !playlists.isEmpty {
+                    Section("Playlists") { serverPlaylistRows(playlists, vm: vm) }
                 }
             }
             .listStyle(.plain)
+            .overlay {
+                if !showsDerived && playlists.isEmpty {
+                    ContentUnavailableView.search(text: searchText)
+                }
+            }
             .refreshable {
                 await vm.load()
                 await vm.loadBestOf()
@@ -117,8 +128,8 @@ struct PlaylistListView: View {
     }
 
     @ViewBuilder
-    private func serverPlaylistRows(_ vm: PlaylistListViewModel) -> some View {
-        ForEach(displayedPlaylists(vm)) { playlist in
+    private func serverPlaylistRows(_ playlists: [Playlist], vm: PlaylistListViewModel) -> some View {
+        ForEach(playlists) { playlist in
             NavigationLink(value: HomeDestination.playlist(playlist)) {
                 OnlinePlaylistRow(
                     playlist: playlist,

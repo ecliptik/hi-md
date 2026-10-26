@@ -40,7 +40,8 @@ extension WidgetSnapshot {
     )
 }
 
-/// A cover from the App Group, or a neutral placeholder.
+/// A cover from the App Group, or a neutral placeholder. Decorative: every use sits beside, or
+/// inside a link named after, the title it shows.
 struct WidgetArtwork: View {
     let file: String?
     var cornerRadius: CGFloat = 8
@@ -57,6 +58,7 @@ struct WidgetArtwork: View {
             }
         }
         .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+        .accessibilityHidden(true)
     }
 }
 

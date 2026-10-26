@@ -193,7 +193,12 @@ actor OfflineLibraryReader {
     }
 
     private func validURL(for entry: FileEntry, logInvalid: Bool = true) -> URL? {
-        let url = downloadsDirectory.appendingPathComponent(entry.filePath)
+        guard let url = SafeFileName.url(forRelativePath: entry.filePath, in: downloadsDirectory) else {
+            if logInvalid {
+                Logger.download.error("Downloaded track record points outside the downloads folder: \(entry.filePath, privacy: .public)")
+            }
+            return nil
+        }
         let diskSize = (
             try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? Int64
         ) ?? 0

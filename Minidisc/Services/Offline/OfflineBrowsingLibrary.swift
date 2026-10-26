@@ -14,6 +14,11 @@ nonisolated struct OfflineBrowsingSnapshot: Sendable {
     var albumIDs: Set<String> = []
     var artistIDs: Set<String> = []
     var playlistIDs: Set<String> = []
+    /// Songs, albums, artists and playlists in search order, normalised once here, off the
+    /// MainActor, instead of on every keystroke.
+    private(set) var searchEntries: [LibrarySearchEntry] = []
+    /// Distinguishes one loaded snapshot from the next, so search results can be reused between them.
+    let identity = UUID()
 
     init(songs: [DisplayableSong] = [], playlists: [Playlist] = [], membership: [String: [String]] = [:], favorites: HomeFavorites = HomeFavorites()) {
         var seen = Set<String>()
@@ -49,6 +54,9 @@ nonisolated struct OfflineBrowsingSnapshot: Sendable {
         self.favorites = HomeFavorites(songs: favorites.songs.filter { songIDs.contains($0.id) },
                                        albums: favorites.albums.filter { albumIDs.contains($0.id) },
                                        artists: favorites.artists.filter { artistIDs.contains($0.id) })
+        let matches = self.songs.map(LibrarySearchMatch.song) + albums.map(LibrarySearchMatch.album)
+            + artists.map(LibrarySearchMatch.artist) + self.playlists.map(LibrarySearchMatch.playlist)
+        searchEntries = matches.map(LibrarySearchEntry.init)
     }
 
     func albumSongs(_ id: String) -> [DisplayableSong] { Self.ordered(songs.filter { $0.albumId == id }) }

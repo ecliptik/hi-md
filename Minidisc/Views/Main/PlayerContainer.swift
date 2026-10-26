@@ -166,8 +166,8 @@ struct PlayerContainer: View {
         configuration.dismiss(reduceMotion: reduceMotion)
     }
 
-    // Take a snapshot in the action, not body: observing the cache would redraw the player
-    // whenever any unrelated artwork finishes loading elsewhere in the app.
+    // Take a snapshot in the action, not body: the cache is not observed, so a body read would
+    // keep whatever was cached when the player last redrew.
     private func artworkSnapshot() -> PlayerArtworkSnapshot? {
         guard let container else { return nil }
         let state = container.playerState

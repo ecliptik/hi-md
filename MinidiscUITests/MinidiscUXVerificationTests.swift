@@ -39,12 +39,12 @@ final class MinidiscUXVerificationTests: XCTestCase {
 
         try await definitions.intents["PlayMinidiscMusicIntent"].makeIntent(music: song, shuffle: false).run()
         app.activate()
-        try require(app.buttons["Pause"].firstMatch, timeout: 10)
+        try requireMiniPlayPause(playing: true, timeout: 10)
         XCTAssertEqual(try miniPlayerTitle().label, firstTitle)
         try await definitions.intents["PauseMinidiscIntent"].makeIntent().run()
-        try require(app.buttons["Lecture"].firstMatch)
+        try requireMiniPlayPause(playing: false)
         try await definitions.intents["ResumeMinidiscIntent"].makeIntent().run()
-        try require(app.buttons["Pause"].firstMatch)
+        try requireMiniPlayPause(playing: true)
         XCTAssertEqual(try miniPlayerTitle().label, firstTitle)
         try await definitions.intents["PauseMinidiscIntent"].makeIntent().run()
         captureHierarchy("shortcuts-cold-start-and-resume")
@@ -95,7 +95,15 @@ final class MinidiscUXVerificationTests: XCTestCase {
         try tap(regenerate, named: "regenerate-mood-playlists-manually")
         // Untagged fixture tracks must report no matches rather than successful empty generation.
         let result = app.staticTexts["Impossible de régénérer les playlists d’ambiance. Vérifiez votre connexion et vos sources musicales, puis réessayez."]
-        try require(result, timeout: 30)
+        // The message sits below the button. With the App Icon picker above it, the List
+        // may not have created that row yet, so scroll down until it exists.
+        let deadline = Date.now.addingTimeInterval(30)
+        while !result.exists && Date.now < deadline {
+            if !result.waitForExistence(timeout: 3) {
+                app.swipeUp(velocity: .slow)
+            }
+        }
+        try require(result)
         XCTAssertEqual(toggle.value as? String, "0", "Manual regeneration must not re-enable automatic generation")
         XCTAssertTrue(regenerate.isEnabled)
         capturePlayerScreenshot("Mood-settings-no-matching-tracks")
@@ -1346,7 +1354,14 @@ final class MinidiscUXVerificationTests: XCTestCase {
     private func assertInlineTitle(_ title: String) throws {
         let navigation = app.navigationBars[title]
         try require(navigation)
-        XCTAssertLessThanOrEqual(navigation.frame.height, 60,
+        // A search field in the bar's drawer (the Playlists tab) adds to the bar's frame; measure only
+        // the title row above it. A large title would still push the field well past the limit.
+        var titleRowHeight = navigation.frame.height
+        let field = app.searchFields.firstMatch
+        if field.exists, navigation.frame.contains(CGPoint(x: field.frame.midX, y: field.frame.midY)) {
+            titleRowHeight = field.frame.minY - navigation.frame.minY
+        }
+        XCTAssertLessThanOrEqual(titleRowHeight, 60,
                                  "At ordinary text size, the browse title must use a compact navigation bar.")
     }
 
@@ -1664,6 +1679,22 @@ final class MinidiscUXVerificationTests: XCTestCase {
         captureHierarchy("before-play-playlist")
         headerPlay.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
         captureHierarchy("play-playlist")
+    }
+
+    /// Finds the mini player's button by identifier. An App Intent can relaunch the app in the
+    /// system language, where the paused label reads "Play" instead of "Lecture"; "Pause" is the
+    /// same word in both, so the playing state is checked against it.
+    private func requireMiniPlayPause(playing: Bool, timeout: TimeInterval = 5) throws {
+        let button = app.buttons.matching(identifier: "player.mini.playPause").firstMatch
+        try require(button, timeout: timeout)
+        let state = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: playing ? "label == %@" : "label != %@", "Pause"), object: button
+        )
+        guard XCTWaiter.wait(for: [state], timeout: timeout) == .completed else {
+            captureHierarchy("mini-play-pause-state")
+            throw NSError(domain: "MinidiscUXVerification", code: 9,
+                          userInfo: [NSLocalizedDescriptionKey: "Mini player never showed \(playing ? "playing" : "paused"): \(button.label)"])
+        }
     }
 
     private func miniPlayerTitle() throws -> XCUIElement {

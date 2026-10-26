@@ -49,16 +49,17 @@ final class PlaybackSession {
         RepeatMode(rawValue: repeatModeRaw) ?? .off
     }
 
+    /// `queueData` is the encoded queue, or nil to keep the stored one when only the position moved.
     func update(
         currentIndex: Int,
         currentPosition: TimeInterval,
-        queue: [DisplayableSong],
+        queueData: Data?,
         currentTrack: DisplayableSong?,
         repeatMode: RepeatMode
     ) {
         self.currentIndex = currentIndex
         self.currentPosition = currentPosition
-        self.queueData = (try? JSONEncoder().encode(queue)) ?? Data()
+        if let queueData { self.queueData = queueData }
         self.currentTrackId = currentTrack?.id
         self.currentTrackTitle = currentTrack?.title
         self.currentTrackArtist = currentTrack?.artist

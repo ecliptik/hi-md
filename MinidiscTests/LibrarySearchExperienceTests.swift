@@ -82,6 +82,81 @@ struct LibrarySearchExperienceTests {
         #expect(!vm.isSearching)
     }
 
+    // MARK: - Ranking is unchanged by scoring once
+
+    static let equivalenceQueries = [
+        "love", "LOVE", "lo", "l", "night", "nightfall", "blue night", "night blue", "the", "the love", "cafe", "Café",
+        "bjork joga", "angstrom", "ångström", "deja vu", "rock n roll", "part ii", "live", "remix of", "mid", "sky ocean",
+        "golden shadow echo", "zzz", " ", "", "  love  ", "song", "a",
+    ]
+
+    @Test("Online ranking keeps the order of scoring inside the comparator")
+    func onlineOrderMatchesLegacy() throws {
+        let results = try PerformanceFixtures.searchResult(artists: 50, albums: 100, songs: 200)
+        let playlists = PerformanceFixtures.playlists(40)
+        for query in Self.equivalenceQueries {
+            let ranked = LibrarySearchRanking.matches(query: query, results: results, playlists: playlists).map(\.id)
+            let legacy = LegacyHotPaths.onlineMatches(query: query, results: results, playlists: playlists).map(\.id)
+            #expect(ranked == legacy, "query '\(query)'")
+        }
+    }
+
+    @Test("Offline ranking over the snapshot's pre-normalised entries keeps the old order")
+    func offlineOrderMatchesLegacy() {
+        let snapshot = PerformanceFixtures.offlineSnapshot(songs: 1_500)
+        for query in Self.equivalenceQueries {
+            let ranked = LibrarySearchRanking.rank(snapshot.searchEntries, query: LibrarySearchQuery(query)).map(\.id)
+            let legacy = LegacyHotPaths.offlineMatches(snapshot, searchQuery: query).map(\.id)
+            #expect(ranked == legacy, "query '\(query)'")
+        }
+    }
+
+    @Test("Scores match the old per-call normalisation")
+    func scoresMatchLegacy() throws {
+        let snapshot = PerformanceFixtures.offlineSnapshot(songs: 300)
+        for query in Self.equivalenceQueries {
+            for entry in snapshot.searchEntries {
+                #expect(LibrarySearchRanking.score(entry.match, query: query) == LegacyHotPaths.score(entry.match, query: query))
+            }
+        }
+    }
+
+    @Test("Stored matches follow the results, the playlists and the query")
+    func storedMatchesFollowInputs() async throws {
+        let service = ControlledSearch()
+        let vm = makeViewModel(service)
+        #expect(vm.matches.isEmpty)
+        let search = Task { await vm.search(query: "life") }
+        await service.started("life")
+        let results = try decode("""
+        {"album":[{"id":"b","name":"A Day in the Life","songCount":1,"duration":180}],
+         "song":[{"id":"c","title":"Life","isDir":false},{"id":"d","title":"Lifeline","isDir":false}]}
+        """)
+        service.finish("life", results: results)
+        await search.value
+        #expect(vm.matches.map(\.id) == ["song:c", "song:d", "album:b"])
+        #expect(vm.songMatches.map(\.id) == ["c", "d"])
+        vm.searchResults = nil
+        #expect(vm.matches.isEmpty)
+        #expect(vm.songMatches.isEmpty)
+        await vm.search(query: "")
+        #expect(vm.matches.isEmpty)
+    }
+
+    @Test("Offline matches are reused for the same snapshot and query, and redone for a new snapshot")
+    func offlineMatchesFollowSnapshot() {
+        let vm = makeViewModel(ControlledSearch())
+        let first = PerformanceFixtures.offlineSnapshot(songs: 200)
+        let ranked = vm.offlineMatches(query: "love", in: first).map(\.id)
+        #expect(ranked == LegacyHotPaths.offlineMatches(first, searchQuery: "love").map(\.id))
+        #expect(vm.offlineMatches(query: " Love ", in: first).map(\.id) == ranked)
+        #expect(vm.offlineMatches(query: "night", in: first).map(\.id)
+                == LegacyHotPaths.offlineMatches(first, searchQuery: "night").map(\.id))
+        let second = OfflineBrowsingSnapshot(songs: Array(PerformanceFixtures.songs(200).prefix(20)))
+        #expect(vm.offlineMatches(query: "love", in: second).map(\.id)
+                == LegacyHotPaths.offlineMatches(second, searchQuery: "love").map(\.id))
+    }
+
     private func decode(_ json: String) throws -> SearchResult3 {
         try JSONDecoder().decode(SearchResult3.self, from: Data(json.utf8))
     }

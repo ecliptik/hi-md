@@ -11,7 +11,7 @@ nonisolated enum ReplayGainService {
             enabled: config.enabled,
             mode: config.mode,
             preAmp: config.preAmp,
-            preventClipping: config.preventClipping,
+            preventClipping: config.capsGainAtPeak,
             trackGain: track.replayGainTrackGain,
             trackPeak: track.replayGainTrackPeak,
             albumGain: track.replayGainAlbumGain,

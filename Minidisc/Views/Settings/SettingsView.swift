@@ -67,12 +67,6 @@ struct SettingsView: View {
                         .foregroundStyle(.primary)
                 }
                 NavigationLink {
-                    EqualizerView()
-                } label: {
-                    Label("Equalizer", systemImage: "slider.vertical.3")
-                        .foregroundStyle(.primary)
-                }
-                NavigationLink {
                     StorageSettingsView(vm: downloadsVM)
                 } label: {
                     Label("Storage", systemImage: "internaldrive")
@@ -361,15 +355,6 @@ struct StorageSettingsView: View {
                         set: { cacheSettings.cacheWhilePlaying = $0 }
                     )) {
                         Text("Save songs as they play")
-                            .foregroundStyle(.primary)
-                    }
-                    .tint(Color(.systemGreen))
-
-                    Toggle(isOn: Binding(
-                        get: { cacheSettings.cacheOverCellular },
-                        set: { cacheSettings.cacheOverCellular = $0 }
-                    )) {
-                        Text("Use cellular data")
                             .foregroundStyle(.primary)
                     }
                     .tint(Color(.systemGreen))
@@ -767,81 +752,6 @@ private struct LibraryIndexStorageSection: View {
 }
 
 // MARK: - Settings sub-pages
-
-private struct PlaybackSettingsView: View {
-    @Environment(\.appContainer) private var container
-
-    var body: some View {
-        Form {
-            Section {
-                if let stream = container?.streamSettings {
-                    Picker(selection: Binding(
-                        get: { stream.wifiQuality },
-                        set: { stream.wifiQuality = $0 }
-                    )) {
-                        ForEach(StreamQuality.allCases) { quality in
-                            Text(quality.displayName).tag(quality)
-                        }
-                    } label: {
-                        Text("Quality on Wi-Fi")
-                            .foregroundStyle(.primary)
-                    }
-                    .pickerStyle(.menu)
-                    .tint(.secondary)
-
-                    Picker(selection: Binding(
-                        get: { stream.cellularQuality },
-                        set: { stream.cellularQuality = $0 }
-                    )) {
-                        ForEach(StreamQuality.allCases) { quality in
-                            Text(quality.displayName).tag(quality)
-                        }
-                    } label: {
-                        Text("Quality on cellular")
-                            .foregroundStyle(.primary)
-                    }
-                    .pickerStyle(.menu)
-                    .tint(.secondary)
-                }
-            } header: {
-                Text("Streaming")
-            } footer: {
-                Text("The server transcodes to the chosen tier for each network. Original streams your files untouched (lossless); a lighter tier saves cellular data and lowers decoding load. Applies to the next track.")
-            }
-            if let lyrics = container?.lyricsSettings {
-                LyricsSettingsSection(settings: lyrics)
-            }
-            ReplayGainSettingsSection()
-            CrossfadeSettingsSection()
-        }
-        .formStyle(.grouped)
-        .navigationTitle("Playback")
-        .navigationBarTitleDisplayModeInline()
-    }
-}
-
-private struct LyricsSettingsSection: View {
-    @Bindable var settings: LyricsSettings
-
-    var body: some View {
-        Section {
-            Picker(selection: $settings.source) {
-                ForEach(LyricsSource.allCases) { source in
-                    Text(source.displayName).tag(source)
-                }
-            } label: {
-                Text("Lyrics source")
-                    .foregroundStyle(.primary)
-            }
-            .pickerStyle(.menu)
-            .tint(.secondary)
-        } header: {
-            Text("Lyrics")
-        } footer: {
-            Text("Auto checks Navidrome first and falls back to LRCLIB. LRCLIB requests include the track title, artist, album, and duration.")
-        }
-    }
-}
 
 private struct IntegrationsSettingsView: View {
     var body: some View {

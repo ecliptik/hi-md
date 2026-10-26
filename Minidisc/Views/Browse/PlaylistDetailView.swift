@@ -1017,7 +1017,7 @@ struct PlaylistSongRows: View {
         let favoriteIds = favoriteSongIds
         let downloadedIds = downloadedSongIds
         if let removeAction = onRemove {
-            ForEach(Array(songs.enumerated()), id: \.element.id) { index, song in
+            ForEach(songs.enumerated(), id: \.element.id) { index, song in
                 makeRow(index: index, song: song, favoriteIds: favoriteIds, downloadedIds: downloadedIds)
                     .listRowBackground(rowBackground)
             }
@@ -1028,7 +1028,7 @@ struct PlaylistSongRows: View {
                 onReorder?(source, destination)
             }
         } else {
-            ForEach(Array(songs.enumerated()), id: \.element.id) { index, song in
+            ForEach(songs.enumerated(), id: \.element.id) { index, song in
                 makeRow(index: index, song: song, favoriteIds: favoriteIds, downloadedIds: downloadedIds)
                     .listRowBackground(rowBackground)
             }
