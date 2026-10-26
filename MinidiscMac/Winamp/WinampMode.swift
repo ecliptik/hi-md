@@ -68,6 +68,7 @@ final class WinampMode: WinampWindowHost {
     private var drag: Drag?
     private var autoEqualizerTrackID: String?
     private var isObservingTracks = false
+    private var stackingObservers: [any NSObjectProtocol] = []
 
     private struct Drag {
         let window: WinampPreferences.Window
@@ -166,7 +167,56 @@ final class WinampMode: WinampWindowHost {
         }
         mainWindow?.window.makeKeyAndOrderFront(nil)
         observeTracksForAuto()
+        observeStacking()
         if !preferences.hasQueuedDemo { queueDemo(container) }
+    }
+
+    // MARK: Stacking
+
+    /// Winamp's windows behave as one floating group, as the original did as its own app: clicking
+    /// one brings all of them forward, and while Minidisc is active they stay above its own
+    /// windows instead of disappearing behind the library window. Other apps still cover them;
+    /// Always on Top raises them above everything.
+    private func observeStacking() {
+        guard stackingObservers.isEmpty else { return }
+        let center = NotificationCenter.default
+        stackingObservers = [
+            center.addObserver(forName: NSWindow.didBecomeKeyNotification, object: nil, queue: .main) { [weak self] note in
+                let window = note.object as? NSWindow
+                MainActor.assumeIsolated { self?.windowDidBecomeKey(window) }
+            },
+            center.addObserver(forName: NSWindow.didBecomeMainNotification, object: nil, queue: .main) { [weak self] note in
+                let window = note.object as? NSWindow
+                MainActor.assumeIsolated { self?.windowDidBecomeMain(window) }
+            },
+        ]
+    }
+
+    private func stopObservingStacking() {
+        stackingObservers.forEach(NotificationCenter.default.removeObserver)
+        stackingObservers = []
+    }
+
+    /// One Winamp window was clicked: the others come forward with it, and it stays on top.
+    private func windowDidBecomeKey(_ window: NSWindow?) {
+        guard let window = window as? WinampWindow else { return }
+        raiseWinampWindows(keepingFront: window)
+    }
+
+    /// A Minidisc window came forward: Winamp's windows go back above it, without taking focus.
+    /// Panels, sheets and the open dialog are left alone so Winamp never covers them.
+    private func windowDidBecomeMain(_ window: NSWindow?) {
+        guard let window, !(window is WinampWindow), !(window is NSPanel), window.sheetParent == nil else { return }
+        raiseWinampWindows(keepingFront: nil)
+    }
+
+    private func raiseWinampWindows(keepingFront front: NSWindow?) {
+        for managed in managedWindows where managed.window !== front {
+            let window = managed.window
+            guard window.isVisible, !window.isMiniaturized else { continue }
+            window.orderFront(nil)
+        }
+        if let front, front.isVisible { front.orderFront(nil) }
     }
 
     /// Like Winamp's demo.mp3: the first time the mode opens, the demo clip goes at the top of the
@@ -184,6 +234,7 @@ final class WinampMode: WinampWindowHost {
     }
 
     private func hide() {
+        stopObservingStacking()
         for window in managedWindows { window.tearDown() }
         mainWindow = nil
         equalizerWindow = nil
