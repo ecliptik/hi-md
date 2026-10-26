@@ -68,36 +68,10 @@ struct MacAlbumDetailView: View {
                 Text(details(model))
                     .font(.callout)
                     .foregroundStyle(.secondary)
-                HStack(spacing: 10) {
-                    Button {
-                        playback.play(model.songs)
-                    } label: {
-                        Label("Play", systemImage: "play.fill")
-                            .frame(minWidth: 72)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .tint(AppearanceSettings.shared.accent.fillColor)
-
-                    Button {
-                        playback.shuffle(model.songs)
-                    } label: {
-                        Label("Shuffle", systemImage: "shuffle")
-                            .frame(minWidth: 72)
-                    }
-                    .buttonStyle(.bordered)
-
-                    downloadButton(model)
-
-                    Menu {
-                        MacAlbumMenu(albumID: albumID, artistID: model.artistId, artistName: model.artistName)
-                        Divider()
-                        MacAddToPlaylistMenu(songs: model.songs)
-                    } label: {
-                        Label("More", systemImage: "ellipsis")
-                            .labelStyle(.iconOnly)
-                    }
-                    .menuIndicator(.hidden)
-                    .fixedSize()
+                // Narrow windows drop the Play and Shuffle words so the row never clips.
+                ViewThatFits(in: .horizontal) {
+                    actions(model, compact: false)
+                    actions(model, compact: true)
                 }
                 .controlSize(.large)
                 .padding(.top, 6)
@@ -107,22 +81,68 @@ struct MacAlbumDetailView: View {
         .padding(20)
     }
 
+    /// Play, Shuffle, Download, the favourite heart and More. Compact shows only their icons.
+    private func actions(_ model: AlbumDetailViewModel, compact: Bool) -> some View {
+        HStack(spacing: 10) {
+            Button {
+                playback.play(model.songs)
+            } label: {
+                Label("Play", systemImage: "play.fill")
+                    .labelStyle(MacHeaderLabelStyle(compact: compact))
+                    .frame(minWidth: compact ? nil : 72)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(AppearanceSettings.shared.accent.fillColor)
+            .macHeaderHelp("Play", compact: compact)
+
+            Button {
+                playback.shuffle(model.songs)
+            } label: {
+                Label("Shuffle", systemImage: "shuffle")
+                    .labelStyle(MacHeaderLabelStyle(compact: compact))
+                    .frame(minWidth: compact ? nil : 72)
+            }
+            .buttonStyle(.bordered)
+            .macHeaderHelp("Shuffle", compact: compact)
+
+            downloadButton(model, compact: compact)
+
+            MacFavoriteButton(itemType: .album, itemID: albumID)
+
+            Menu {
+                MacAlbumMenu(albumID: albumID, artistID: model.artistId, artistName: model.artistName)
+                Divider()
+                MacAddToPlaylistMenu(songs: model.songs)
+            } label: {
+                Label("More", systemImage: "ellipsis")
+                    .labelStyle(.iconOnly)
+            }
+            .menuIndicator(.hidden)
+            .fixedSize()
+        }
+        .fixedSize()
+    }
+
     @ViewBuilder
-    private func downloadButton(_ model: AlbumDetailViewModel) -> some View {
+    private func downloadButton(_ model: AlbumDetailViewModel, compact: Bool) -> some View {
         if model.isDownloadingAlbum {
             Button {
                 Task { await model.cancelAlbumDownload() }
             } label: {
                 Label("Cancel Download", systemImage: "xmark.circle")
+                    .labelStyle(MacHeaderLabelStyle(compact: compact))
             }
             .buttonStyle(.bordered)
+            .macHeaderHelp("Cancel Download", compact: compact)
         } else if !model.songs.allSatisfy(\.isDownloaded) {
             Button {
                 Task { await model.downloadAlbum() }
             } label: {
                 Label("Download", systemImage: "arrow.down.circle")
+                    .labelStyle(MacHeaderLabelStyle(compact: compact))
             }
             .buttonStyle(.bordered)
+            .macHeaderHelp("Download", compact: compact)
             .disabled(model.isOffline)
         }
     }

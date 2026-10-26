@@ -97,12 +97,7 @@ struct MacAlbumMenu: View {
 
         Divider()
 
-        let isFavorite = playback.isFavorite(.album, id: albumID)
-        Button(isFavorite ? "Remove from Favorites" : "Add to Favorites",
-               systemImage: isFavorite ? "heart.slash" : "heart") {
-            playback.setFavorite(!isFavorite, itemType: .album, id: albumID)
-        }
-        .disabled(!playback.container.serverState.isOnline)
+        MacFavoriteMenuItem(itemType: .album, itemID: albumID)
         Button("Download", systemImage: "arrow.down.circle") { playback.downloadAlbum(id: albumID) }
             .disabled(!playback.container.serverState.isOnline)
 
