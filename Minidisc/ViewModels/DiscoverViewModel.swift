@@ -40,6 +40,11 @@ final class DiscoverViewModel {
         isLoading && recentlyPlayed.isEmpty && mostPlayed.isEmpty
     }
 
+    /// The first load is still running and has no stations to show yet.
+    var isLoadingFirstStations: Bool {
+        isLoading && stations.isEmpty
+    }
+
     var isErrorState: Bool {
         loadError != nil && recentlyPlayed.isEmpty && mostPlayed.isEmpty
     }

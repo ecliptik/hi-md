@@ -52,6 +52,9 @@ struct DiscoverView: View {
             }
             .padding(.top, MinidiscSpacing.m)
             .padding(.bottom, MinidiscSpacing.miniPlayerBottomMargin)
+            // Sections arrive one request at a time on a cold launch; fade them in and ease the
+            // ones below into place rather than jumping.
+            .animation(.easeInOut(duration: 0.3), value: sectionLayout)
         }
         .navigationTitle("Discover")
         .toolbarTitleDisplayMode(.inlineLarge)
@@ -122,9 +125,15 @@ struct DiscoverView: View {
         }
     }
 
-    /// Await sync before reading the playlists, including the first run that creates them.
+    /// Await sync before reading the playlists, including the first run that creates them. The
+    /// cached playlists show meanwhile, so the shelf doesn't appear only once the sync finishes.
     private func refreshMoods(serverId: String) async {
         guard let service = container?.moodPlaylistService else { return }
+        if availableMoods.isEmpty {
+            let cached = await service.cachedPlaylists(serverId: serverId)
+            guard !Task.isCancelled, container?.serverState.activeServer?.id.uuidString == serverId else { return }
+            if availableMoods.isEmpty { availableMoods = cached }
+        }
         _ = await BackgroundActivity.run("mood-playlists") {
             await service.runWeeklySyncIfNeeded(serverId: serverId)
         }
@@ -168,9 +177,33 @@ struct DiscoverView: View {
         }
     }
 
+    /// Which sections are on screen, so a section arriving or leaving animates the layout.
+    private var sectionLayout: [Bool] {
+        [
+            vm != nil,
+            isListenBrainzConnected && vm?.freshReleases.isEmpty == false,
+            vm?.stations.isEmpty == false,
+            vm?.isLoadingFirstStations == true,
+            vm.map { shuffleCoverIDs($0).isEmpty } ?? true,
+            visibleMoods.isEmpty,
+            wrappedItems.isEmpty,
+            radioStations.isEmpty,
+        ]
+    }
+
     @ViewBuilder
     private func stationsSection(_ vm: DiscoverViewModel) -> some View {
-        if !vm.stations.isEmpty {
+        if vm.isLoadingFirstStations {
+            // Stations come from listening history, which loads after the faster sections. Holding
+            // their place keeps everything below from being pushed down when they arrive.
+            MinidiscShelf {
+                MinidiscCarouselHeader("Stations for You", showsChevron: false)
+            } content: {
+                ForEach(0..<3, id: \.self) { _ in ArtistStationPlaceholderCard() }
+            }
+            .accessibilityHidden(true)
+            .transition(.opacity)
+        } else if !vm.stations.isEmpty {
             MinidiscShelf {
                 MinidiscCarouselHeader("Stations for You", showsChevron: false)
                     .accessibilityIdentifier("discover.stations")

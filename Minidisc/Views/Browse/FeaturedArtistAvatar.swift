@@ -34,6 +34,7 @@ struct FeaturedArtistAvatar: View {
               coverArt != albumCoverId else { return }
         // Only swap once the photo actually loads — so a photoless artist keeps the album cover, no flash.
         guard await container.artworkImageCache.load(coverArtId: coverArt, tier: .thumb) != nil else { return }
-        resolvedArtistCoverArt = coverArt
+        // The album cover cross-fades into the photo rather than being replaced in one frame.
+        withAnimation(CoverArtView.arrival) { resolvedArtistCoverArt = coverArt }
     }
 }
