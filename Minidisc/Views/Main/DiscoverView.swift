@@ -19,10 +19,7 @@ struct DiscoverView: View {
     private var isOnline: Bool { container?.serverState.isOnline == true }
     private var visibleMoods: [MoodPlaylist] {
         guard !isOnline else { return availableMoods }
-        return (container?.offlineLibrary.snapshot.playlists ?? []).compactMap { playlist in
-            guard let mood = Mood.allCases.first(where: { $0.playlistName == playlist.name }) else { return nil }
-            return MoodPlaylist(mood: mood, id: playlist.id, coverArtId: playlist.coverArt)
-        }
+        return MoodPlaylist.saved(in: container?.offlineLibrary.snapshot.playlists ?? [])
     }
 
     var body: some View {
@@ -218,10 +215,7 @@ struct DiscoverView: View {
     }
 
     private func shuffleCoverIDs(_ vm: DiscoverViewModel) -> [String] {
-        var seen = Set<String>()
-        let albums = isOnline ? vm.recentlyPlayed + vm.mostPlayed : container?.offlineLibrary.snapshot.albums ?? []
-        return albums.map { $0.coverArt ?? $0.id }
-            .filter { seen.insert($0).inserted }.prefix(3).map { $0 }
+        SmartShuffleArtwork.coverIDs(isOnline ? vm.recentlyPlayed + vm.mostPlayed : container?.offlineLibrary.snapshot.albums ?? [])
     }
 
     private func playStation(_ station: ArtistStation) async {
@@ -313,28 +307,8 @@ struct DiscoverView: View {
     }
 
     private var wrappedItems: [WrappedCarouselItem] {
-        let playlists = isOnline ? yearlyPlaylists : (container?.offlineLibrary.snapshot.playlists ?? []).compactMap { playlist -> WrappedYearlyPlaylist? in
-            let prefix = WrappedPlaylistService.wrappedPlaylistNamePrefix
-            guard playlist.name.hasPrefix(prefix), let year = Int(playlist.name.dropFirst(prefix.count)) else { return nil }
-            return WrappedYearlyPlaylist(id: playlist.id, year: year, name: playlist.name, coverArtId: playlist.coverArt)
-        }
-        var items = playlists.map(WrappedCarouselItem.yearly)
-        let year = Calendar.current.component(.year, from: Date())
-        if !playlists.contains(where: { $0.year == year }) {
-            items.append(.currentYear(year))
-        }
-        items.append(contentsOf: currentYearMonths.map {
-            .month(year: $0.year, month: $0.month)
-        })
-        return items
-    }
-
-    private var currentYearMonths: [(year: Int, month: Int)] {
-        let cal = Calendar.current
-        let now = Date()
-        let year = cal.component(.year, from: now)
-        let currentMonth = cal.component(.month, from: now)
-        return (1...currentMonth).reversed().map { (year, $0) }
+        let playlists = isOnline ? yearlyPlaylists : WrappedYearlyPlaylist.saved(in: container?.offlineLibrary.snapshot.playlists ?? [])
+        return WrappedCarouselItem.shelfItems(yearly: playlists)
     }
 
     private var internetRadioSection: some View {
@@ -394,21 +368,4 @@ struct DiscoverView: View {
         }
     }
 
-}
-
-private enum WrappedCarouselItem: Identifiable {
-    case yearly(WrappedYearlyPlaylist)
-    case currentYear(Int)
-    case month(year: Int, month: Int)
-
-    var id: String {
-        switch self {
-        case .yearly(let playlist):
-            "yearly-\(playlist.id)"
-        case .currentYear(let year):
-            "current-\(year)"
-        case .month(let year, let month):
-            "month-\(year)-\(month)"
-        }
-    }
 }

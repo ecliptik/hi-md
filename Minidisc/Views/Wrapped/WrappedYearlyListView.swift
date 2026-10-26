@@ -8,11 +8,7 @@ struct WrappedYearlyListView: View {
 
     private var visiblePlaylists: [WrappedYearlyPlaylist] {
         guard container?.serverState.isOnline == false else { return playlists }
-        return (container?.offlineLibrary.snapshot.playlists ?? []).compactMap { playlist in
-            let prefix = WrappedPlaylistService.wrappedPlaylistNamePrefix
-            guard playlist.name.hasPrefix(prefix), let year = Int(playlist.name.dropFirst(prefix.count)) else { return nil }
-            return WrappedYearlyPlaylist(id: playlist.id, year: year, name: playlist.name, coverArtId: playlist.coverArt)
-        }
+        return WrappedYearlyPlaylist.saved(in: container?.offlineLibrary.snapshot.playlists ?? [])
     }
 
     private var currentYear: Int {
@@ -21,12 +17,6 @@ struct WrappedYearlyListView: View {
 
     private var hasCurrentYearPlaylist: Bool {
         visiblePlaylists.contains { $0.year == currentYear }
-    }
-
-    private var currentYearMonths: [(year: Int, month: Int)] {
-        let calendar = Calendar.current
-        let month = calendar.component(.month, from: Date())
-        return (1...month).reversed().map { (currentYear, $0) }
     }
 
     var body: some View {
@@ -43,16 +33,15 @@ struct WrappedYearlyListView: View {
                         columns: [GridItem(.adaptive(minimum: 140, maximum: 200), spacing: MinidiscSpacing.s)],
                         spacing: MinidiscSpacing.s
                     ) {
-                        if !hasCurrentYearPlaylist {
-                            WrappedRecapMonthCard(period: .year(currentYear))
-                        }
-                        ForEach(visiblePlaylists) { playlist in
-                            WrappedYearlyCard(playlist: playlist)
-                        }
-                        ForEach(currentYearMonths, id: \.month) { item in
-                            WrappedRecapMonthCard(
-                                period: .month(year: item.year, month: item.month)
-                            )
+                        ForEach(WrappedCarouselItem.pageItems(yearly: visiblePlaylists)) { item in
+                            switch item {
+                            case .currentYear(let year):
+                                WrappedRecapMonthCard(period: .year(year))
+                            case .yearly(let playlist):
+                                WrappedYearlyCard(playlist: playlist)
+                            case .month(let year, let month):
+                                WrappedRecapMonthCard(period: .month(year: year, month: month))
+                            }
                         }
                     }
 
