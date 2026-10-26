@@ -40,11 +40,11 @@ struct FavoriteToggleTests {
         #expect(String(localized: toggle.accessibilityValue) == String(localized: "On"))
     }
 
-    @Test func theIPhoneUsesStarsForTheSameStates() {
-        #expect(FavoriteToggle(isFavorite: false).starSystemImage == "star")
-        #expect(FavoriteToggle(isFavorite: true).starSystemImage == "star.fill")
-        #expect(FavoriteToggle(isFavorite: false).starMenuSystemImage == "star")
-        #expect(FavoriteToggle(isFavorite: true).starMenuSystemImage == "star.slash")
+    @Test func everyAppUsesHeartsForTheSameStates() {
+        #expect(FavoriteToggle(isFavorite: false).systemImage == "heart")
+        #expect(FavoriteToggle(isFavorite: true).systemImage == "heart.fill")
+        #expect(FavoriteToggle(isFavorite: false).menuSystemImage == "heart")
+        #expect(FavoriteToggle(isFavorite: true).menuSystemImage == "heart.slash")
     }
 
     @Test func recordIDsMatchTheStore() {

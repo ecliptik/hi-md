@@ -394,7 +394,7 @@ struct AlbumDetailView: View {
             ToolbarOverflowMenu {
                     Group {
                         let favorite = FavoriteToggle(isFavorite: isAlbumFavorite)
-                        Button(String(localized: favorite.actionTitle), systemImage: favorite.starMenuSystemImage) {
+                        Button(String(localized: favorite.actionTitle), systemImage: favorite.menuSystemImage) {
                             toggleAlbumFavorite()
                         }
                         .disabled(!isOnline)
@@ -779,7 +779,7 @@ private struct AlbumPlaybackActions: View {
                 // Balances Shuffle on the other side of Play: star the album.
                 Button(action: toggleFavorite) {
                     AlbumCircularActionLabel(
-                        systemImage: favorite.starSystemImage,
+                        systemImage: favorite.systemImage,
                         foregroundColor: contentColor,
                         backgroundColor: controlFillColor
                     )

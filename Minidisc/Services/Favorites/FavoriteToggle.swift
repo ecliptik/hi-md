@@ -15,11 +15,6 @@ nonisolated struct FavoriteToggle: Sendable, Hashable {
     /// The icon beside the menu item, which shows what choosing it does.
     var menuSystemImage: String { isFavorite ? "heart.slash" : "heart" }
 
-    /// The iPhone app marks favourites with stars (song rows, the full player, Favorites), so
-    /// its buttons use the star forms of the same two icons.
-    var starSystemImage: String { isFavorite ? "star.fill" : "star" }
-    var starMenuSystemImage: String { isFavorite ? "star.slash" : "star" }
-
     /// What clicking does, for menu items and help tags.
     var actionTitle: LocalizedStringResource { isFavorite ? "Remove from Favorites" : "Add to Favorites" }
 

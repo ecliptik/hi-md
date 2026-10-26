@@ -316,7 +316,7 @@ struct ArtistDetailView: View {
                         }
                     }
                 } label: {
-                    Image(systemName: FavoriteToggle(isFavorite: isArtistFavorite).starSystemImage)
+                    Image(systemName: FavoriteToggle(isFavorite: isArtistFavorite).systemImage)
                         .font(.system(size: 18, weight: .regular))
                         .foregroundStyle(isArtistFavorite ? .white : headerTextColor)
                         .frame(width: 48, height: 48)

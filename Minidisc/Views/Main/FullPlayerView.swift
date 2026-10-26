@@ -506,7 +506,7 @@ private struct TrackInfoSection: View {
                     Button {
                         toggleFavorite()
                     } label: {
-                        Image(systemName: isFavorite ? "star.fill" : "star")
+                        Image(systemName: isFavorite ? "heart.fill" : "heart")
                             .font(.title2.weight(.semibold))
                             .foregroundStyle(contentColor)
                             .frame(width: 44, height: 44)
@@ -530,12 +530,12 @@ private struct TrackInfoSection: View {
                             }
 
                             if isFavorite {
-                                Button("Undo", systemImage: "star.slash.fill") {
+                                Button("Undo", systemImage: "heart.slash.fill") {
                                     toggleFavorite()
                                 }
                                 .disabled(!isOnline || playerState.currentTrack == nil || playerState.currentTrack?.isLocalFile == true)
                             } else {
-                                Button("Favorite", systemImage: "star.fill") {
+                                Button("Favorite", systemImage: "heart.fill") {
                                     toggleFavorite()
                                 }
                                 .disabled(!isOnline || playerState.currentTrack == nil || playerState.currentTrack?.isLocalFile == true)

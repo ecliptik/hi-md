@@ -70,7 +70,7 @@ struct NowPlayingWatchView: View {
                 .disabled(!state.canSkip)
                 .accessibilityLabel("Next")
             Button { session.send(.toggleFavorite) } label: {
-                Image(systemName: state.isFavorite ? "star.fill" : "star")
+                Image(systemName: state.isFavorite ? "heart.fill" : "heart")
             }
             .disabled(!state.canFavorite)
             .accessibilityLabel(state.isFavorite ? "Remove from Favorites" : "Add to Favorites")

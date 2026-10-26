@@ -48,7 +48,7 @@ struct ArtistBestOfView: View {
                     )
                 } else {
                     EmptyStateView(
-                        systemImage: "star",
+                        systemImage: "heart",
                         title: "No Liked Songs",
                         subtitle: "Songs you favorite from this artist will appear here."
                     )

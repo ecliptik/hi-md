@@ -265,7 +265,7 @@ struct LibraryView: View {
                     LibraryTile(title: "Composers", systemImage: "music.quarternote.3")
                 }
                 if isOnline || !local.favorites.songs.isEmpty || !local.favorites.albums.isEmpty || !local.favorites.artists.isEmpty {
-                    NavigationLink(value: HomeDestination.libraryFavorites) { LibraryTile(title: "Favorites", systemImage: "star.fill") }
+                    NavigationLink(value: HomeDestination.libraryFavorites) { LibraryTile(title: "Favorites", systemImage: "heart.fill") }
                 }
                 if isOnline || local.songs.contains(where: \.isDownloaded) {
                     NavigationLink(value: HomeDestination.libraryDownloads) { LibraryTile(title: "Downloads", systemImage: "arrow.down.circle.fill") }

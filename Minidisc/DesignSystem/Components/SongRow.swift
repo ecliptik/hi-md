@@ -148,7 +148,7 @@ struct SongRow: View {
                     }
                     .overlay(alignment: .topLeading) {
                         if isFavorite {
-                            Image(systemName: "star.fill")
+                            Image(systemName: "heart.fill")
                                 .font(.system(size: 8, weight: .bold))
                                 .foregroundStyle(playingAccent)
                                 .padding(3)
@@ -164,7 +164,7 @@ struct SongRow: View {
                             .foregroundStyle(secondaryColor.opacity(0.72))
                             .opacity(isFavorite ? 0 : 1)
                         if isFavorite {
-                            Image(systemName: "star.fill")
+                            Image(systemName: "heart.fill")
                                 .font(.caption2)
                                 .foregroundStyle(playingAccent)
                                 .accessibilityLabel("Favorite")
@@ -306,12 +306,12 @@ private struct SongActions: View {
                     Button("Share", systemImage: "square.and.arrow.up.fill", action: onShare)
 
                     if isFavorite {
-                        Button("Undo", systemImage: "star.slash.fill") {
+                        Button("Undo", systemImage: "heart.slash.fill") {
                             toggleFavorite()
                         }
                         .disabled(!isOnline)
                     } else {
-                        Button("Favorite", systemImage: "star.fill") {
+                        Button("Favorite", systemImage: "heart.fill") {
                             toggleFavorite()
                         }
                         .disabled(!isOnline)
