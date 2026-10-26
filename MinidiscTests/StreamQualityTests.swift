@@ -128,34 +128,3 @@ struct StreamURLBuildingTests {
         #expect(url?.path.hasSuffix("/rest/stream") == true || url?.path.hasSuffix("/rest/stream.view") == true)
     }
 }
-
-@Suite("Cached audio quality")
-struct CachedAudioQualityTests {
-    @Test("A stream URL names the quality it asked for")
-    func fromStreamURL() throws {
-        let raw = try #require(URL(string: "https://m.example/rest/stream?id=1&format=raw&estimateContentLength=false"))
-        let opus = try #require(URL(string: "https://m.example/rest/stream?id=1&maxBitRate=128&format=opus"))
-        let unspecified = try #require(URL(string: "https://m.example/rest/stream?id=1"))
-        #expect(CachedAudioQuality(streamURL: raw) == .original)
-        #expect(CachedAudioQuality(streamURL: opus) == .converted(format: "opus", kbps: 128))
-        #expect(CachedAudioQuality(streamURL: unspecified) == .unknown)
-    }
-
-    @Test("The quality round-trips through the entry's MIME type")
-    func roundTrip() {
-        for quality in [CachedAudioQuality.original, .converted(format: "opus", kbps: 128), .converted(format: "mp3", kbps: nil)] {
-            let tagged = quality.tagging("audio/ogg")
-            #expect(CachedAudioQuality(mimeType: tagged) == quality)
-            #expect(CachedAudioQuality.baseType(of: tagged) == "audio/ogg")
-        }
-        #expect(CachedAudioQuality.converted(format: "opus", kbps: 128).tagging("audio/ogg") == "audio/ogg; minidisc-quality=opus-128")
-    }
-
-    @Test("Entries cached before tagging read as unknown, and retagging replaces the old tag")
-    func legacyAndRetag() {
-        #expect(CachedAudioQuality(mimeType: "audio/mpeg") == .unknown)
-        #expect(CachedAudioQuality(mimeType: "audio/ogg; codecs=opus") == .unknown)
-        let retagged = CachedAudioQuality.original.tagging("audio/flac; minidisc-quality=mp3-192")
-        #expect(retagged == "audio/flac; minidisc-quality=original")
-    }
-}

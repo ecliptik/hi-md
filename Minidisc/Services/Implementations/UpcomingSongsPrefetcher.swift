@@ -90,7 +90,7 @@ final class UpcomingSongsPrefetcher {
                 guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else { continue }
                 try AudioResponseValidator.validate(fileAt: file, response: response, songId: song.id, logger: Logger.cache)
                 _ = try await cache.store(fileAt: file, forSongId: song.id, serverId: serverID,
-                                          mimeType: CachedAudioQuality(streamURL: url).tagging(response.mimeType ?? "audio/mpeg"))
+                                          mimeType: response.mimeType ?? "audio/mpeg")
                 Logger.cache.info("Auto-cached upcoming '\(song.id, privacy: .public)'")
             } catch {
                 if Task.isCancelled { return }

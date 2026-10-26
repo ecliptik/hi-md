@@ -4062,9 +4062,7 @@ actor PlayerService: PlayerServiceProtocol {
         try AudioResponseValidator.validate(fileAt: tempURL, response: response, songId: songId, logger: Logger.cache)
 
         let ext = streamURL.pathExtension
-        // The entry records whether it is the original file or a conversion, and at what bitrate.
-        let mimeType = CachedAudioQuality(streamURL: streamURL)
-            .tagging(response.mimeType ?? (ext.isEmpty ? "audio/mpeg" : "audio/\(ext)"))
+        let mimeType = response.mimeType ?? (ext.isEmpty ? "audio/mpeg" : "audio/\(ext)")
         let fileSize = (try? FileManager.default.attributesOfItem(atPath: tempURL.path)[.size] as? Int64) ?? 0
 
         _ = try await audioStreamCache.store(
