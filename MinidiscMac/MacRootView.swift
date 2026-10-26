@@ -1,165 +1,145 @@
 import SwiftSonic
 import SwiftUI
 
-/// A placeholder main window that proves the shared stack on the Mac: a sidebar, an album list
-/// loaded from the server, and a player bar. The real Mac interface replaces it.
+/// The main window: the sidebar, the selected section with the pages opened above it, the
+/// lyrics and queue panel on the right, and the player bar along the bottom.
 struct MacRootView: View {
     let container: AppContainer
+    let interface: MacInterface
 
-    enum Section: Hashable {
-        case albums
-        case artists
-    }
-
-    @State private var section: Section? = .albums
+    @AppStorage("minidisc.appTheme") private var theme: AppTheme = .system
 
     var body: some View {
+        let navigator = interface.navigator
+        let playback = interface.playback(for: container)
+        let playlists = interface.playlists(for: container)
+        @Bindable var bindableNavigator = navigator
         VStack(spacing: 0) {
-            NavigationSplitView {
-                List(selection: $section) {
-                    SwiftUI.Section("Library") {
-                        Label("Albums", systemImage: "square.stack").tag(Section.albums)
-                        Label("Artists", systemImage: "music.microphone").tag(Section.artists)
-                    }
+            HStack(spacing: 0) {
+                NavigationSplitView {
+                    MacSidebar(container: container)
+                } detail: {
+                    MacDetailColumn(container: container)
                 }
-                .navigationSplitViewColumnWidth(min: 180, ideal: 200)
-            } detail: {
-                if container.serverState.activeServer == nil {
-                    ContentUnavailableView(
-                        "No Server",
-                        systemImage: "server.rack",
-                        description: Text("No server configured. Please add a server in Settings.")
-                    )
-                } else {
-                    switch section {
-                    case .artists:
-                        MacArtistList(container: container)
-                    case .albums, nil:
-                        MacAlbumList(container: container)
-                    }
+                .searchable(text: $bindableNavigator.searchText, placement: .toolbar, prompt: Text("Artists, Albums, Songs"))
+                // The lyrics and queue panel, like the Music app's Playing Next. Read here, in the
+                // root view's body, so showing and hiding it always redraws the window.
+                if navigator.inspector != nil {
+                    Divider()
+                    MacInspector(container: container)
+                        .frame(width: 320)
+                        .transition(.move(edge: .trailing))
                 }
             }
+            .animation(.smooth(duration: 0.25), value: navigator.inspector)
             Divider()
-            MacPlayerBar(container: container)
+            MacPlayerBar()
         }
-        .frame(minWidth: 720, minHeight: 440)
+        .frame(minWidth: 900, minHeight: 560)
+        .environment(navigator)
+        .environment(playback)
+        .environment(playlists)
+        .tint(Color.minidiscAccent)
+        .preferredColorScheme(theme.colorScheme)
+        .macPlaylistSheets(playlists, navigator: navigator)
+        .onChange(of: navigator.searchText) { _, text in
+            if !text.trimmingCharacters(in: .whitespaces).isEmpty, navigator.selection != .search {
+                navigator.selection = .search
+            }
+        }
+        .onAppear { MacSpaceKeyMonitor.shared.install(playback: playback) }
+        .onReceive(NotificationCenter.default.publisher(for: .minidiscNavigateToDownloads)) { _ in
+            navigator.selection = .downloads
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .minidiscNavigateToPlaylist)) { note in
+            guard let id = note.userInfo?["playlistId"] as? String else { return }
+            navigator.selection = .playlist(id: id)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .minidiscPlaylistDeleted)) { _ in
+            Task { await playlists.library.load() }
+        }
+        .onChange(of: container.playerState.currentTrack?.id) {
+            // Lyrics can't follow a song that has none, such as a local file.
+            if navigator.inspector == .lyrics, !playback.commands.canShowLyrics { navigator.inspector = .queue }
+        }
     }
 }
 
-/// Albums from the shared library catalog. Double-click an album to play it.
-private struct MacAlbumList: View {
+/// The pages of the selected section. Its own view, so navigation changes redraw it: the split
+/// view calls its detail closure outside the root view's update.
+private struct MacDetailColumn: View {
     let container: AppContainer
-    @State private var viewModel: AlbumListViewModel?
-    @State private var selection: AlbumID3.ID?
+
+    @Environment(MacNavigator.self) private var navigator
 
     var body: some View {
-        Group {
-            if let viewModel {
-                if viewModel.albums.isEmpty, viewModel.isLoading {
-                    ProgressView()
-                } else if viewModel.albums.isEmpty, let error = viewModel.error {
-                    ContentUnavailableView(
-                        "Unable to Load Albums",
-                        systemImage: "exclamationmark.triangle",
-                        description: Text(error.localizedDescription)
-                    )
-                } else {
-                    List(viewModel.albums, selection: $selection) { album in
-                        MacAlbumRow(album: album)
-                    }
-                    .contextMenu(forSelectionType: AlbumID3.ID.self) { ids in
-                        if let id = ids.first {
-                            Button("Play") { play(albumID: id) }
-                        }
-                    } primaryAction: { ids in
-                        if let id = ids.first { play(albumID: id) }
-                    }
+        @Bindable var navigator = navigator
+        NavigationStack(path: $navigator.path) {
+            MacSectionView(container: container, item: navigator.selection ?? .albums)
+                .navigationDestination(for: MacDestination.self) { destination in
+                    MacDestinationView(container: container, destination: destination)
                 }
-            } else {
-                ProgressView()
-            }
-        }
-        .navigationTitle("Albums")
-        .task(id: container.serverState.accessSnapshot) {
-            let model = viewModel ?? AlbumListViewModel(libraryService: container.libraryService)
-            viewModel = model
-            await model.load()
-        }
-    }
-
-    /// Loads the album's songs through the shared album view model, then plays them in order.
-    private func play(albumID: String) {
-        Task {
-            let album = AlbumDetailViewModel(
-                albumId: albumID,
-                libraryService: container.libraryService,
-                downloadService: container.downloadService,
-                toastService: container.toastService,
-                serverState: container.serverState,
-                offlineFavorites: container.offlineFavoritesStore
-            )
-            await album.load()
-            let songs = album.songs
-            guard !songs.isEmpty else { return }
-            await container.toastService.perform {
-                try await container.playerService.play(tracks: songs, startIndex: 0)
-            }
         }
     }
 }
 
-private struct MacAlbumRow: View {
-    let album: AlbumID3
-
-    var body: some View {
-        HStack(spacing: 10) {
-            CoverArtView(id: album.coverArt ?? album.id, size: 40, cornerRadius: 4, placeholderSystemImage: "square.stack")
-                .frame(width: 40, height: 40)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(album.name)
-                    .lineLimit(1)
-                if let artist = album.artist {
-                    Text(artist)
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                }
-            }
-        }
-        .padding(.vertical, 2)
-    }
-}
-
-/// Artists from the shared library catalog, as a plain list for now.
-private struct MacArtistList: View {
+/// The root page of the selected sidebar item.
+private struct MacSectionView: View {
     let container: AppContainer
-    @State private var viewModel: ArtistListViewModel?
+    let item: MacSidebarItem
 
     var body: some View {
-        Group {
-            if let viewModel {
-                if viewModel.indexes.isEmpty, viewModel.isLoading {
-                    ProgressView()
-                } else if viewModel.indexes.isEmpty, let error = viewModel.error {
-                    ContentUnavailableView(
-                        "Unable to Load Artists",
-                        systemImage: "exclamationmark.triangle",
-                        description: Text(error.localizedDescription)
-                    )
-                } else {
-                    List(viewModel.indexes.flatMap(\.artist)) { artist in
-                        Text(artist.name)
-                    }
-                }
-            } else {
-                ProgressView()
+        if container.serverState.activeServer == nil {
+            MacNoServerView()
+        } else {
+            switch item {
+            case .search: MacSearchView(container: container)
+            case .discover: MacDiscoverView(container: container)
+            case .albums: MacAlbumsView(container: container)
+            case .artists: MacArtistsView(container: container)
+            case .songs: MacSongsView(container: container)
+            case .genres: MacGenresView(container: container)
+            case .recentlyAdded: MacRecentlyAddedView(container: container)
+            case .favorites: MacFavoritesView(container: container)
+            case .downloads: MacDownloadsView(container: container)
+            case .playlist(let id): MacPlaylistDetailView(container: container, playlistID: id).id(id)
             }
         }
-        .navigationTitle("Artists")
-        .task(id: container.serverState.accessSnapshot) {
-            let model = viewModel ?? ArtistListViewModel(libraryService: container.libraryService)
-            viewModel = model
-            await model.load()
+    }
+}
+
+/// A page pushed above the selected section.
+private struct MacDestinationView: View {
+    let container: AppContainer
+    let destination: MacDestination
+
+    var body: some View {
+        switch destination {
+        case .album(let id, let highlightedSongID):
+            MacAlbumDetailView(container: container, albumID: id, highlightedSongID: highlightedSongID)
+                .id(id)
+        case .artist(let id, let name):
+            MacArtistDetailView(container: container, artistID: id, artistName: name)
+                .id(id)
+        case .genre(let genre):
+            MacGenreDetailView(container: container, genre: genre)
+        case .playlist(let id):
+            MacPlaylistDetailView(container: container, playlistID: id)
+                .id(id)
+        }
+    }
+}
+
+private struct MacNoServerView: View {
+    var body: some View {
+        ContentUnavailableView {
+            Label("No Server", systemImage: "server.rack")
+        } description: {
+            Text("No server configured. Please add a server in Settings.")
+        } actions: {
+            SettingsLink {
+                Text("Open Settings")
+            }
         }
     }
 }

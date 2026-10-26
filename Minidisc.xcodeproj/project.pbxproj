@@ -225,6 +225,13 @@
 			);
 			target = EC1D27000000000000000033 /* MinidiscMac */;
 		};
+		EC1DAC00000000000000A001 /* Exceptions for "MinidiscMac" folder in "MinidiscMac" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = EC1D27000000000000000033 /* MinidiscMac */;
+		};
 		EC1D27000000000000000004 /* Exceptions for "MinidiscWidgets" folder in "MinidiscWidgets" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -279,6 +286,9 @@
 		};
 		EC1D27000000000000000031 /* MinidiscMac */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				EC1DAC00000000000000A001 /* Exceptions for "MinidiscMac" folder in "MinidiscMac" target */,
+			);
 			path = MinidiscMac;
 			sourceTree = "<group>";
 		};
@@ -1201,6 +1211,7 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readwrite;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MinidiscMac/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Minidisc;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.music";
@@ -1242,6 +1253,7 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readwrite;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MinidiscMac/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Minidisc;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.music";

@@ -7,10 +7,10 @@ import SwiftUI
 /// index, downloads and scrobbling are the shared services; only the windows are Mac-specific.
 @main
 struct MinidiscMacApp: App {
-    @State private var launchState: MacLaunchState = .launching
-    @State private var launchAttempt = 1
+    @NSApplicationDelegateAdaptor(MacAppDelegate.self) private var appDelegate
+    @State private var interface = MacInterface()
+    @AppStorage(MacInterface.showsMenuBarPlayerKey) private var showsMenuBarPlayer = true
     @Environment(\.scenePhase) private var scenePhase
-    private let runtime = MinidiscRuntime.shared
 
     private nonisolated static let backgroundSyncCoordinator = BackgroundSyncCoordinator()
 
@@ -20,14 +20,11 @@ struct MinidiscMacApp: App {
     }
 
     var body: some Scene {
-        WindowGroup {
-            MacLaunchContent(state: launchState, retryAction: retryLaunch)
-                .task(id: launchAttempt) {
-                    await launchIfNeeded()
-                }
+        WindowGroup(id: MacMenuBarPlayer.mainWindowID) {
+            MacLaunchContent(state: appDelegate.launcher.state, interface: interface, retryAction: appDelegate.launcher.retry)
                 .containerLifecycle(activeContainer)
         }
-        .commands { PlaybackCommands(container: activeContainer) }
+        .commands { MacCommands(container: activeContainer, interface: interface) }
         .onChange(of: scenePhase) { _, newPhase in
             guard let container = activeContainer else { return }
             Task { await container.playerService.setAppVisible(newPhase != .background) }
@@ -45,53 +42,35 @@ struct MinidiscMacApp: App {
                     .padding()
             }
         }
+
+        // MARK: Menu bar player
+
+        MenuBarExtra("Minidisc", systemImage: "opticaldisc", isInserted: menuBarPlayerInserted) {
+            if let container = activeContainer {
+                MacMenuBarPlayer(container: container, interface: interface)
+                    .environment(\.appContainer, container)
+                    .environment(container.artworkImageCache)
+            }
+        }
+        .menuBarExtraStyle(.window)
     }
 
     static func makeContainer(diagnostics: PlaybackDiagnostics) async throws -> AppContainer {
         try await AppContainer.launch(diagnostics: diagnostics, backgroundSync: backgroundSyncCoordinator)
     }
 
-    private var activeContainer: AppContainer? {
-        guard case .ready(let container) = launchState else { return nil }
-        return container
-    }
+    private var activeContainer: AppContainer? { appDelegate.launcher.container }
 
-    private func retryLaunch() {
-        guard case .failed = launchState else { return }
-        launchState = .launching
-        launchAttempt += 1
+    /// Follows the setting, but ignores the system taking the item out of the menu bar: writing
+    /// that back to the setting made SwiftUI re-insert the item and rebuild the menus in a loop.
+    private var menuBarPlayerInserted: Binding<Bool> {
+        Binding(get: { showsMenuBarPlayer }, set: { _ in })
     }
-
-    private func launchIfNeeded() async {
-        guard case .launching = launchState else { return }
-        runtime.diagnostics.record(.application(.launchStarted(attempt: launchAttempt)))
-        do {
-            let container = try await runtime.container()
-            launchState = .ready(container)
-            Task { await container.playerService.setAppVisible(true) }
-            runtime.diagnostics.record(.application(.servicesReady))
-            Logger.boot.info("Mac app services ready")
-        } catch {
-            let failure = error as NSError
-            Logger.boot.fault(
-                "AppContainer initialization failed: domain=\(failure.domain, privacy: .public) code=\(failure.code, privacy: .public)"
-            )
-            runtime.diagnostics.record(
-                .application(.launchFailed(errorDomain: failure.domain, errorCode: failure.code))
-            )
-            launchState = .failed
-        }
-    }
-}
-
-enum MacLaunchState {
-    case launching
-    case ready(AppContainer)
-    case failed
 }
 
 private struct MacLaunchContent: View {
     let state: MacLaunchState
+    let interface: MacInterface
     let retryAction: () -> Void
 
     var body: some View {
@@ -101,7 +80,7 @@ private struct MacLaunchContent: View {
                 .frame(minWidth: 720, maxWidth: .infinity, minHeight: 440, maxHeight: .infinity)
 
         case .ready(let container):
-            MacRootView(container: container)
+            MacRootView(container: container, interface: interface)
                 .toastOverlay(reservesMiniPlayerSpace: false)
                 .environment(\.appContainer, container)
                 .environment(container.dominantColorExtractor)
