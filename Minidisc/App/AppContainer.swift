@@ -63,7 +63,8 @@ final class AppContainer {
         playerState: playerState, serverState: serverState, modelContainer: modelContainer,
         moodPlaylistService: moodPlaylistService, artwork: widgetArtwork
     )
-    let linkRouter = LinkRouter()
+    /// Owned by `MinidiscRuntime`, so a link opened while launch is still building this container waits there.
+    let linkRouter: LinkRouter
     #if canImport(WatchConnectivity) && !targetEnvironment(macCatalyst)
     private(set) lazy var watchBridge = PhoneWatchBridge(container: self)
     #endif
@@ -80,8 +81,10 @@ final class AppContainer {
     init(
         inMemory: Bool = false,
         playbackDiagnostics: PlaybackDiagnostics = PlaybackDiagnostics(),
-        userDefaults: UserDefaults = .standard
+        userDefaults: UserDefaults = .standard,
+        linkRouter: LinkRouter = LinkRouter()
     ) throws {
+        self.linkRouter = linkRouter
         let localStore = LocalMusicStore(directory: inMemory
             ? URL.temporaryDirectory.appendingPathComponent("minidisc-local-\(UUID())")
             : URL.applicationSupportDirectory.appendingPathComponent("minidisc-local-music"))

@@ -65,6 +65,10 @@ struct MinidiscApp: App {
     var body: some Scene {
         WindowGroup {
             AppLaunchContent(state: launchState, retryAction: retryLaunch)
+                // Widgets open minidisc:// links. On a cold launch the URL arrives while the
+                // container is still being built and no tab view exists yet, so it is queued here
+                // for MainTabView to open once it appears.
+                .onOpenURL { url in runtime.linkRouter.open(url) }
                 .task(id: launchAttempt) {
                     await launchIfNeeded()
                 }
@@ -197,8 +201,8 @@ struct MinidiscApp: App {
         Logger.boot.info("App services ready")
     }
 
-    static func makeContainer(diagnostics: PlaybackDiagnostics) async throws -> AppContainer {
-        let newContainer = try AppContainer(playbackDiagnostics: diagnostics)
+    static func makeContainer(diagnostics: PlaybackDiagnostics, linkRouter: LinkRouter) async throws -> AppContainer {
+        let newContainer = try AppContainer(playbackDiagnostics: diagnostics, linkRouter: linkRouter)
         await newContainer.setup()
         // Detect an upgraded Navidrome before any cache maintenance or queue
         // restoration reads resource IDs from the local stores.
@@ -289,7 +293,7 @@ struct MinidiscApp: App {
             if let id = item.coverArtId { referencedIds.insert(id) }
         }
 
-        await downloadService.garbageCollectOrphanedCovers(referencedIds: referencedIds)
+        return referencedIds
     }
 
 }
