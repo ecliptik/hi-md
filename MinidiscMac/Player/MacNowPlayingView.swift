@@ -25,6 +25,19 @@ struct MacNowPlayingView: View {
     @State private var titleBarChange: MacTitleBarChange?
     /// Room left for the traffic lights, none when they're hidden, as in full screen.
     @State private var windowButtonsInset: CGFloat = MacTitleBarChange.trafficLightsInset
+    @Environment(\.accessibilityVoiceOverEnabled) private var voiceOverEnabled
+    /// In full-screen lyrics the buttons show while the pointer moves and for a moment after.
+    @State private var showsChrome = true
+    @State private var hideChromeTask: Task<Void, Never>?
+    /// A button the keyboard is on stays visible.
+    @FocusState private var focusedChrome: ChromeControl?
+
+    enum ChromeControl: Hashable {
+        case close, miniPlayer, volume, follow, exitFullScreen, lyrics, queue
+    }
+
+    /// How long full screen's buttons stay after the pointer stops.
+    static let chromeIdleDelay: Duration = .milliseconds(2500)
 
     private var state: PlayerState { playback.state }
 
@@ -55,24 +68,31 @@ struct MacNowPlayingView: View {
         .opacity(isLyricsFullScreen ? 0 : 1)
         .allowsHitTesting(!isLyricsFullScreen)
         .accessibilityHidden(isLyricsFullScreen)
-        .overlay(alignment: .topLeading) { if !isLyricsFullScreen { windowButtons } }
-        .overlay(alignment: .topTrailing) {
-            if !isLyricsFullScreen {
-                MacVolumeSlider()
-                    .frame(width: 180)
-                    .padding(.horizontal, 20)
-                    .padding(.top, 16)
-            }
-        }
-        .overlay(alignment: .bottomTrailing) { if !isLyricsFullScreen { paneButtons(pane) } }
         .overlay {
             if isLyricsFullScreen {
-                MacFullScreenLyrics(container: container, session: lyrics, backdropColors: backdrop.backgroundColors) {
-                    setLyricsFullScreen(false)
-                }
-                .transition(.opacity)
+                MacFullScreenLyrics(container: container, session: lyrics, backdropColors: backdrop.backgroundColors,
+                                    showsSpinningDisc: $showsSpinningDisc)
+                    .transition(.opacity)
             }
         }
+        // Full screen keeps only the Lyrics button; the rest shows while the pointer moves.
+        .overlay(alignment: .topLeading) { windowButtons.modifier(chromeFade) }
+        .overlay(alignment: .topTrailing) {
+            MacVolumeSlider()
+                .focused($focusedChrome, equals: .volume)
+                .frame(width: 180)
+                .padding(.horizontal, 20)
+                .padding(.top, 16)
+                .modifier(chromeFade)
+        }
+        .overlay(alignment: .bottomTrailing) { paneButtons(pane) }
+        .onContinuousHover { phase in
+            if case .active = phase, isLyricsFullScreen { revealChrome() }
+        }
+        .onChange(of: isLyricsFullScreen) { _, isFullScreen in
+            if isFullScreen { revealChrome() } else { hideChromeTask?.cancel() }
+        }
+        .onDisappear { hideChromeTask?.cancel() }
         // The backdrop runs under the title bar to the window's top edge.
         .background { background.ignoresSafeArea() }
         .ignoresSafeArea(.container, edges: .top)
@@ -135,6 +155,41 @@ struct MacNowPlayingView: View {
         withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.3)) { isLyricsFullScreen = on }
     }
 
+    // MARK: Full-screen chrome
+
+    /// Whether a button that hides in full-screen lyrics shows now: always outside full screen,
+    /// with VoiceOver, or while the keyboard is on one of them.
+    private var isChromeVisible: Bool {
+        !isLyricsFullScreen || showsChrome || voiceOverEnabled || focusedChrome != nil
+    }
+
+    private var chromeFade: ChromeFade {
+        ChromeFade(isVisible: isChromeVisible, reduceMotion: reduceMotion)
+    }
+
+    private func revealChrome() {
+        if !showsChrome { showsChrome = true }
+        hideChromeTask?.cancel()
+        hideChromeTask = Task {
+            try? await Task.sleep(for: Self.chromeIdleDelay)
+            guard !Task.isCancelled else { return }
+            showsChrome = false
+        }
+    }
+
+    /// Fades a button out while full screen's chrome is hidden. It stays clickable and
+    /// focusable: moving the pointer to it, or tabbing to it, brings it back first.
+    struct ChromeFade: ViewModifier {
+        let isVisible: Bool
+        let reduceMotion: Bool
+
+        func body(content: Content) -> some View {
+            content
+                .opacity(isVisible ? 1 : 0)
+                .animation(reduceMotion ? nil : .easeInOut(duration: 0.3), value: isVisible)
+        }
+    }
+
     // MARK: Backdrop
 
     /// The artwork's colours, darkened so white text keeps its contrast. Reduce Transparency
@@ -187,7 +242,7 @@ struct MacNowPlayingView: View {
             }
             Spacer(minLength: 0)
             if let track = state.currentTrack, !track.isLocalFile {
-                songButtons(track, size: metrics.transportSize)
+                MacSongButtons(track: track, size: metrics.transportSize)
             }
         }
     }
@@ -215,52 +270,17 @@ struct MacNowPlayingView: View {
         .foregroundStyle(.white.opacity(NowPlayingText.secondaryOpacity))
     }
 
-    /// The song's heart and its menu.
-    private func songButtons(_ track: DisplayableSong, size: Double) -> some View {
-        FavoriteMatches(.song, id: track.id) { toggle in
-            HStack(spacing: 8) {
-                Button {
-                    playback.setFavorite(toggle.toggled, songs: [track])
-                } label: {
-                    Image(systemName: toggle.systemImage)
-                        .font(.system(size: size * 0.9))
-                        .frame(width: size * 1.6, height: size * 1.6)
-                        .contentTransition(.symbolEffect(.replace))
-                }
-                .buttonStyle(.borderless)
-                .disabled(!playback.container.serverState.isOnline)
-                .help(Text(toggle.actionTitle))
-                .accessibilityLabel(Text("Favorite"))
-                .accessibilityValue(Text(toggle.accessibilityValue))
-                .accessibilityHint(Text(toggle.actionTitle))
-                .accessibilityAddTraits(toggle.isFavorite ? .isSelected : [])
-
-                Menu {
-                    MacSongMenu(songs: [track], isFavorite: toggle.isFavorite)
-                } label: {
-                    Image(systemName: "ellipsis")
-                        .font(.system(size: size * 0.9))
-                        .frame(width: size * 1.6, height: size * 1.6)
-                }
-                .menuStyle(.button)
-                .buttonStyle(.borderless)
-                .menuIndicator(.hidden)
-                .fixedSize()
-                .accessibilityLabel("More")
-                .help("More")
-            }
-        }
-    }
-
     // MARK: Lyrics and queue
 
     /// Lyrics in large bold lines that grow with the pane, as in the Music app.
     @ViewBuilder private func sidePane(_ pane: NowPlayingSidePane, metrics: NowPlayingMetrics) -> some View {
         switch pane {
         case .lyrics:
-            // Its follow and full-screen buttons sit with the pane buttons in the corner.
+            // Its follow and full-screen buttons sit with the pane buttons in the corner. The
+            // lines around the one being sung blur and fade a little, as full screen's do more.
             MacLyricsPane(container: container, session: lyrics)
-                .environment(\.lyricsTypography, .scaled(forWidth: metrics.paneWidth).withoutHeaderButtons())
+                .environment(\.lyricsTypography,
+                             .scaled(forWidth: metrics.paneWidth).withoutHeaderButtons().withDepth(.gentle))
         case .queue:
             MacQueuePane(isOnBackdrop: true)
         }
@@ -276,6 +296,7 @@ struct MacNowPlayingView: View {
                     .frame(width: 30, height: 30)
                     .background(circleFill, in: Circle())
             }
+            .focused($focusedChrome, equals: .close)
             .accessibilityLabel("Close Now Playing")
             .help("Close Now Playing")
 
@@ -287,6 +308,7 @@ struct MacNowPlayingView: View {
                     .frame(width: 30, height: 30)
                     .background(circleFill, in: Circle())
             }
+            .focused($focusedChrome, equals: .miniPlayer)
             .accessibilityLabel("MiniPlayer")
             .help("MiniPlayer")
         }
@@ -300,23 +322,45 @@ struct MacNowPlayingView: View {
         reduceTransparency ? AnyShapeStyle(Color.white.opacity(0.22)) : AnyShapeStyle(.ultraThinMaterial)
     }
 
+    /// In full-screen lyrics only the Lyrics button stays; it, Escape or Exit Full Screen go back.
     private func paneButtons(_ pane: NowPlayingSidePane) -> some View {
         HStack(spacing: 6) {
             if !isPaneHidden, pane == .lyrics, lyrics.hasLyrics, let viewModel = lyrics.viewModel {
-                lyricsButton("Follow Lyrics", systemImage: "arrow.up.arrow.down", isOn: viewModel.autoScrollEnabled) {
-                    viewModel.autoScrollEnabled.toggle()
+                Group {
+                    lyricsButton("Follow Lyrics", systemImage: "arrow.up.arrow.down", isOn: viewModel.autoScrollEnabled) {
+                        viewModel.autoScrollEnabled.toggle()
+                    }
+                    .focused($focusedChrome, equals: .follow)
+                    if isLyricsFullScreen {
+                        lyricsButton("Exit Full Screen Lyrics", systemImage: "arrow.down.right.and.arrow.up.left", isOn: nil) {
+                            setLyricsFullScreen(false)
+                        }
+                        .focused($focusedChrome, equals: .exitFullScreen)
+                    } else {
+                        lyricsButton("Full Screen Lyrics", systemImage: "arrow.up.left.and.arrow.down.right", isOn: nil) {
+                            setLyricsFullScreen(true)
+                        }
+                    }
+                    Divider()
+                        .frame(height: 20)
+                        .overlay(Color.white.opacity(0.3))
+                        .padding(.horizontal, 4)
                 }
-                lyricsButton("Full Screen Lyrics", systemImage: "arrow.up.left.and.arrow.down.right", isOn: nil) {
-                    setLyricsFullScreen(true)
-                }
-                Divider()
-                    .frame(height: 20)
-                    .overlay(Color.white.opacity(0.3))
-                    .padding(.horizontal, 4)
+                .modifier(chromeFade)
             }
-            paneButton(.lyrics, title: "Lyrics", systemImage: "quote.bubble", shown: pane)
-                .disabled(!playback.commands.canShowLyrics)
+            if isLyricsFullScreen {
+                lyricsButton("Lyrics", systemImage: "quote.bubble", isOn: true) {
+                    setLyricsFullScreen(false)
+                }
+                .focused($focusedChrome, equals: .lyrics)
+                .accessibilityHint("Exits full-screen lyrics")
+            } else {
+                paneButton(.lyrics, title: "Lyrics", systemImage: "quote.bubble", shown: pane)
+                    .disabled(!playback.commands.canShowLyrics)
+            }
             paneButton(.queue, title: "Playing Next", systemImage: "list.bullet", shown: pane)
+                .focused($focusedChrome, equals: .queue)
+                .modifier(chromeFade)
         }
         .padding(20)
     }
@@ -360,6 +404,50 @@ struct MacNowPlayingView: View {
         .accessibilityValue(isOn ? Text("On") : Text("Off"))
         .accessibilityAddTraits(isOn ? .isSelected : [])
         .help(Text(title))
+    }
+}
+
+/// The playing song's heart and its menu, beside the title in Now Playing and full-screen lyrics.
+struct MacSongButtons: View {
+    let track: DisplayableSong
+    let size: Double
+
+    @Environment(MacPlayback.self) private var playback
+
+    var body: some View {
+        FavoriteMatches(.song, id: track.id) { toggle in
+            HStack(spacing: 8) {
+                Button {
+                    playback.setFavorite(toggle.toggled, songs: [track])
+                } label: {
+                    Image(systemName: toggle.systemImage)
+                        .font(.system(size: size * 0.9))
+                        .frame(width: size * 1.6, height: size * 1.6)
+                        .contentTransition(.symbolEffect(.replace))
+                }
+                .buttonStyle(.borderless)
+                .disabled(!playback.container.serverState.isOnline)
+                .help(Text(toggle.actionTitle))
+                .accessibilityLabel(Text("Favorite"))
+                .accessibilityValue(Text(toggle.accessibilityValue))
+                .accessibilityHint(Text(toggle.actionTitle))
+                .accessibilityAddTraits(toggle.isFavorite ? .isSelected : [])
+
+                Menu {
+                    MacSongMenu(songs: [track], isFavorite: toggle.isFavorite)
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .font(.system(size: size * 0.9))
+                        .frame(width: size * 1.6, height: size * 1.6)
+                }
+                .menuStyle(.button)
+                .buttonStyle(.borderless)
+                .menuIndicator(.hidden)
+                .fixedSize()
+                .accessibilityLabel("More")
+                .help("More")
+            }
+        }
     }
 }
 

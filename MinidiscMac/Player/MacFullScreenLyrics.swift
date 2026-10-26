@@ -1,146 +1,140 @@
 import SwiftSonic
 import SwiftUI
 
-/// Full-screen lyrics on the Mac: they take over the whole Now Playing window rather than the
-/// iPhone's phone-shaped karaoke sheet. Huge centred lines over the blurred, tinted cover, the
-/// song in a small header, and a slim control bar that shows while the pointer moves. Escape,
-/// the close button or the full-screen button again go back to Now Playing.
+/// Full-screen lyrics on the Mac, in two columns over a vivid gradient from the cover: on the
+/// left the artwork, the song with its heart and menu, a thin scrubber and the transport; on the
+/// right the lyrics, only about four huge lines, the one being sung held in the middle and the
+/// others blurred and faded. Everything scales with the window (`FullScreenLyricsMetrics`).
+/// Now Playing keeps its buttons over this view and hides them until the pointer moves; Escape
+/// or the Lyrics button goes back.
 struct MacFullScreenLyrics: View {
     let container: AppContainer
     let session: MacLyricsSession
     let backdropColors: [Color]
-    let close: () -> Void
+    @Binding var showsSpinningDisc: Bool
 
     @Environment(MacPlayback.self) private var playback
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
-    @Environment(\.accessibilityVoiceOverEnabled) private var voiceOverEnabled
-    @State private var showsControls = true
-    @State private var hideControlsTask: Task<Void, Never>?
 
-    private var track: DisplayableSong? { playback.state.currentTrack }
+    private var state: PlayerState { playback.state }
 
     var body: some View {
         GeometryReader { proxy in
-            MacLyricsPane(container: container, session: session, isFullScreen: true)
-                .environment(\.lyricsTypography, .karaoke(forWidth: proxy.size.width))
-                .frame(maxWidth: 1100)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            let metrics = FullScreenLyricsMetrics(width: proxy.size.width, height: proxy.size.height)
+            HStack(alignment: .center, spacing: metrics.columnGap) {
+                playerColumn(metrics)
+                    .frame(width: metrics.artworkSide)
+                MacLyricsPane(container: container, session: session, isFullScreen: true)
+                    .environment(\.lyricsTypography, .fullScreen(metrics))
+                    .frame(width: metrics.lyricsWidth, height: metrics.lyricsHeight)
+                    .background { wash(opacity: FullScreenLyricsBackdrop.lyricsWashOpacity, cornerRadius: metrics.lineSize) }
+            }
+            .padding(.horizontal, metrics.horizontalInset)
+            .padding(.vertical, metrics.verticalInset)
+            .frame(width: proxy.size.width, height: proxy.size.height)
         }
-        .background { background.ignoresSafeArea() }
-        .overlay(alignment: .topLeading) { header }
-        .overlay(alignment: .topTrailing) { closeButton }
-        .overlay(alignment: .bottom) { controlBar }
-        .onContinuousHover { phase in
-            if case .active = phase { revealControls() }
-        }
-        .onAppear { revealControls() }
-        .onDisappear { hideControlsTask?.cancel() }
+        .background { backdrop.ignoresSafeArea() }
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Full Screen Lyrics")
     }
 
     // MARK: Backdrop
 
-    /// The cover filling the window, blurred and darkened by the player's palette so the dimmest
-    /// line keeps 3:1. Reduce Transparency gets the palette's solid colour instead.
-    @ViewBuilder private var background: some View {
-        let colors = PlayerBackgroundPalette.colors(from: backdropColors)
+    /// The cover's colours, vivid and bright, blended across the window. Reduce Transparency gets
+    /// one solid colour, darkened as the lyrics' wash would, in place of the gradient and washes.
+    @ViewBuilder private var backdrop: some View {
+        let colors = FullScreenLyricsBackdrop.colors(from: backdropColors, accent: .minidiscAccent)
         if reduceTransparency {
             (colors.first ?? .black)
+                .overlay(Color.black.opacity(FullScreenLyricsBackdrop.lyricsWashOpacity))
+                .accessibilityHidden(true)
         } else {
-            GeometryReader { proxy in
-                ZStack {
-                    LinearGradient(colors: colors, startPoint: .topLeading, endPoint: .bottomTrailing)
-                    if let track {
-                        CoverArtView(id: track.coverArtId ?? track.id, size: 600)
-                            .scaledToFill()
-                            .frame(width: proxy.size.width, height: proxy.size.height)
-                            .clipped()
-                            .blur(radius: 80)
-                            .opacity(0.45)
-                    }
-                    // Keeps a white cover at luminance 0.074 or less, as the iPhone's karaoke does.
-                    Color.black.opacity(0.45)
-                }
-            }
+            MeshGradient(
+                width: 3, height: 3,
+                points: [
+                    [0, 0], [0.5, 0], [1, 0],
+                    [0, 0.5], [0.42, 0.55], [1, 0.5],
+                    [0, 1], [0.5, 1], [1, 1],
+                ],
+                colors: Self.meshColors(colors),
+                // Straight blends between the stops, which keeps every point under the cap.
+                smoothsColors: false
+            )
             .accessibilityHidden(true)
         }
     }
 
-    // MARK: Header and controls
+    /// Nine mesh points from the cover's bands, mixing them across the window.
+    private static func meshColors(_ colors: [Color]) -> [Color] {
+        guard !colors.isEmpty else { return Array(repeating: .black, count: 9) }
+        return [0, 1, 2, 3, 2, 0, 1, 3, 2].map { colors[$0 % colors.count] }
+    }
 
-    /// Clear of the traffic lights, which sit over the top-left corner.
-    private var header: some View {
-        HStack(spacing: 12) {
-            if let track {
-                CoverArtView(id: track.coverArtId ?? track.id, size: 120, cornerRadius: 6)
-                    .frame(width: 52, height: 52)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(track.title)
-                        .font(.headline)
-                    if let artist = track.artist {
-                        Text(artist)
-                            .font(.subheadline)
-                            .foregroundStyle(.white.opacity(NowPlayingText.secondaryOpacity))
-                    }
-                }
-                .lineLimit(1)
+    /// A soft dark wash behind white text on the bright backdrop, feathered well outside the text
+    /// so the text itself sits on its full opacity. None with Reduce Transparency, where the
+    /// whole backdrop is darkened instead.
+    @ViewBuilder private func wash(opacity: Double, cornerRadius: Double) -> some View {
+        if !reduceTransparency {
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .fill(Color.black.opacity(opacity))
+                .padding(-Self.washOutset)
+                .blur(radius: Self.washOutset / 2)
+                .accessibilityHidden(true)
+        }
+    }
+
+    /// How far a wash reaches past its text; it fades over the outer half.
+    private static let washOutset: Double = 48
+
+    // MARK: Song and controls
+
+    private func playerColumn(_ metrics: FullScreenLyricsMetrics) -> some View {
+        VStack(alignment: .leading, spacing: metrics.columnSpacing * 1.5) {
+            // Clicking the artwork swaps it for the spinning MiniDisc, as in Now Playing.
+            MacSpinningDiscArtwork(showsDisc: $showsSpinningDisc, cornerRadius: 12 * metrics.scale, artworkSize: 1200)
+                .frame(width: metrics.artworkSide, height: metrics.artworkSide)
+                .shadow(color: .black.opacity(0.35), radius: 24 * metrics.scale, y: 12 * metrics.scale)
+            VStack(spacing: metrics.columnSpacing) {
+                songInfo(metrics)
+                MacScrubber(timeStyle: AnyShapeStyle(.white.opacity(NowPlayingText.secondaryOpacity)),
+                            timeFont: .system(size: metrics.timeSize, weight: .semibold),
+                            timeWidth: metrics.timeSize * 3.8)
+                MacTransportControls(commands: playback.commands, isLarge: true,
+                                     largeGlyphSize: metrics.transportSize, largePlaySize: metrics.playSize)
+                    .foregroundStyle(.white)
             }
+            .background { wash(opacity: FullScreenLyricsBackdrop.textWashOpacity, cornerRadius: 24) }
         }
-        .padding(.leading, 28)
-        .padding(.top, 44)
-        .accessibilityElement(children: .combine)
     }
 
-    private var closeButton: some View {
-        Button(action: close) {
-            Image(systemName: "arrow.down.right.and.arrow.up.left")
-                .font(.body.weight(.semibold))
-                .frame(width: 34, height: 34)
-                .background(reduceTransparency ? AnyShapeStyle(Color.white.opacity(0.22)) : AnyShapeStyle(.ultraThinMaterial),
-                            in: Circle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("Exit Full Screen Lyrics")
-        .help("Exit Full Screen Lyrics")
-        .padding(.trailing, 24)
-        .padding(.top, 44)
-    }
-
-    /// The scrubber and transport, shown while the pointer moves and for a few seconds after;
-    /// always with VoiceOver.
-    private var controlBar: some View {
-        let visible = showsControls || voiceOverEnabled
-        return VStack(spacing: 8) {
-            MacScrubber(timeStyle: AnyShapeStyle(.white.opacity(NowPlayingText.secondaryOpacity)))
-            MacTransportControls(commands: playback.commands, showsModes: false)
-                .foregroundStyle(.white)
-        }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 12)
-        .frame(maxWidth: 520)
-        .background(reduceTransparency ? AnyShapeStyle(Color.black.opacity(0.55)) : AnyShapeStyle(.ultraThinMaterial),
-                    in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .padding(.bottom, 28)
-        .opacity(visible ? 1 : 0)
-        .allowsHitTesting(visible)
-        .animation(reduceMotion ? nil : .easeInOut(duration: 0.25), value: visible)
-    }
-
-    private func revealControls() {
-        showsControls = true
-        hideControlsTask?.cancel()
-        hideControlsTask = Task {
-            try? await Task.sleep(for: .seconds(3))
-            guard !Task.isCancelled else { return }
-            showsControls = false
+    /// The title on one line, "Artist — Album" under it, the heart and menu at the right.
+    private func songInfo(_ metrics: FullScreenLyricsMetrics) -> some View {
+        HStack(alignment: .center, spacing: 10) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(state.currentTrack?.title ?? state.currentRadio?.name ?? String(localized: "Not Playing"))
+                    .font(.system(size: metrics.titleSize, weight: .bold))
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                if let track = state.currentTrack,
+                   let subtitle = NowPlayingText.subtitle(artist: track.artist, album: track.albumName) {
+                    Text(subtitle)
+                        .font(.system(size: metrics.subtitleSize))
+                        .lineLimit(1)
+                        .foregroundStyle(.white.opacity(NowPlayingText.secondaryOpacity))
+                }
+            }
+            .accessibilityElement(children: .combine)
+            Spacer(minLength: 0)
+            if let track = state.currentTrack, !track.isLocalFile {
+                MacSongButtons(track: track, size: metrics.transportSize * 0.85)
+            }
         }
     }
 }
 
-/// The full-screen lines: centred, scrolling to the line being sung, with the iPhone karaoke
-/// view's depth of field. Clicking a line seeks to it.
+/// The full-screen lines: left-aligned, the one being sung held in the middle of a window about
+/// four lines tall, the others blurred and faded the further they are. Clicking a line plays from
+/// it. A scrub or seek lands straight on its line; playback glides from line to line.
 struct MacFullScreenLyricsLines: View {
     @Bindable var viewModel: LyricsViewModel
 
@@ -155,10 +149,12 @@ struct MacFullScreenLyricsLines: View {
                 lines(structured)
             case .loading:
                 ProgressView()
+                    .frame(maxWidth: .infinity, alignment: .leading)
             default:
                 Text("No lyrics available")
-                    .font(.title.weight(.semibold))
+                    .font(.system(size: (typography.lineSize ?? 40) * 0.6, weight: .bold, design: .rounded))
                     .foregroundStyle(.white.opacity(PlayerBackgroundPalette.secondaryOpacity))
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -168,50 +164,53 @@ struct MacFullScreenLyricsLines: View {
     }
 
     private func lines(_ structured: StructuredLyrics) -> some View {
-        ScrollViewReader { proxy in
-            ScrollView {
-                LazyVStack(spacing: typography.lineSpacing) {
-                    ForEach(Array(structured.line.enumerated()), id: \.offset) { index, line in
-                        LyricsLineView(
-                            value: line.value,
-                            index: index,
-                            currentIndex: viewModel.currentLineIndex,
-                            isSynced: structured.synced,
-                            isTappable: structured.synced && line.start != nil,
-                            onTap: { viewModel.userTapped(lineIndex: index) },
-                            isKaraoke: true
-                        )
-                        .id(index)
+        GeometryReader { geometry in
+            ScrollViewReader { proxy in
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: typography.lineSpacing) {
+                        ForEach(Array(structured.line.enumerated()), id: \.offset) { index, line in
+                            LyricsLineView(
+                                value: line.value,
+                                index: index,
+                                currentIndex: viewModel.currentLineIndex,
+                                isSynced: structured.synced,
+                                isTappable: structured.synced && line.start != nil,
+                                onTap: { viewModel.userTapped(lineIndex: index) }
+                            )
+                            .id(index)
+                        }
+                    }
+                    // Room above the first line and below the last, so either can sit in the middle.
+                    .padding(.vertical, geometry.size.height / 2)
+                }
+                .scrollIndicators(.hidden)
+                .onAppear {
+                    viewModel.syncToPlayback()
+                    guard let index = viewModel.currentLineIndex else { return }
+                    LyricsScrolling.scroll(proxy, to: .init(index: index, animated: false, revision: 0),
+                                           reduceMotion: reduceMotion, animation: Self.glide)
+                }
+                .onChange(of: viewModel.scrollRequest) { _, request in
+                    guard let request else { return }
+                    LyricsScrolling.scroll(proxy, to: request, reduceMotion: reduceMotion, animation: Self.glide)
+                }
+                .onScrollPhaseChange { _, phase in
+                    switch phase {
+                    case .interacting:
+                        viewModel.userStartedScrolling()
+                    case .decelerating, .idle:
+                        if viewModel.isUserScrolling { viewModel.userStoppedScrolling() }
+                    default:
+                        break
                     }
                 }
-                .padding(.horizontal, typography.horizontalInset)
-                .padding(.vertical, 360)
+                .mask(LinearGradient(stops: [.init(color: .clear, location: 0), .init(color: .black, location: 0.16),
+                                             .init(color: .black, location: 0.84), .init(color: .clear, location: 1)],
+                                     startPoint: .top, endPoint: .bottom))
             }
-            .scrollIndicators(.hidden)
-            .onAppear {
-                viewModel.syncToPlayback()
-                guard let index = viewModel.currentLineIndex else { return }
-                var transaction = Transaction()
-                transaction.disablesAnimations = true
-                withTransaction(transaction) { proxy.scrollTo(index, anchor: .center) }
-            }
-            .onChange(of: viewModel.currentLineIndex) { _, index in
-                guard let index, viewModel.autoScrollEnabled, !viewModel.isUserScrolling else { return }
-                withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.35)) { proxy.scrollTo(index, anchor: .center) }
-            }
-            .onScrollPhaseChange { _, phase in
-                switch phase {
-                case .interacting:
-                    viewModel.userStartedScrolling()
-                case .decelerating, .idle:
-                    if viewModel.isUserScrolling { viewModel.userStoppedScrolling() }
-                default:
-                    break
-                }
-            }
-            .mask(LinearGradient(stops: [.init(color: .clear, location: 0), .init(color: .black, location: 0.18),
-                                         .init(color: .black, location: 0.82), .init(color: .clear, location: 1)],
-                                 startPoint: .top, endPoint: .bottom))
         }
     }
+
+    /// The current line easing into the middle.
+    private static let glide: Animation = .smooth(duration: 0.5)
 }

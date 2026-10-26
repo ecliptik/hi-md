@@ -1,5 +1,49 @@
 import SwiftUI
 
+/// How the lyric lines around the one being sung recede.
+nonisolated enum LyricsLineDepth: Equatable, Sendable {
+    /// Every other line dims alike: the iPhone player, the MiniPlayer and the main window's panel.
+    case dimmed
+    /// A light depth of field: the Mac Now Playing view, which shows many lines beside the player.
+    case gentle
+    /// A strong depth of field around one huge line: the Mac's full-screen lyrics, about four
+    /// lines tall.
+    case deep
+}
+
+/// The opacity and blur of a lyric line `distance` lines from the one being sung.
+nonisolated struct LyricsLineAppearance: Equatable, Sendable {
+    let opacity: Double
+    let blur: Double
+
+    /// Increase Contrast or Reduce Transparency (`prefersLegibility`): no blur, and every line
+    /// keeps 3:1 over its backdrop. Otherwise the line next to the current one does too, and
+    /// lines further out fade into the background.
+    static func line(atDistance distance: Int, depth: LyricsLineDepth, prefersLegibility: Bool) -> LyricsLineAppearance {
+        guard distance > 0 else { return LyricsLineAppearance(opacity: 1, blur: 0) }
+        switch depth {
+        case .dimmed:
+            return LyricsLineAppearance(opacity: PlayerBackgroundPalette.dimmedOpacity, blur: 0)
+        case .gentle:
+            if prefersLegibility { return LyricsLineAppearance(opacity: PlayerBackgroundPalette.dimmedOpacity, blur: 0) }
+            switch distance {
+            case 1: return LyricsLineAppearance(opacity: PlayerBackgroundPalette.dimmedOpacity, blur: 0.8)
+            case 2: return LyricsLineAppearance(opacity: 0.48, blur: 1.6)
+            default: return LyricsLineAppearance(opacity: 0.38, blur: 2.4)
+            }
+        case .deep:
+            if prefersLegibility {
+                return LyricsLineAppearance(opacity: distance == 1 ? 0.6 : FullScreenLyricsBackdrop.nearLineOpacity, blur: 0)
+            }
+            switch distance {
+            case 1: return LyricsLineAppearance(opacity: FullScreenLyricsBackdrop.nearLineOpacity, blur: 2.5)
+            case 2: return LyricsLineAppearance(opacity: 0.32, blur: 5)
+            default: return LyricsLineAppearance(opacity: 0.18, blur: 8)
+            }
+        }
+    }
+}
+
 struct LyricsLineView: View {
     let value: String
     let index: Int
@@ -12,6 +56,7 @@ struct LyricsLineView: View {
 
     @Environment(\.colorSchemeContrast) private var colorSchemeContrast
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.lyricsTypography) private var typography
 
     /// Increase Contrast or Reduce Transparency: no depth-of-field blur, and far lines no dimmer
@@ -23,10 +68,16 @@ struct LyricsLineView: View {
         return abs(index - currentIndex)
     }
 
-    /// Full screen keeps the strong depth-of-field; in the player, other lines only dim, so the lyrics
-    /// stay legible next to the controls.
+    private var appearance: LyricsLineAppearance {
+        LyricsLineAppearance.line(atDistance: distance, depth: typography.depth, prefersLegibility: prefersLegibility)
+    }
+
+    /// Full screen keeps the strong depth-of-field; in the player, other lines dim, and on the
+    /// Mac's Now Playing view they blur a little too.
     private var blurRadius: CGFloat {
-        guard isKaraoke, isSynced, currentIndex != nil, !prefersLegibility else { return 0 }
+        guard isSynced, currentIndex != nil else { return 0 }
+        guard isKaraoke else { return appearance.blur }
+        guard !prefersLegibility else { return 0 }
         switch distance {
         case 0: return 0
         case 1: return 1.5
@@ -40,7 +91,7 @@ struct LyricsLineView: View {
     /// sweep 2026-10-26, audit M3).
     private var opacity: Double {
         guard isSynced, currentIndex != nil else { return 1.0 }
-        guard isKaraoke else { return distance == 0 ? 1.0 : PlayerBackgroundPalette.dimmedOpacity }
+        guard isKaraoke else { return appearance.opacity }
         if prefersLegibility { return distance == 0 ? 1.0 : 0.8 }
         switch distance {
         case 0: return 1.0
@@ -57,7 +108,6 @@ struct LyricsLineView: View {
 
     private var lineFont: Font {
         if isKaraoke {
-            if let size = typography.karaokeLineSize { return .system(size: size, weight: .heavy, design: .rounded) }
             return .system(.largeTitle, design: .rounded, weight: .heavy)
         }
         if let size = typography.lineSize { return .system(size: size, weight: .bold, design: .rounded) }
@@ -73,9 +123,15 @@ struct LyricsLineView: View {
             .blur(radius: blurRadius)
             .scaleEffect(isKaraoke && distance == 0 && currentIndex != nil ? 1.12 : scale,
                          anchor: isKaraoke ? .center : .leading)
-            .animation(.easeInOut(duration: 0.25), value: currentIndex)
+            // Reduce Motion: the lines change at once, without the blur and size easing in.
+            .animation(reduceMotion ? nil : .easeInOut(duration: 0.25), value: currentIndex)
             .contentShape(Rectangle())
             .onTapGesture {
+                if isTappable { onTap() }
+            }
+            .accessibilityAddTraits(isTappable ? .isButton : [])
+            .accessibilityHint(isTappable ? Text("Plays from this line") : Text(verbatim: ""))
+            .accessibilityAction {
                 if isTappable { onTap() }
             }
     }

@@ -105,12 +105,40 @@ struct NowPlayingPresentationTests {
         #expect(beside.withoutHeaderButtons().lineSize == beside.lineSize)
     }
 
-    @Test func fullScreenLyricsScaleFrom48To72() {
-        #expect(LyricsTypography.iPhone.karaokeLineSize == nil)
-        #expect(LyricsTypography.karaoke(forWidth: 900).karaokeLineSize == 48)
-        #expect(LyricsTypography.karaoke(forWidth: 1200).karaokeLineSize == 60)
-        #expect(LyricsTypography.karaoke(forWidth: 2560).karaokeLineSize == 72)
-        #expect(!LyricsTypography.karaoke(forWidth: 1200).showsHeaderButtons)
+    @Test func fullScreenLyricsAreAbout60PointsInA1000PointWindowAndScale() {
+        let medium = FullScreenLyricsMetrics(width: 1000, height: 700)
+        #expect((56...64).contains(medium.lineSize))
+        let small = FullScreenLyricsMetrics(width: 900, height: 600)
+        let large = FullScreenLyricsMetrics(width: 1512, height: 982)
+        let huge = FullScreenLyricsMetrics(width: 2560, height: 1440)
+        #expect(small.lineSize <= medium.lineSize)
+        #expect(large.lineSize > medium.lineSize)
+        #expect(huge.lineSize >= large.lineSize)
+        #expect(huge.lineSize <= 84)
+        // The typography the lines get: huge, left-aligned, the deep depth of field, no buttons.
+        let typography = LyricsTypography.fullScreen(medium)
+        #expect(typography.lineSize == medium.lineSize)
+        #expect(typography.depth == .deep)
+        #expect(!typography.showsHeaderButtons)
+        #expect(LyricsTypography.iPhone.depth == .dimmed)
+    }
+
+    @Test func fullScreenLyricsSplitTheWindowIntoTwoColumns() {
+        for (width, height) in [(900.0, 600.0), (1000, 700), (1512, 982), (2560, 1440)] {
+            let metrics = FullScreenLyricsMetrics(width: width, height: height)
+            // The artwork column is about 40% of the window, the lyrics take the rest.
+            #expect((0.28...0.42).contains(metrics.artworkSide / width), "\(width)×\(height)")
+            let used = 2 * metrics.horizontalInset + metrics.artworkSide + metrics.columnGap + metrics.lyricsWidth
+            #expect(abs(used - width) < 0.5)
+            // The artwork and its controls fit the height.
+            #expect(metrics.artworkSide + FullScreenLyricsMetrics.controlsHeight(scale: metrics.scale)
+                    + 2 * metrics.verticalInset <= height + 0.5)
+            // About four lines show, and a line holds more than a word or two.
+            let pitch = metrics.lineSize * 1.25 + metrics.lineSpacing
+            #expect(metrics.lyricsHeight / pitch <= FullScreenLyricsMetrics.visibleLines + 0.01)
+            #expect(metrics.lyricsHeight / pitch >= 3)
+            #expect(metrics.lyricsWidth / metrics.lineSize >= 7)
+        }
     }
 
     @Test func aGreyCoverGetsATintedBackdropThatKeepsContrast() {

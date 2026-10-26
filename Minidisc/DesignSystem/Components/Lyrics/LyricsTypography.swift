@@ -14,23 +14,29 @@ nonisolated struct LyricsTypography: Equatable, Sendable {
     /// The full-screen and follow-along buttons above the lines. The Mac MiniPlayer leaves them
     /// out: full screen means nothing there, and the lines start right under its tabs.
     var showsHeaderButtons = true
-    /// The full-screen lines' point size, or nil for the iPhone karaoke view's large title.
-    var karaokeLineSize: Double?
+    /// How the lines around the one being sung recede.
+    var depth: LyricsLineDepth = .dimmed
 
     static let iPhone = LyricsTypography()
 
-    /// The Mac's full-screen lyrics: huge centred lines for a window `width` points wide, from
-    /// 48 pt in the smallest window to 72 pt on a large screen.
-    static func karaoke(forWidth width: Double) -> LyricsTypography {
-        let size = min(max((width / 20).rounded(), 48), 72)
-        return LyricsTypography(lineSize: nil, lineSpacing: (size * 0.75).rounded(), horizontalInset: 48,
-                                headerInset: 4, showsHeaderButtons: false, karaokeLineSize: size)
+    /// The Mac's full-screen lyrics: huge left-aligned lines sized by `metrics`, the lines around
+    /// the one being sung blurred and faded away.
+    static func fullScreen(_ metrics: FullScreenLyricsMetrics) -> LyricsTypography {
+        LyricsTypography(lineSize: metrics.lineSize, lineSpacing: metrics.lineSpacing, horizontalInset: 0,
+                         headerInset: 0, showsHeaderButtons: false, depth: .deep)
     }
 
     /// The same lines without the buttons above them.
     func withoutHeaderButtons() -> LyricsTypography {
         var copy = self
         copy.showsHeaderButtons = false
+        return copy
+    }
+
+    /// The same lines, receding by `depth`.
+    func withDepth(_ depth: LyricsLineDepth) -> LyricsTypography {
+        var copy = self
+        copy.depth = depth
         return copy
     }
 
