@@ -1018,7 +1018,11 @@ struct CurrentSongDownloadTests {
         let cache = RecordingAudioStreamCache()
         let h = try harness(cache: cache, constrained: true)
         try await h.play()
-        try await Task.sleep(for: .milliseconds(400))
+        h.engine.startAdvancing()
+        await h.player.handleEngineState(.playing, playbackToken: h.engine.token)
+        // Several progress ticks: the skip must not be retried on each one.
+        try await Task.sleep(for: .milliseconds(1_300))
+        #expect(h.report.components(separatedBy: "skipped-power-or-data").count == 2)
         #expect(AudioDownloadStubProtocol.requests.isEmpty)
         #expect(cache.trackCount == 0)
         #expect(!h.state.currentSongNeedsNetwork)

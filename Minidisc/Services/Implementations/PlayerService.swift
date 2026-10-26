@@ -193,6 +193,8 @@ actor PlayerService: PlayerServiceProtocol {
         let headers: [String: String]
         let playbackGeneration: UInt64
         var isComplete = false
+        /// The network path on which Low Data Mode skipped it; a later path may allow it again.
+        var skippedOnPathGeneration: UInt64?
     }
     private var currentSongDownload: CurrentSongDownload?
     private var cacheDownloadTaskGeneration: UInt64 = 0
@@ -4181,6 +4183,9 @@ actor PlayerService: PlayerServiceProtocol {
         if !Self.allowsFullDownload(pathIsConstrained: isConstrained, lowPowerMode: ProcessInfo.processInfo.isLowPowerModeEnabled) {
             playbackDiagnostics.record(.cache(.skippedPowerOrData))
             Logger.player.debug("Cache skipped — Low Data Mode for '\(songId, privacy: .public)'")
+            if generation == playbackGeneration {
+                currentSongDownload?.skippedOnPathGeneration = latestNetworkPathEvent.generation
+            }
             await finishCurrentSongDownload(generation: generation, stored: false)
             return
         }
@@ -4237,7 +4242,8 @@ actor PlayerService: PlayerServiceProtocol {
     /// Restarts a full download that was cancelled before it finished, outside the transition window.
     private func resumeCurrentSongDownloadIfNeeded() async {
         guard let download = currentSongDownload, download.playbackGeneration == playbackGeneration,
-              !download.isComplete, cacheDownloadTask == nil else { return }
+              !download.isComplete, cacheDownloadTask == nil,
+              download.skippedOnPathGeneration != latestNetworkPathEvent.generation else { return }
         guard currentSourceIsRemoteStream else {
             // A rebuild moved the song to a complete local copy; nothing is left to download.
             currentSongDownload = nil
