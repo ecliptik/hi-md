@@ -159,6 +159,8 @@ final class ArtworkImageCache {
     @ObservationIgnored private var cache: [String: PlatformImage] = [:]
     @ObservationIgnored private var accessOrder: [String] = []
     private let maxEntries = 110
+    /// Decoded bytes held at most: every thumbnail plus about a dozen heroes.
+    private let maxBytes = 96 * 1_048_576
 
     private let coverArtURLProvider: CoverArtURLProvider
     private let localCoverURLProvider: LocalCoverURLProvider
@@ -984,10 +986,27 @@ final class ArtworkImageCache {
     private func store(image: PlatformImage, forKey key: String) {
         cache[key] = image
         touch(key)
-        while cache.count > maxEntries, let oldest = accessOrder.first {
-            cache.removeValue(forKey: oldest)
-            accessOrder.removeFirst()
+        // A hero cover decodes to about 5.8 MB, so the entry count alone could let the cache pass
+        // 100 MB. Past the count, evict the oldest entry; past the byte budget, the oldest hero, so
+        // the full player doesn't push list thumbnails out. Never the cover just stored.
+        var bytes = cache.values.reduce(0) { $0 + $1.decodedByteCount }
+        while cache.count > maxEntries || (bytes > maxBytes && cache.count > 1) {
+            let overCount = cache.count > maxEntries
+            let heroSuffix = "@\(ArtworkTier.hero.rawValue)"
+            guard let victim = overCount ? accessOrder.first
+                    : accessOrder.first(where: { $0 != key && $0.hasSuffix(heroSuffix) }) ?? accessOrder.first else { break }
+            bytes -= cache.removeValue(forKey: victim)?.decodedByteCount ?? 0
+            accessOrder.removeAll { $0 == victim }
         }
+    }
+
+    /// Drops the hero tier on a memory warning. Thumbnails are small and on screen in most lists;
+    /// a hero is re-read from disk the next time the player or a header shows it.
+    func trimForMemoryWarning() {
+        let heroes = cache.keys.filter { $0.hasSuffix("@\(ArtworkTier.hero.rawValue)") }
+        for key in heroes { cache.removeValue(forKey: key) }
+        accessOrder.removeAll { heroes.contains($0) }
+        Logger.artworkCache.info("ArtworkImageCache: memory warning, dropped \(heroes.count) hero covers")
     }
 
     private func touch(_ key: String) {
