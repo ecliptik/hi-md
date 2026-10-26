@@ -9,24 +9,60 @@ final class SearchViewModel {
     /// so only the final query survives this delay.
     static let searchDebounce: Duration = .milliseconds(300)
 
-    var searchResults: SearchResult3?
+    var searchResults: SearchResult3? {
+        didSet { rank(force: true) }
+    }
     var isSearching = false
     var searchError: UserFacingError?
     /// True only when neither the persistent catalogue index nor the server could answer,
     /// so the view falls back to downloaded tracks.
     var isOffline = false
 
-    private(set) var playlists: [Playlist] = []
+    private(set) var playlists: [Playlist] = [] {
+        didSet { rank(force: true) }
+    }
     private(set) var isLoadingPlaylists = false
     private(set) var playlistError: UserFacingError?
-    private(set) var resultsQuery = ""
-    private var requestedQuery = ""
+    private(set) var resultsQuery = "" {
+        didSet { rank(force: false) }
+    }
+    private var requestedQuery = "" {
+        didSet { rank(force: false) }
+    }
     private var requestGeneration = 0
     private var playlistGeneration = 0
 
-    var matches: [LibrarySearchMatch] {
-        LibrarySearchRanking.matches(query: resultsQuery.isEmpty ? requestedQuery : resultsQuery,
-                                     results: searchResults, playlists: playlists)
+    /// Ranked server results and playlists. Stored, not computed, because the view reads them
+    /// several times per body; they're re-ranked only when the results, the playlists or the
+    /// normalised query change.
+    private(set) var matches: [LibrarySearchMatch] = []
+    /// The songs in `matches`, in order, for multi-selection.
+    private(set) var songMatches: [DisplayableSong] = []
+    @ObservationIgnored private var rankedQuery = LibrarySearchQuery("")
+    @ObservationIgnored private var offlineRanking: (snapshot: UUID, query: LibrarySearchQuery, matches: [LibrarySearchMatch])?
+
+    /// Downloaded music ranked against `query`, reused while the snapshot and the normalised query
+    /// stay the same. Safe to call from a view body: the memo isn't observed.
+    func offlineMatches(query: String, in snapshot: OfflineBrowsingSnapshot) -> [LibrarySearchMatch] {
+        let query = LibrarySearchQuery(query)
+        if let offlineRanking, offlineRanking.snapshot == snapshot.identity, offlineRanking.query == query {
+            return offlineRanking.matches
+        }
+        let matches = LibrarySearchRanking.rank(snapshot.searchEntries, query: query)
+        offlineRanking = (snapshot.identity, query, matches)
+        return matches
+    }
+
+    private func rank(force: Bool) {
+        let text = resultsQuery.isEmpty ? requestedQuery : resultsQuery
+        let query = LibrarySearchQuery(text)
+        guard force || query != rankedQuery else { return }
+        rankedQuery = query
+        matches = LibrarySearchRanking.matches(query: text, results: searchResults, playlists: playlists)
+        songMatches = matches.compactMap { match in
+            if case .song(let song) = match { return song }
+            return nil
+        }
     }
 
     private let libraryService: any LibrarySearching
