@@ -305,8 +305,8 @@ struct FullPlayerView: View {
             showLyrics: $showLyrics,
             surface: $surface,
             isLiveStream: playerState.isLiveStream,
+            contentColor: vm.contentColor,
             secondaryContentColor: vm.secondaryContentColor,
-            accentColor: MinidiscColors.accent,
             playerState: playerState
         )
         .padding(.top, MinidiscSpacing.s)
@@ -1025,8 +1025,8 @@ private struct BottomToolbar: View {
     @Binding var showLyrics: Bool
     @Binding var surface: PlayerSurface
     let isLiveStream: Bool
+    let contentColor: Color
     let secondaryContentColor: Color
-    let accentColor: Color
     let playerState: PlayerState
 
     var body: some View {
@@ -1038,7 +1038,7 @@ private struct BottomToolbar: View {
                 } label: {
                     Image(systemName: "quote.bubble")
                         .font(.title3)
-                        .foregroundStyle(isLyricsActive ? accentColor : secondaryContentColor)
+                        .foregroundStyle(isLyricsActive ? Self.activeGlyph : secondaryContentColor)
                         .frame(width: 44, height: 44)
                         .background { activeIndicator(isLyricsActive) }
                 }
@@ -1062,7 +1062,7 @@ private struct BottomToolbar: View {
                 } label: {
                     Image(systemName: "list.bullet")
                         .font(.title3)
-                        .foregroundStyle(isQueueActive ? accentColor : secondaryContentColor)
+                        .foregroundStyle(isQueueActive ? Self.activeGlyph : secondaryContentColor)
                         .overlay(alignment: .topTrailing) {
                             if let badge = playerState.queueModeBadge {
                                 Image(systemName: badge)
@@ -1089,13 +1089,15 @@ private struct BottomToolbar: View {
     private var isLyricsActive: Bool { showLyrics && surface == .player }
     private var isQueueActive: Bool { surface == .queue }
 
-    /// A filled disc behind the active button, so its state doesn't rest on the accent colour
-    /// alone: gold over a bright cover can be dimmer than the inactive icons.
+    /// The active button is a solid disc in the player's content colour with a dark glyph, as in
+    /// Apple Music. A gold glyph on a faint disc was hard to see over mid-tone covers.
+    private static let activeGlyph = Color.black.opacity(0.8)
+
     @ViewBuilder
     private func activeIndicator(_ isActive: Bool) -> some View {
         if isActive {
             Circle()
-                .fill(secondaryContentColor.opacity(0.22))
+                .fill(contentColor)
                 .frame(width: 40, height: 40)
         }
     }
