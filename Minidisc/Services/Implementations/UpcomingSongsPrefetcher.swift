@@ -80,7 +80,7 @@ final class UpcomingSongsPrefetcher {
             let quality = CachedAudioQuality(streamURL: url)
             if await resolver.hasLocalCopy(songId: song.id, serverId: serverID, atLeast: quality) { continue }
             let request = PlayerService.cacheDownloadRequest(
-                url: url, headers: connection.authorizationHeaders(for: url), allowCellular: settings.cacheOverCellular
+                url: url, headers: connection.authorizationHeaders(for: url)
             )
             do {
                 let (file, response) = try await session.download(for: request, delegate: OriginScopedRedirectDelegate())

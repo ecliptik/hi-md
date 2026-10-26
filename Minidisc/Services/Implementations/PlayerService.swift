@@ -60,6 +60,8 @@ nonisolated struct PlaybackNetworkRecoveryTiming: Sendable {
     var stallGrace: Duration = .seconds(5)
     var retryDelay: Duration = .seconds(2)
     var validationDelay: Duration = .seconds(2)
+    /// First wait before the playing song's full download is retried; it doubles each attempt.
+    var downloadRetryDelay: Duration = .seconds(2)
 }
 
 /// Bounds automatic stream rebuilds without permanently wedging recovery after one early failure.
@@ -171,6 +173,20 @@ actor PlayerService: PlayerServiceProtocol {
     private var subsonicPlayingNowTask: Task<Void, Never>?
     private var playingNowTask: Task<Void, Never>?
     private var cacheDownloadTask: Task<Void, Never>?
+    /// The full download of the streaming song, kept so a network change can restart it.
+    private struct CurrentSongDownload: Sendable {
+        let songId: String
+        let serverId: UUID
+        let url: URL
+        let headers: [String: String]
+        let playbackGeneration: UInt64
+        var isComplete = false
+    }
+    private var currentSongDownload: CurrentSongDownload?
+    private var cacheDownloadTaskGeneration: UInt64 = 0
+    /// Mirrors `PlayerState.isNearTrackTransition`: background downloads stay off the network
+    /// while the standby deck prepares the next song.
+    private var isNearTrackTransition = false
     private let cacheSession: URLSession
     private var prefetchScheduled = false
     /// Invalidates a preload resolution already suspended in MediaResolver when its context changes.
@@ -270,7 +286,8 @@ actor PlayerService: PlayerServiceProtocol {
         networkRecoveryTiming: PlaybackNetworkRecoveryTiming = PlaybackNetworkRecoveryTiming(),
         audioSession: any AudioSessionControlling = SystemAudioSessionController(),
         audioRecoveryTiming: PlaybackAudioRecoveryTiming = PlaybackAudioRecoveryTiming(),
-        localMusicStore: LocalMusicStore? = nil
+        localMusicStore: LocalMusicStore? = nil,
+        cacheSession: URLSession? = nil
     ) {
         self.localMusicStore = localMusicStore
         self.state = state
@@ -295,10 +312,13 @@ actor PlayerService: PlayerServiceProtocol {
         self.audioRecoveryTiming = audioRecoveryTiming
         let cacheConfig = URLSessionConfiguration.default
         cacheConfig.timeoutIntervalForRequest = 30
-        cacheConfig.timeoutIntervalForResource = 300
-        cacheConfig.networkServiceType = .background
+        // A lossless original on a slow connection can take longer than five minutes.
+        cacheConfig.timeoutIntervalForResource = 1800
+        cacheConfig.networkServiceType = .avStreaming
+        // Cellular is allowed; Low Data Mode is respected by never using a constrained path.
+        cacheConfig.allowsExpensiveNetworkAccess = true
         cacheConfig.allowsConstrainedNetworkAccess = false
-        self.cacheSession = URLSession(configuration: cacheConfig)
+        self.cacheSession = cacheSession ?? URLSession(configuration: cacheConfig)
 
         self.engine = engine
         let bridge = AudioEngineBridge()
@@ -758,11 +778,11 @@ actor PlayerService: PlayerServiceProtocol {
             await listenBrainzService.notifyTrackStarted(song: song)
         }
 
+        currentSongDownload = nil
+        await setNearTrackTransition(false)
         if case .stream(let streamURL, let customHeaders) = source, let serverId,
            await MainActor.run(body: { cacheSettings.cacheWhilePlaying }) {
-            let (allowCellular, cacheFormat) = await MainActor.run {
-                (cacheSettings.cacheOverCellular, cacheSettings.cacheFormat)
-            }
+            let cacheFormat = await MainActor.run { cacheSettings.cacheFormat }
             guard isCurrentPlaybackIntent(
                 playbackGeneration: generation,
                 transportIntentGeneration: transportGeneration
@@ -784,20 +804,18 @@ actor PlayerService: PlayerServiceProtocol {
             }
 
             if let cacheStreamURL {
-                playbackDiagnostics.record(.cache(.scheduled(format: cacheFormat, allowsCellular: allowCellular)))
-                cacheDownloadTask = Task { [weak self] in
-                    await self?.cacheStreamAfterDelay(
-                        songId: songId,
-                        serverId: serverId,
-                        streamURL: cacheStreamURL,
-                        customHeaders: customHeaders,
-                        allowCellular: allowCellular,
-                        generation: generation
-                    )
-                }
+                playbackDiagnostics.record(.cache(.scheduled(format: cacheFormat, allowsCellular: true)))
+                currentSongDownload = CurrentSongDownload(
+                    songId: songId, serverId: serverId, url: cacheStreamURL,
+                    headers: customHeaders, playbackGeneration: generation
+                )
+                startCurrentSongDownload()
             } else {
                 Logger.player.debug("Cache: no URL for '\(songId, privacy: .public)' in \(cacheFormat.rawValue) — skipping")
             }
+        }
+        if currentSongDownload == nil {
+            await publishCurrentSongNeedsNetwork(false)
         }
 
         let artworkURL = await resolveArtworkURL(for: song)
@@ -1727,6 +1745,7 @@ actor PlayerService: PlayerServiceProtocol {
         guard transportGeneration == transportIntentGeneration, !Task.isCancelled else { return }
         startProgressTimer()
         startPositionSaveTimer()
+        resumeCurrentSongDownloadIfNeeded()
     }
 
     /// Fresh download > cache > stream resolution for the cold-start resume path.
@@ -1793,6 +1812,8 @@ actor PlayerService: PlayerServiceProtocol {
         ) else { return }
         cancelPendingScrobble()
         cancelPendingCacheDownload()
+        currentSongDownload = nil
+        isNearTrackTransition = false
         cancelPendingPrefetch()
         cancelPendingInstantMix()
         stopProgressTimer()
@@ -1831,6 +1852,8 @@ actor PlayerService: PlayerServiceProtocol {
             state.queue = []
             state.position = 0
             state.duration = 0
+            state.currentSongNeedsNetwork = false
+            state.isNearTrackTransition = false
         }
     }
 
@@ -2522,6 +2545,8 @@ actor PlayerService: PlayerServiceProtocol {
         // Drop the standby item immediately. It may be `.readyToPlay` while its HTTP connection is
         // still tied to the previous interface, and manual Next would otherwise promote it.
         engine.cancelPreload()
+        // The cancelled full download was tied to the old interface; start it again on the new one.
+        resumeCurrentSongDownloadIfNeeded()
 
         let generation = playbackGeneration
         let transportGeneration = transportIntentGeneration
@@ -3006,6 +3031,7 @@ actor PlayerService: PlayerServiceProtocol {
         startPositionSaveTimer()
         endTransitionCommit()
         ownsTransitionCommit = false
+        resumeCurrentSongDownloadIfNeeded()
         await pushPositionSnapshot(rate: 1.0)
         playbackDiagnostics.record(
             .networkRecovery(
@@ -3220,6 +3246,25 @@ actor PlayerService: PlayerServiceProtocol {
         await periodicNowPlayingPush(elapsed: progress)
         await checkScrobbleThreshold()
         await checkPrefetchThreshold()
+        await updateTransitionWindow(progress: progress, duration: durationSnapshot.duration)
+    }
+
+    /// Publishes the window before a transition in which background downloads must stay off the
+    /// network (the same window that cancels the playing song's download for the standby preload).
+    private func updateTransitionWindow(progress: TimeInterval, duration: TimeInterval) async {
+        let isNear = duration > 0 && Self.shouldProtectTransitionFromCaching(
+            crossfadeDuration: crossfadeConfig.duration,
+            remaining: duration - progress
+        )
+        await setNearTrackTransition(isNear)
+    }
+
+    private func setNearTrackTransition(_ isNear: Bool) async {
+        guard isNear != isNearTrackTransition else { return }
+        isNearTrackTransition = isNear
+        await MainActor.run { state.isNearTrackTransition = isNear }
+        // Seeking back out of the window lets an interrupted download finish.
+        if !isNear { resumeCurrentSongDownloadIfNeeded() }
     }
 
     private func stopProgressTimer() {
@@ -3957,67 +4002,100 @@ actor PlayerService: PlayerServiceProtocol {
 
     // MARK: - Cache download helpers
 
-    private func cacheStreamAfterDelay(
-        songId: String,
-        serverId: UUID,
-        streamURL: URL,
-        customHeaders: [String: String],
-        allowCellular: Bool,
-        generation: UInt64
-    ) async {
+    /// Downloads the streaming song in full from its first second, on cellular too, so a later
+    /// stall can switch to the complete copy. Low Data Mode keeps it to the stream alone.
+    private func startCurrentSongDownload() {
+        guard let download = currentSongDownload, !download.isComplete,
+              download.playbackGeneration == playbackGeneration, cacheDownloadTask == nil else { return }
+        cacheDownloadTaskGeneration &+= 1
+        let taskGeneration = cacheDownloadTaskGeneration
+        cacheDownloadTask = Task { [weak self] in
+            await self?.downloadCurrentSong(download, taskGeneration: taskGeneration)
+        }
+    }
+
+    private func downloadCurrentSong(_ download: CurrentSongDownload, taskGeneration: UInt64) async {
+        let generation = download.playbackGeneration
+        let songId = download.songId
         defer {
-            if generation == playbackGeneration {
+            // A cancelled attempt finishes after its replacement started; leave that one in place.
+            if taskGeneration == cacheDownloadTaskGeneration {
                 cacheDownloadTask = nil
             }
         }
-
-        do {
-            try await Task.sleep(for: .seconds(30))
-        } catch {
-            playbackDiagnostics.record(.cache(.cancelled))
-            return
-        }
         guard !Task.isCancelled, generation == playbackGeneration else { return }
-        if await mediaResolver.hasLocalCopy(songId: songId, serverId: serverId, atLeast: CachedAudioQuality(streamURL: streamURL)) {
+        await publishCurrentSongNeedsNetwork(true)
+        guard !Task.isCancelled, generation == playbackGeneration else { return }
+        if await mediaResolver.hasLocalCopy(songId: songId, serverId: download.serverId, atLeast: CachedAudioQuality(streamURL: download.url)) {
             playbackDiagnostics.record(.cache(.alreadyLocal))
+            await finishCurrentSongDownload(generation: generation, stored: true)
             return
         }
 
-        let (isExpensive, isConstrained) = await MainActor.run {
-            (serverService.state.isExpensive, serverService.state.networkPathEvent.descriptor.isConstrained)
-        }
-        if isExpensive && !allowCellular {
-            playbackDiagnostics.record(.cache(.skippedCellular))
-            Logger.player.debug("Cache skipped — cellular for '\(songId, privacy: .public)'")
-            return
-        }
-        // The song is already streaming; a second full download is a luxury Low Power Mode and
-        // Low Data Mode should not pay for.
-        if isConstrained || ProcessInfo.processInfo.isLowPowerModeEnabled {
+        let isConstrained = await MainActor.run { serverService.state.networkPathEvent.descriptor.isConstrained }
+        if !Self.allowsFullDownload(pathIsConstrained: isConstrained, lowPowerMode: ProcessInfo.processInfo.isLowPowerModeEnabled) {
             playbackDiagnostics.record(.cache(.skippedPowerOrData))
-            Logger.player.debug("Cache skipped — Low Power or Low Data Mode for '\(songId, privacy: .public)'")
+            Logger.player.debug("Cache skipped — Low Data Mode for '\(songId, privacy: .public)'")
+            await finishCurrentSongDownload(generation: generation, stored: false)
             return
         }
 
-        do {
-            try Task.checkCancellation()
-            playbackDiagnostics.record(.cache(.started))
-            try await downloadAndCache(
-                songId: songId,
-                serverId: serverId,
-                streamURL: streamURL,
-                customHeaders: customHeaders,
-                allowCellular: allowCellular,
-                using: cacheSession
-            )
-        } catch {
-            if Task.isCancelled {
-                playbackDiagnostics.record(.cache(.cancelled))
-                Logger.player.debug("Cache download cancelled for '\(songId, privacy: .public)'")
-            } else {
+        for attempt in 1...Self.currentSongDownloadAttempts {
+            do {
+                try Task.checkCancellation()
+                playbackDiagnostics.record(.cache(.started))
+                try await downloadAndCache(
+                    songId: songId,
+                    serverId: download.serverId,
+                    streamURL: download.url,
+                    customHeaders: download.headers,
+                    using: cacheSession
+                )
+                await finishCurrentSongDownload(generation: generation, stored: true)
+                return
+            } catch {
+                if Task.isCancelled {
+                    playbackDiagnostics.record(.cache(.cancelled))
+                    Logger.player.debug("Cache download cancelled for '\(songId, privacy: .public)'")
+                    return
+                }
                 playbackDiagnostics.record(.cache(.failed(code: (error as NSError).code)))
-                Logger.player.debug("Cache download failed for '\(songId, privacy: .public)': \(error, privacy: .public)")
+                Logger.player.debug("Cache download attempt \(attempt, privacy: .public) failed for '\(songId, privacy: .public)': \(error, privacy: .public)")
+                guard attempt < Self.currentSongDownloadAttempts, CacheDownloadRetry.isRetryable(error) else { break }
+                do {
+                    try await Task.sleep(for: CacheDownloadRetry.delay(afterAttempt: attempt, base: networkRecoveryTiming.downloadRetryDelay))
+                } catch {
+                    return
+                }
             }
+        }
+        await finishCurrentSongDownload(generation: generation, stored: false)
+    }
+
+    private nonisolated static let currentSongDownloadAttempts = 4
+
+    /// Low Data Mode is respected: songs keep streaming with their large buffer only. Low Power
+    /// Mode is not, because the full download is what keeps the music going through a dead zone.
+    nonisolated static func allowsFullDownload(pathIsConstrained: Bool, lowPowerMode: Bool) -> Bool {
+        !pathIsConstrained
+    }
+
+    private func finishCurrentSongDownload(generation: UInt64, stored: Bool) async {
+        guard generation == playbackGeneration else { return }
+        if stored { currentSongDownload?.isComplete = true }
+        await publishCurrentSongNeedsNetwork(false)
+    }
+
+    /// Restarts the full download after a network change cancelled it, outside the transition window.
+    private func resumeCurrentSongDownloadIfNeeded() {
+        guard latestNetworkPathEvent.isOnline, !latestNetworkPathEvent.descriptor.isConstrained,
+              !isNearTrackTransition, currentSourceIsRemoteStream else { return }
+        startCurrentSongDownload()
+    }
+
+    private func publishCurrentSongNeedsNetwork(_ needsNetwork: Bool) async {
+        await MainActor.run {
+            if state.currentSongNeedsNetwork != needsNetwork { state.currentSongNeedsNetwork = needsNetwork }
         }
     }
 
@@ -4026,20 +4104,15 @@ actor PlayerService: PlayerServiceProtocol {
         serverId: UUID,
         streamURL: URL,
         customHeaders: [String: String],
-        allowCellular: Bool,
         using session: URLSession
     ) async throws {
-        let request = Self.cacheDownloadRequest(
-            url: streamURL, headers: customHeaders, allowCellular: allowCellular
-        )
+        let request = Self.cacheDownloadRequest(url: streamURL, headers: customHeaders, serviceType: .avStreaming)
 
         let (tempURL, response) = try await session.download(for: request, delegate: OriginScopedRedirectDelegate())
         defer { try? FileManager.default.removeItem(at: tempURL) }
 
         guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
-            struct CacheDownloadError: Error, Sendable { let statusCode: Int }
-            let code = (response as? HTTPURLResponse)?.statusCode ?? -1
-            throw CacheDownloadError(statusCode: code)
+            throw CacheDownloadStatusError(statusCode: (response as? HTTPURLResponse)?.statusCode ?? -1)
         }
 
         // Reject error envelopes and incomplete audio before committing cache files.
@@ -4063,9 +4136,11 @@ actor PlayerService: PlayerServiceProtocol {
 
     /// A cache download needs the actual response length. A stream URL may request an
     /// estimated Content-Length for AVPlayer; inheriting that can truncate a transcode
-    /// or make URLSession/validation reject a complete file as incomplete.
+    /// or make URLSession/validation reject a complete file as incomplete. Playback caching allows
+    /// cellular (it decides per network how much to fetch); Low Data Mode is always refused.
     nonisolated static func cacheDownloadRequest(
-        url: URL, headers: [String: String], allowCellular: Bool
+        url: URL, headers: [String: String], allowCellular: Bool = true,
+        serviceType: URLRequest.NetworkServiceType = .default
     ) -> URLRequest {
         var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
         // Preserve encoded IDs and authentication parameters byte-for-byte (notably %2B).
@@ -4077,7 +4152,8 @@ actor PlayerService: PlayerServiceProtocol {
         components?.percentEncodedQuery = query.joined(separator: "&")
         var request = URLRequest(url: components?.url ?? url)
         request.allowsCellularAccess = allowCellular
-        request.networkServiceType = .background
+        request.allowsConstrainedNetworkAccess = false
+        request.networkServiceType = serviceType
         for (key, value) in headers { request.setValue(value, forHTTPHeaderField: key) }
         return request
     }

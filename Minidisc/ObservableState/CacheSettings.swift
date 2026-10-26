@@ -100,8 +100,8 @@ final class CacheSettings {
         }
     }
 
-    /// Saves a streamed song into the stream cache while it plays, for instant replay. This
-    /// downloads the song a second time, so it is skipped in Low Power and Low Data Mode.
+    /// Downloads a streamed song in full from its first second, on cellular too, so a stall can
+    /// switch to the complete copy and replays are instant. Skipped in Low Data Mode.
     var cacheWhilePlaying: Bool {
         get {
             access(keyPath: \.cacheWhilePlaying)

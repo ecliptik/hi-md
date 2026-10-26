@@ -188,16 +188,19 @@ private struct RecoveryHarness {
     let resolver = RecoveryTestResolver()
     let diagnostics = PlaybackDiagnostics(capacity: 500)
     let defaults = UserDefaults(suiteName: "playback-recovery.\(UUID())")!
+    let server = MockServerService()
 
     init(
         startupGrace: Duration = .milliseconds(600),
         audioStartupGrace: Duration = .milliseconds(800),
         audioRetryDelay: Duration = .milliseconds(40),
         localMusicStore: LocalMusicStore? = nil,
-        configureServer: Bool = true
+        configureServer: Bool = true,
+        audioStreamCache: (any AudioStreamCacheProtocol)? = nil,
+        cacheSession: URLSession? = nil,
+        streamCacheFormat: CacheFormat = .flacOriginal
     ) throws {
         let container = try ModelContainer.minidisc(inMemory: true)
-        let server = MockServerService()
         server.state.activeServer = ServerSnapshot(from: ServerConfig(
             displayName: "Test", baseURL: "https://playback.invalid", username: "test"
         ))
@@ -205,7 +208,8 @@ private struct RecoveryHarness {
         let toast = ToastService()
         let download = DownloadService(serverService: server, modelContainer: container, toastService: toast)
         let cacheSettings = CacheSettings(defaults: defaults)
-        cacheSettings.cacheFormat = .flacOriginal // The stub server cannot create background cache URLs.
+        // The stub server cannot create background cache URLs; `.matchStream` downloads the stream URL.
+        cacheSettings.cacheFormat = streamCacheFormat
         let crossfade = CrossfadeSettings(defaults: defaults)
         player = PlayerService(
             state: state,
@@ -218,7 +222,7 @@ private struct RecoveryHarness {
                 imageDecoder: { _, _ in nil }
             ),
             libraryService: RecoveryTestLibrary(),
-            audioStreamCache: MockAudioStreamCache(),
+            audioStreamCache: audioStreamCache ?? MockAudioStreamCache(),
             downloadService: download,
             cacheSettings: cacheSettings,
             playbackPreferences: PlaybackPreferences(defaults: defaults),
@@ -236,14 +240,16 @@ private struct RecoveryHarness {
             engine: engine,
             networkRecoveryTiming: .init(
                 startupGrace: startupGrace, stallGrace: .milliseconds(100),
-                retryDelay: .milliseconds(40), validationDelay: .milliseconds(200)
+                retryDelay: .milliseconds(40), validationDelay: .milliseconds(200),
+                downloadRetryDelay: .milliseconds(20)
             ),
             audioSession: audioSession,
             audioRecoveryTiming: .init(
                 retryDelay: audioRetryDelay, routeGrace: .seconds(2),
                 startupGrace: audioStartupGrace, pollInterval: .milliseconds(10)
             ),
-            localMusicStore: localMusicStore
+            localMusicStore: localMusicStore,
+            cacheSession: cacheSession
         )
     }
 
@@ -878,5 +884,130 @@ struct LocalMusicPlaybackTests {
         await harness.player.resume()
         #expect(harness.state.playbackState == .paused)
         await harness.player.stop()
+    }
+}
+
+// MARK: - Full download of the playing song
+
+/// Serves audio for every request, after an optional run of connection failures.
+private nonisolated final class AudioDownloadStubProtocol: URLProtocol, @unchecked Sendable {
+    private struct State: Sendable {
+        var failuresRemaining = 0
+        var requests: [URLRequest] = []
+    }
+    private static let state = Mutex(State())
+    static let audio = Data("ID3 streamed audio fixture".utf8)
+
+    static func reset(failures: Int = 0) { state.withLock { $0 = State(failuresRemaining: failures) } }
+    static var requests: [URLRequest] { state.withLock { $0.requests } }
+
+    static func session() -> URLSession {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [AudioDownloadStubProtocol.self]
+        return URLSession(configuration: configuration)
+    }
+
+    override class func canInit(with request: URLRequest) -> Bool { true }
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+    override func stopLoading() {}
+    override func startLoading() {
+        let fails = Self.state.withLock { state -> Bool in
+            state.requests.append(request)
+            guard state.failuresRemaining > 0 else { return false }
+            state.failuresRemaining -= 1
+            return true
+        }
+        if fails {
+            client?.urlProtocol(self, didFailWithError: URLError(.networkConnectionLost))
+            return
+        }
+        let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: "HTTP/1.1",
+                                       headerFields: ["Content-Type": "audio/mpeg", "Content-Length": "\(Self.audio.count)"])!
+        client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+        client?.urlProtocol(self, didLoad: Self.audio)
+        client?.urlProtocolDidFinishLoading(self)
+    }
+}
+
+@MainActor
+private final class RecordingAudioStreamCache: AudioStreamCacheProtocol {
+    private(set) var stored: [(songId: String, quality: CachedAudioQuality)] = []
+    var usedBytes: Int64 { 0 }
+    var trackCount: Int { stored.count }
+    var maxBytes: Int64 { AudioStreamCache.defaultMaxBytes }
+    func cachedURL(forSongId songId: String, serverId: UUID) async -> URL? { nil }
+    func store(fileAt sourceURL: URL, forSongId songId: String, serverId: UUID, mimeType: String) async throws -> URL {
+        try await store(fileAt: sourceURL, forSongId: songId, serverId: serverId, mimeType: mimeType, quality: .unrecorded)
+    }
+    func store(fileAt sourceURL: URL, forSongId songId: String, serverId: UUID, mimeType: String,
+               quality: CachedAudioQuality) async throws -> URL {
+        stored.append((songId, quality))
+        return sourceURL
+    }
+    func setMaxBytes(_ value: Int64) async {}
+    func invalidate(songId: String, serverId: UUID) async {}
+    func clearAll() async {}
+    func clearAllForServer(_ serverId: UUID) async {}
+}
+
+@Suite("Full download of the playing song", .serialized, .timeLimit(.minutes(1)))
+@MainActor
+struct CurrentSongDownloadTests {
+    private func path(expensive: Bool, constrained: Bool) -> NetworkPathEvent {
+        NetworkPathEvent(generation: 0, descriptor: NetworkPathDescriptor(
+            isOnline: true, isExpensive: expensive, isConstrained: constrained,
+            supportsDNS: true, supportsIPv4: true, supportsIPv6: true,
+            interfaces: [.cellular], gateways: []
+        ))
+    }
+
+    private func harness(cache: RecordingAudioStreamCache, expensive: Bool = true, constrained: Bool = false) throws -> RecoveryHarness {
+        let h = try RecoveryHarness(startupGrace: .seconds(10), audioStreamCache: cache,
+                                    cacheSession: AudioDownloadStubProtocol.session(), streamCacheFormat: .matchStream)
+        h.server.state.networkPathEvent = path(expensive: expensive, constrained: constrained)
+        return h
+    }
+
+    @Test func aStreamedSongDownloadsInFullFromItsFirstSecondOnCellular() async throws {
+        AudioDownloadStubProtocol.reset()
+        let cache = RecordingAudioStreamCache()
+        let h = try harness(cache: cache)
+        try await h.play()
+        // Well inside the 30 s delay the download used to wait for.
+        try await h.waitUntil { cache.trackCount == 1 }
+        #expect(cache.stored.first?.songId == "a")
+        #expect(cache.stored.first?.quality == .original)
+        let request = try #require(AudioDownloadStubProtocol.requests.first)
+        #expect(request.allowsCellularAccess)
+        #expect(!request.allowsConstrainedNetworkAccess)
+        try await h.waitUntil { !h.state.currentSongNeedsNetwork }
+        await h.player.stop()
+    }
+
+    @Test func lowDataModeKeepsToTheStreamAlone() async throws {
+        AudioDownloadStubProtocol.reset()
+        let cache = RecordingAudioStreamCache()
+        let h = try harness(cache: cache, constrained: true)
+        try await h.play()
+        try await Task.sleep(for: .milliseconds(400))
+        #expect(AudioDownloadStubProtocol.requests.isEmpty)
+        #expect(cache.trackCount == 0)
+        #expect(!h.state.currentSongNeedsNetwork)
+        await h.player.stop()
+    }
+
+    @Test func lowPowerModeDoesNotStopTheDownload() {
+        #expect(PlayerService.allowsFullDownload(pathIsConstrained: false, lowPowerMode: true))
+        #expect(!PlayerService.allowsFullDownload(pathIsConstrained: true, lowPowerMode: false))
+    }
+
+    @Test func aDroppedConnectionIsRetriedWithBackoff() async throws {
+        AudioDownloadStubProtocol.reset(failures: 2)
+        let cache = RecordingAudioStreamCache()
+        let h = try harness(cache: cache)
+        try await h.play()
+        try await h.waitUntil { cache.trackCount == 1 }
+        #expect(AudioDownloadStubProtocol.requests.count == 3)
+        await h.player.stop()
     }
 }

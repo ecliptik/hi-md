@@ -176,7 +176,8 @@ final class OfflineFavoritesSync {
                             throw UserFacingError.contentRemoved
                         }
                         let request = PlayerService.cacheDownloadRequest(
-                            url: url, headers: connection.authorizationHeaders(for: url), allowCellular: expected.allowsCellular
+                            url: url, headers: connection.authorizationHeaders(for: url), allowCellular: expected.allowsCellular,
+                            serviceType: .background
                         )
                         let file = try await transfer.download(request, songID: song.id)
                         defer { try? FileManager.default.removeItem(at: file) }
