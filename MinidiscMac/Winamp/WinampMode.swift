@@ -177,6 +177,12 @@ final class WinampMode: WinampWindowHost {
         }
     }
 
+    /// View > Add Demo to Playlist: the demo clip back at the top of the playlist, any time.
+    func addDemo() {
+        guard let container else { return }
+        Task { _ = await WinampDemo.queueFirst(in: container) }
+    }
+
     private func hide() {
         for window in managedWindows { window.tearDown() }
         mainWindow = nil
@@ -438,6 +444,7 @@ struct WinampCommands: Commands {
                 Button("Save Playlist File…") { WinampMode.shared.playlistFiles?.save() }
                 Button("Load Skin…") { WinampMode.shared.chooseSkin() }
                 Button("Default Skin") { WinampMode.shared.useDefaultSkin() }
+                Button("Add Demo to Playlist") { WinampMode.shared.addDemo() }
             }
         }
     }
