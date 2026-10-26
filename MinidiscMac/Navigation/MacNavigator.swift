@@ -24,6 +24,19 @@ enum MacDestination: Hashable {
     case playlist(id: String)
 }
 
+extension MacDestination {
+    /// The same album, artist, genre or playlist, whichever song it highlights.
+    func opensSamePage(as other: MacDestination) -> Bool {
+        switch (self, other) {
+        case (.album(let id, _), .album(let otherID, _)): id == otherID
+        case (.artist(let id, _), .artist(let otherID, _)): id == otherID
+        case (.genre(let genre), .genre(let otherGenre)): genre == otherGenre
+        case (.playlist(let id), .playlist(let otherID)): id == otherID
+        default: false
+        }
+    }
+}
+
 /// What the inspector on the right of the window shows.
 enum MacInspectorPane: String, Hashable {
     case lyrics
@@ -42,20 +55,18 @@ final class MacNavigator {
     var searchText = ""
     var inspector: MacInspectorPane?
 
-    var isInspectorPresented: Bool {
-        get { inspector != nil }
-        set { if !newValue { inspector = nil } }
-    }
-
     /// Shows a pane, or hides the inspector when that pane is already showing.
     func toggleInspector(_ pane: MacInspectorPane) {
         inspector = inspector == pane ? nil : pane
     }
 
-    /// Opens a page above the current section, replacing it if it is already on top.
+    /// Opens a page above the current section. An album or artist already open in the stack is
+    /// brought back instead of being opened twice.
     func show(_ destination: MacDestination) {
         if selection == nil { selection = .albums }
-        guard path.last != destination else { return }
+        if let index = path.firstIndex(where: { $0.opensSamePage(as: destination) }) {
+            path.removeSubrange(index...)
+        }
         path.append(destination)
     }
 
