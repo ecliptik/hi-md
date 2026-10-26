@@ -9,6 +9,8 @@ import SwiftUI
 struct MinidiscMacApp: App {
     @State private var launchState: MacLaunchState = .launching
     @State private var launchAttempt = 1
+    @State private var interface = MacInterface()
+    @AppStorage(MacInterface.showsMenuBarPlayerKey) private var showsMenuBarPlayer = true
     @Environment(\.scenePhase) private var scenePhase
     private let runtime = MinidiscRuntime.shared
 
@@ -20,14 +22,14 @@ struct MinidiscMacApp: App {
     }
 
     var body: some Scene {
-        WindowGroup {
-            MacLaunchContent(state: launchState, retryAction: retryLaunch)
+        WindowGroup(id: MacMenuBarPlayer.mainWindowID) {
+            MacLaunchContent(state: launchState, interface: interface, retryAction: retryLaunch)
                 .task(id: launchAttempt) {
                     await launchIfNeeded()
                 }
                 .containerLifecycle(activeContainer)
         }
-        .commands { PlaybackCommands(container: activeContainer) }
+        .commands { MacCommands(container: activeContainer, interface: interface) }
         .onChange(of: scenePhase) { _, newPhase in
             guard let container = activeContainer else { return }
             Task { await container.playerService.setAppVisible(newPhase != .background) }
@@ -45,6 +47,19 @@ struct MinidiscMacApp: App {
                     .padding()
             }
         }
+
+        // MARK: Menu bar player
+
+        MenuBarExtra(isInserted: $showsMenuBarPlayer) {
+            if let container = activeContainer {
+                MacMenuBarPlayer(container: container, interface: interface)
+                    .environment(\.appContainer, container)
+                    .environment(container.artworkImageCache)
+            }
+        } label: {
+            Label("Minidisc", systemImage: activeContainer?.playerState.wantsPlayback == true ? "opticaldisc.fill" : "opticaldisc")
+        }
+        .menuBarExtraStyle(.window)
     }
 
     static func makeContainer(diagnostics: PlaybackDiagnostics) async throws -> AppContainer {
@@ -92,6 +107,7 @@ enum MacLaunchState {
 
 private struct MacLaunchContent: View {
     let state: MacLaunchState
+    let interface: MacInterface
     let retryAction: () -> Void
 
     var body: some View {
@@ -101,7 +117,7 @@ private struct MacLaunchContent: View {
                 .frame(minWidth: 720, maxWidth: .infinity, minHeight: 440, maxHeight: .infinity)
 
         case .ready(let container):
-            MacRootView(container: container)
+            MacRootView(container: container, interface: interface)
                 .toastOverlay(reservesMiniPlayerSpace: false)
                 .environment(\.appContainer, container)
                 .environment(container.dominantColorExtractor)
