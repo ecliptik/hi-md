@@ -38,8 +38,27 @@ struct LyricsView: View {
 
     // MARK: - Loaded
 
+    /// The buttons sit in their own row above the lyrics rather than floating over them, and the
+    /// lines fade out at the top edge, so a long line never runs under the buttons.
     @ViewBuilder
     private func loadedContent(_ structured: StructuredLyrics) -> some View {
+        VStack(spacing: 0) {
+            header
+            lyricsScroll(structured)
+                .mask {
+                    VStack(spacing: 0) {
+                        LinearGradient(colors: [.clear, .black], startPoint: .top, endPoint: .bottom)
+                            .frame(height: Self.topFade)
+                        Color.black
+                    }
+                }
+        }
+    }
+
+    private static let topFade: CGFloat = 28
+
+    @ViewBuilder
+    private func lyricsScroll(_ structured: StructuredLyrics) -> some View {
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 32) {
@@ -87,9 +106,6 @@ struct LyricsView: View {
                 default:
                     break
                 }
-            }
-            .safeAreaInset(edge: .top, spacing: 0) {
-                header
             }
         }
     }
