@@ -14,8 +14,8 @@ private actor PlaylistListSource: PlaylistBrowsing, RecentlyAddedAlbumBrowsing, 
 @Suite("Playlists tab search")
 struct PlaylistListSearchTests {
     private let playlists = [
-        Playlist(id: "energetic", name: "Minidisc · Énergique", songCount: 75, duration: 18_000, owner: "alex"),
-        Playlist(id: "road", name: "Road Trip", songCount: 20, duration: 4_800, comment: "Long drives", owner: "alex"),
+        Playlist(id: "energetic", name: "Minidisc · Énergique", songCount: 75, duration: 18_000, owner: "robin"),
+        Playlist(id: "road", name: "Road Trip", songCount: 20, duration: 4_800, comment: "Long drives", owner: "robin"),
         Playlist(id: "jazz", name: "Late Night Jazz", songCount: 12, duration: 3_000, comment: "Smoky clubs", owner: "sam"),
         Playlist(id: "workout", name: "Workout Mix", songCount: 30, duration: 6_000, owner: "alex"),
     ]
@@ -48,7 +48,7 @@ struct PlaylistListSearchTests {
     func matchesCommentNotOwner() {
         #expect(ids("drives") == ["road"])
         #expect(ids("alex").isEmpty)
-        #expect(ids("alex").isEmpty)
+        #expect(ids("robin").isEmpty)
     }
 
     @Test("an unmatched query returns nothing")
