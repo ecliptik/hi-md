@@ -305,6 +305,16 @@ def make_titlebar():
         bevel(img, x, 0, 8, 43, face=PANEL)
         for index, letter in enumerate("OAIDV"):
             pattern(img, x + 2, 3 + index * 8, FONT[letter], ink)
+
+    # Each letter lit, for while it is pressed or its option is on: the bar's rows for that
+    # letter, sunken, with the letter in highlight gold. (row in the bar, height, sprite x, sprite y)
+    lit = {PANEL: PANEL_DOWN, GOLD_DIM: GOLD_HI, BEVEL_HI: BEVEL_LO, BEVEL_LO: BEVEL_HI}
+    for top, height, sx, sy in ((3, 8, 304, 47), (11, 7, 312, 55), (18, 7, 320, 62),
+                                (25, 8, 328, 69), (33, 7, 336, 77)):
+        for dy in range(height):
+            for dx in range(8):
+                color = img.getpixel((304 + dx, top + dy))
+                img.putpixel((sx + dx, sy + dy), lit.get(color, color))
     return img
 
 
