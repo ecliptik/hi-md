@@ -1,0 +1,11 @@
+// Code-signing team for every target in Minidisc.xcodeproj.
+//
+// The project uses this file as its project-level base configuration, so every target inherits
+// DEVELOPMENT_TEAM from here. Simulator builds need no team. To build for a device, copy
+// Signing.local.xcconfig.example to Signing.local.xcconfig (git-ignored) and put your own Apple
+// Development Team ID in it. Xcode shows the ID under Settings > Accounts; it is also listed
+// under Membership details at https://developer.apple.com/account.
+
+DEVELOPMENT_TEAM =
+
+#include? "Signing.local.xcconfig"
