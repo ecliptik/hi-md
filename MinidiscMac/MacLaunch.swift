@@ -18,6 +18,8 @@ final class MacLauncher {
     private var attempt = 1
     private var isRunning = false
     private let runtime = MinidiscRuntime.shared
+    /// Runs once the services are ready, with or without a window open.
+    var onReady: ((AppContainer) -> Void)?
 
     var container: AppContainer? {
         guard case .ready(let container) = state else { return nil }
@@ -45,6 +47,7 @@ final class MacLauncher {
         do {
             let container = try await runtime.container()
             state = .ready(container)
+            onReady?(container)
             Task { await container.playerService.setAppVisible(true) }
             runtime.diagnostics.record(.application(.servicesReady))
             Logger.boot.info("Mac app services ready")
@@ -74,6 +77,8 @@ final class MacAppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Winamp mode reopens its windows from here, so it doesn't wait for the main window.
+        launcher.onReady = { WinampMode.shared.attach($0) }
         launcher.launch()
     }
 }

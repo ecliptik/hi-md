@@ -23,8 +23,10 @@ struct MinidiscMacApp: App {
         WindowGroup(id: MacMenuBarPlayer.mainWindowID) {
             MacLaunchContent(state: appDelegate.launcher.state, interface: interface, retryAction: appDelegate.launcher.retry)
                 .containerLifecycle(activeContainer)
+                .winampMode(activeContainer) // Winamp mode: MinidiscMac/Winamp
         }
         .commands { MacCommands(container: activeContainer, interface: interface) }
+        .commands { WinampCommands() } // Winamp mode: View > Winamp Mode (⌘⇧W)
         .onChange(of: scenePhase) { _, newPhase in
             guard let container = activeContainer else { return }
             Task { await container.playerService.setAppVisible(newPhase != .background) }

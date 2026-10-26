@@ -111,17 +111,24 @@ nonisolated enum M3UPlaylist {
 
     // MARK: Decoding
 
+    /// Larger files aren't playlists anyone made by hand; they decode to nothing.
+    static let maximumFileSize = 5 * 1024 * 1024
+    /// Entries past this many are dropped.
+    static let maximumEntries = 5_000
+
     static func decode(_ data: Data) -> [Entry] {
-        decode(text: text(from: data))
+        guard data.count <= maximumFileSize else { return [] }
+        return decode(text: text(from: data))
     }
 
     /// Accepts files with or without `#EXTM3U`, CRLF or CR line endings, comments and entries
-    /// with no `#EXTINF` line.
+    /// with no `#EXTINF` line. Stops after `maximumEntries` entries.
     static func decode(text: String) -> [Entry] {
         var entries: [Entry] = []
         var pendingDuration: Int?
         var pendingTitle: String?
         for rawLine in text.split(omittingEmptySubsequences: true, whereSeparator: \.isNewline) {
+            guard entries.count < maximumEntries else { break }
             var line = rawLine.trimmingCharacters(in: .whitespaces)
             if line.hasPrefix("\u{FEFF}") { line.removeFirst() }
             guard !line.isEmpty else { continue }
@@ -166,9 +173,13 @@ nonisolated enum M3UPlaylist {
         return (parseDuration(body[..<comma]), title.isEmpty ? nil : title)
     }
 
-    private static func parseDuration(_ text: Substring) -> Int? {
+    /// The longest `#EXTINF` duration taken at face value: a week. Anything longer, negative or
+    /// not finite (`inf`, `nan`, `1e30`) is unknown, and never reaches an integer conversion.
+    static let maximumDuration: Double = 7 * 24 * 60 * 60
+
+    static func parseDuration(_ text: Substring) -> Int? {
         let number = text.trimmingCharacters(in: .whitespaces).prefix { !$0.isWhitespace }
-        guard let seconds = Double(number), seconds >= 0 else { return nil }
+        guard let seconds = Double(number), seconds.isFinite, seconds >= 0, seconds <= maximumDuration else { return nil }
         return Int(seconds.rounded())
     }
 

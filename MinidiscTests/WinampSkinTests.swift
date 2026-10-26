@@ -7,7 +7,7 @@ import Testing
 // MARK: - Fixtures
 
 /// A 24-bit bottom-up BMP, the format most classic skins use.
-private func makeBMP(width: Int, height: Int, color: (Int, Int) -> (UInt8, UInt8, UInt8)) -> Data {
+func makeBMP(width: Int, height: Int, color: (Int, Int) -> (UInt8, UInt8, UInt8)) -> Data {
     let rowSize = (width * 3 + 3) & ~3
     let pixelBytes = rowSize * height
     var data = Data()
@@ -29,7 +29,7 @@ private func makeBMP(width: Int, height: Int, color: (Int, Int) -> (UInt8, UInt8
 }
 
 /// Writes a ZIP with stored or raw-DEFLATE entries, enough to exercise `ZipArchive`.
-private struct TestZipWriter {
+struct TestZipWriter {
     struct File {
         let path: String
         let data: Data

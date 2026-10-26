@@ -112,6 +112,16 @@ nonisolated enum WinampSprites {
                                              pressed: WinampSprite(.titlebar, 9, 27, 9, 9))
     static let clutterBar = WinampSprite(.titlebar, 304, 0, 8, 43)
     static let clutterBarDisabled = WinampSprite(.titlebar, 312, 0, 8, 43)
+    /// One clutter-bar letter drawn lit, over the bar, while it is pressed or its option is on.
+    static func clutterSelected(_ button: WinampClutterButton) -> WinampSprite {
+        switch button {
+        case .options: WinampSprite(.titlebar, 304, 47, 8, 8)
+        case .alwaysOnTop: WinampSprite(.titlebar, 312, 55, 8, 7)
+        case .info: WinampSprite(.titlebar, 320, 62, 8, 7)
+        case .doubleSize: WinampSprite(.titlebar, 328, 69, 8, 8)
+        case .visualizer: WinampSprite(.titlebar, 336, 77, 8, 7)
+        }
+    }
 
     // MARK: posbar.bmp
 
@@ -292,6 +302,7 @@ nonisolated enum WinampSprites {
             equalizerSliderBackground(frame: 0), equalizerSliderBackground(frame: sliderFrameCount - 1),
             digitBlank, digitMinus, numbersMinus,
         ]
+        sprites += WinampClutterButton.allCases.map(clutterSelected)
         let buttons = transport + [options, minimize, close, shade, unshade, seekThumb, volumeThumb, balanceThumb,
                                    equalizerClose, equalizerPresets, equalizerSliderThumb, playlistScrollThumb]
         let toggles = [repeatToggle, shuffleToggle, equalizerToggle, playlistToggle, equalizerOn, equalizerAuto]
@@ -334,6 +345,26 @@ nonisolated enum WinampSprites {
             },
             bar: WinampSprite(.pledit, barX, 111, 3, items * 18)
         )
+    }
+}
+
+/// The five letters of the main window's clutter bar, top to bottom: O A I D V.
+nonisolated enum WinampClutterButton: CaseIterable, Sendable, Hashable {
+    case options
+    case alwaysOnTop
+    case info
+    case doubleSize
+    case visualizer
+
+    /// The letter's rows within the 8×43 bar.
+    var rows: (top: Int, height: Int) {
+        switch self {
+        case .options: (3, 8)
+        case .alwaysOnTop: (11, 7)
+        case .info: (18, 7)
+        case .doubleSize: (25, 8)
+        case .visualizer: (33, 7)
+        }
     }
 }
 
