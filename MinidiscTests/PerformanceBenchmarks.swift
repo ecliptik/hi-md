@@ -139,6 +139,25 @@ struct PerformanceBenchmarks {
                 return (disabled, label, rows.count)
             }
         }
+        // The sheet now derives once per request and query; a later body pass, such as after a tap,
+        // reads the cached result and checks the label against its ID set.
+        let collection = SongSelectionCollection(request.songs)
+        Bench.measure("selection.open", scale: "200000 songs", runs: 3) {
+            SongSelectionCollection(request.songs).filtered(by: "")
+        }
+        Bench.measure("selection.firstQuery 'love'", scale: "200000 songs", runs: 3) {
+            SongSelectionCollection(request.songs).filtered(by: "love")
+        }
+        _ = collection.filtered(by: "love")
+        Bench.measure("selection.nextQuery 'blue'", scale: "200000 songs", runs: 3) {
+            collection.filtered(by: "blue")
+        }
+        let cached = collection.filtered(by: "")
+        var selected = cached.ids
+        selected.insert("after Select All, plus one")
+        Bench.measure("selection.body (tap, all selected)", scale: "200000 songs", runs: 7) {
+            selected.isSuperset(of: cached.ids)
+        }
     }
 
     // MARK: - 7. Track change
