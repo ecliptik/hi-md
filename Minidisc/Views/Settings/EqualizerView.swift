@@ -21,6 +21,11 @@ struct EqualizerView: View {
 
             Section {
                 Toggle("Enable Equalizer", isOn: $settings.isEnabled)
+                NavigationLink {
+                    AutoEQSearchView(settings: settings)
+                } label: {
+                    SettingsRowLabel(title: "Search Presets", subtitle: "Find an AutoEQ correction for your headphones.")
+                }
                 Picker("Preset", selection: Binding(
                     get: { settings.preset },
                     set: { if let preset = $0 { settings.apply(preset) } }
