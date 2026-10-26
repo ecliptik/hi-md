@@ -161,6 +161,18 @@ if [ -f "$privacy_manifest" ]; then
         problem 'Privacy manifest is missing file timestamp reason C617.1'
     fi
 
+    if manifest_has_reason NSPrivacyAccessedAPICategoryFileTimestamp 3B52.1; then
+        pass 'User-selected local music file timestamp declaration is present'
+    else
+        problem 'Privacy manifest is missing file timestamp reason 3B52.1'
+    fi
+
+    if manifest_has_reason NSPrivacyAccessedAPICategorySystemBootTime 35F9.1; then
+        pass 'System uptime (Now Playing position) declaration is present'
+    else
+        problem 'Privacy manifest is missing system boot time reason 35F9.1'
+    fi
+
     manifest_json=$(plutil -convert json -o - "$privacy_manifest" 2>/dev/null || printf '')
     if printf '%s\n' "$manifest_json" | grep -Fq NSPrivacyCollectedDataTypeProductInteraction \
         && printf '%s\n' "$manifest_json" | grep -Fq NSPrivacyCollectedDataTypeUserID; then
