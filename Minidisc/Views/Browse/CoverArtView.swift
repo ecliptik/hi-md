@@ -15,6 +15,10 @@ struct CoverArtView: View {
     /// Defers loading for mounted rows that are not yet visible.
     var loadingEnabled: Bool = true
 
+    /// A cover that arrives from disk or the server fades in over the placeholder, so a screen
+    /// filling on a cold launch doesn't flash. RAM hits render on the first pass and never animate.
+    static let arrival: Animation = .easeOut(duration: 0.25)
+
     var body: some View {
         CoverArtViewContent(
             id: id,
@@ -84,26 +88,34 @@ private struct CoverArtViewContent: View {
 
     var body: some View {
         let _ = snapshotClears
+        let snapshot = ramSnapshot()
         ZStack {
-            if let cached = shownImage(snapshot: ramSnapshot()) {
+            if let cached = shownImage(snapshot: snapshot) {
+                // Keyed by the cover it shows, so an animated change of id (an album cover giving
+                // way to an artist photo) cross-fades instead of swapping in place.
                 Image(platformImage: cached)
                     .resizable()
                     .scaledToFill()
+                    .id(displayedId == id || snapshot != nil ? id : displayedId ?? id)
+                    .transition(.opacity)
             } else if id.hasPrefix("local:") || hasNoArtwork {
                 placeholder
+                    .transition(.opacity)
             } else {
-                AsyncImage(url: url) { phase in
+                AsyncImage(url: url, transaction: Transaction(animation: CoverArtView.arrival)) { phase in
                     switch phase {
                     case .success(let image):
                         image
                             .resizable()
                             .scaledToFill()
+                            .transition(.opacity)
                     case .failure:
                         placeholder
                     case .empty:
                         // Static: a repeating pulse per cover kept the render loop busy while scrolling.
+                        // Visible on a black background, so a loading cover reads as a tile, not a hole.
                         RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                            .fill(Color.primary.opacity(0.05))
+                            .fill(Color.primary.opacity(0.08))
                     @unknown default:
                         EmptyView()
                     }
@@ -126,15 +138,17 @@ private struct CoverArtViewContent: View {
 
             if online || id.hasPrefix("local:"), let image = await artworkCache.load(coverArtId: id, tier: t) {
                 guard !Task.isCancelled else { return }
-                apply(image, for: id)
+                apply(image, for: id, animated: true)
                 return
             }
 
             if id.hasPrefix("local:") || artworkCache.hasNoArtwork(id) {
                 if ramHit.clear() { snapshotClears += 1 }
-                cachedImage = nil
-                displayedId = nil
-                hasNoArtwork = !id.hasPrefix("local:")
+                withAnimation(CoverArtView.arrival) {
+                    cachedImage = nil
+                    displayedId = nil
+                    hasNoArtwork = !id.hasPrefix("local:")
+                }
                 return
             }
             if displayedId == id || ramSnapshot() != nil { return }
@@ -146,19 +160,21 @@ private struct CoverArtViewContent: View {
                     guard !Task.isCancelled else { return }
                     // A download from before the app recognised the server's stand-in image.
                     if decoded.isServerPlaceholder {
-                        cachedImage = nil
-                        displayedId = nil
-                        hasNoArtwork = true
+                        withAnimation(CoverArtView.arrival) {
+                            cachedImage = nil
+                            displayedId = nil
+                            hasNoArtwork = true
+                        }
                         return
                     }
-                    apply(decoded.image, for: id)
+                    apply(decoded.image, for: id, animated: true)
                     return
                 }
                 guard !Task.isCancelled else { return }
             }
 
             if t != .thumb, let ramThumb = artworkCache.cachedImage(for: id, tier: .thumb) {
-                apply(ramThumb, for: id)
+                apply(ramThumb, for: id, animated: true)
                 return
             }
 
@@ -170,10 +186,12 @@ private struct CoverArtViewContent: View {
         }
     }
 
-    private func apply(_ image: PlatformImage, for resolvedId: String) {
-        cachedImage = image
-        displayedId = resolvedId
-        url = nil
+    private func apply(_ image: PlatformImage, for resolvedId: String, animated: Bool = false) {
+        withAnimation(animated ? CoverArtView.arrival : nil) {
+            cachedImage = image
+            displayedId = resolvedId
+            url = nil
+        }
     }
 
     /// Decodes a local cover file off the main actor at `maxDimension`, reusing the cache's ImageIO
