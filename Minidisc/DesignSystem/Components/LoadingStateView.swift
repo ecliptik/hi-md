@@ -72,9 +72,20 @@ struct SkeletonSongRow: View {
 // MARK: - Shimmer modifier
 
 private struct ShimmerModifier: ViewModifier {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var phase: CGFloat = -1
 
+    /// Under Reduce Motion the sweep is left out and the content stays still.
+    @ViewBuilder
     func body(content: Content) -> some View {
+        if reduceMotion {
+            content
+        } else {
+            shimmering(content)
+        }
+    }
+
+    private func shimmering(_ content: Content) -> some View {
         content
             .overlay {
                 GeometryReader { geo in
@@ -98,6 +109,8 @@ private struct ShimmerModifier: ViewModifier {
                     phase = 1
                 }
             }
+            // Restart from the leading edge if Reduce Motion is turned off again.
+            .onDisappear { phase = -1 }
     }
 }
 
