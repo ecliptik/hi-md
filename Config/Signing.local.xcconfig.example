@@ -1,0 +1,4 @@
+// Copy this file to Config/Signing.local.xcconfig (git-ignored) and set your own team ID.
+// A free personal team works for device builds; README.md lists what it can't do.
+
+DEVELOPMENT_TEAM = ABCDE12345
