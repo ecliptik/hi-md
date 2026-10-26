@@ -1034,6 +1034,79 @@ struct CurrentSongDownloadTests {
     }
 }
 
+// MARK: - Now Playing while buffering
+
+@MainActor
+private final class RecordingNowPlaying: NowPlayingServiceProtocol {
+    struct Push: Equatable {
+        let elapsed: TimeInterval
+        let rate: Float
+    }
+    private(set) var pushes: [Push] = []
+    private(set) var updateRates: [Float] = []
+    func start() async {}
+    func stop() async {}
+    func setFavoritesService(_ service: any FavoritesServiceProtocol) async {}
+    func update(with snapshot: NowPlayingSnapshot) async { updateRates.append(snapshot.playbackRate) }
+    func pushPosition(elapsed: TimeInterval, rate: Float, duration: TimeInterval, songId: String) async {
+        pushes.append(Push(elapsed: elapsed, rate: rate))
+    }
+}
+
+@Suite("Now Playing while buffering", .serialized, .timeLimit(.minutes(1)))
+@MainActor
+struct NowPlayingBufferingTests {
+    @Test func theClockStopsWhileBufferingAndRestartsWithTheAudio() async throws {
+        let h = try RecoveryHarness(startupGrace: .seconds(10), stallGrace: .seconds(20))
+        let nowPlaying = RecordingNowPlaying()
+        await h.player.setNowPlayingService(nowPlaying)
+        try await h.play()
+        try await h.waitUntil { h.report.contains("engine state=buffering") }
+        // Opening the stream already counts as waiting.
+        try await h.waitUntil { nowPlaying.updateRates.last == 0 }
+        _ = await h.engine.seek(to: 37)
+        h.state.position = 37
+        h.engine.startAdvancing()
+        await h.player.handleEngineState(.playing, playbackToken: h.engine.token)
+        #expect(nowPlaying.pushes.last?.rate == 1)
+        #expect(abs((nowPlaying.pushes.last?.elapsed ?? 0) - 37) < 1)
+
+        // A mid-song stall: the media clock freezes and Now Playing must say so.
+        try await Task.sleep(for: .milliseconds(300))
+        h.engine.pause()
+        let frozen = h.engine.progress
+        await h.player.handleEngineState(.buffering, playbackToken: h.engine.token)
+        let stalled = try #require(nowPlaying.pushes.last)
+        #expect(stalled.rate == 0)
+        #expect(abs(stalled.elapsed - frozen) < 0.01)
+        let pushesWhileStalled = nowPlaying.pushes.count
+        // Progress ticks during the stall must not restart the clock.
+        try await Task.sleep(for: .milliseconds(1_200))
+        #expect(!nowPlaying.pushes.dropFirst(pushesWhileStalled).contains { $0.rate > 0 })
+
+        h.engine.startAdvancing()
+        await h.player.handleEngineState(.playing, playbackToken: h.engine.token)
+        let resumed = try #require(nowPlaying.pushes.last)
+        #expect(resumed.rate == 1)
+        #expect(abs(resumed.elapsed - frozen) < 0.2)
+        await h.player.stop()
+    }
+
+    @Test func aDeliberatePauseIsNotReportedAsBuffering() async throws {
+        let h = try RecoveryHarness(startupGrace: .seconds(10))
+        let nowPlaying = RecordingNowPlaying()
+        await h.player.setNowPlayingService(nowPlaying)
+        try await h.play()
+        h.engine.startAdvancing()
+        await h.player.handleEngineState(.playing, playbackToken: h.engine.token)
+        await h.player.pause()
+        let pushes = nowPlaying.pushes.count
+        await h.player.handleEngineState(.paused, playbackToken: h.engine.token)
+        #expect(nowPlaying.pushes.count == pushes)
+        await h.player.stop()
+    }
+}
+
 // MARK: - Patient stall recovery
 
 @Suite("Stall recovery while data arrives", .serialized, .timeLimit(.minutes(1)))

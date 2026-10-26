@@ -177,6 +177,9 @@ actor PlayerService: PlayerServiceProtocol {
     /// Last position sent to the system Now Playing center. The system extrapolates elapsed time
     /// from it, so the progress loop only pushes again when playback drifts from that prediction.
     private var nowPlayingAnchor: NowPlayingPositionAnchor?
+    /// True after Now Playing was told rate 0 because AVPlayer is waiting for data, so the car's
+    /// and Lock Screen's clocks stop with the music. The matching `.playing` sets rate 1 again.
+    private var nowPlayingShowsBuffering = false
     /// Set from the scene phase; the progress loop slows down while the app is hidden.
     private var isAppVisible = true
     private var subsonicPlayingNowTask: Task<Void, Never>?
@@ -709,6 +712,7 @@ actor PlayerService: PlayerServiceProtocol {
         cancelNetworkRecoveryValidation()
         networkReloadRequiredTrackID = nil
         nowPlayingAnchor = nil
+        nowPlayingShowsBuffering = false
         networkRecoveryAttemptBudget.reset()
         pendingRestoreInfo = nil
         // Starting a new track can interrupt a muted parking play (end-of-queue rewind)
@@ -859,7 +863,8 @@ actor PlayerService: PlayerServiceProtocol {
             album: song.albumName,
             duration: duration,
             position: snapshotPosition,
-            playbackRate: 1.0,
+            // A stream still opening already told Now Playing it is waiting; keep its clock stopped.
+            playbackRate: nowPlayingShowsBuffering ? 0 : 1.0,
             artworkURL: artworkURL,
             artworkHeaders: artworkHeaders,
             coverArtId: song.coverArtId,
@@ -897,6 +902,7 @@ actor PlayerService: PlayerServiceProtocol {
         pendingSystemResume = nil
         networkReloadRequiredTrackID = nil
         nowPlayingAnchor = nil
+        nowPlayingShowsBuffering = false
         networkRecoveryAttemptBudget.reset()
         let previousEnginePlayback = activeEnginePlayback
         defer {
@@ -3840,6 +3846,8 @@ actor PlayerService: PlayerServiceProtocol {
         switch newState {
         case .playing:
             audioStartedPlaybackGeneration = playbackGeneration
+            await presentBufferingToNowPlaying(false, playbackToken: playbackToken)
+            guard isCurrentEngineEvent(playbackToken) else { return }
             if let info = pendingRestoreInfo {
                 pendingRestoreInfo = nil
                 // Seek while the engine is running. AVPlayer may still accept the request while its
@@ -3915,6 +3923,7 @@ actor PlayerService: PlayerServiceProtocol {
             }
         case .buffering, .paused:
             playbackProgressTracker.breakContinuity()
+            await presentBufferingToNowPlaying(true, playbackToken: playbackToken)
             await armRecoveryForUnexpectedEngineStall(playbackToken: playbackToken)
             if newState == .paused {
                 await resumeAfterNetworkPauseIfNeeded(playbackToken: playbackToken)
@@ -3924,6 +3933,28 @@ actor PlayerService: PlayerServiceProtocol {
         case .error:
             await handleEngineError(AudioEngineFailure(error: nil), playbackToken: playbackToken)
         }
+    }
+
+    /// While the listener wants playback but AVPlayer waits for data, Now Playing shows rate 0 at
+    /// the true position; when audio resumes it shows rate 1 again. A deliberate pause, which
+    /// pushes its own snapshot, never reaches this.
+    private func presentBufferingToNowPlaying(_ isBuffering: Bool, playbackToken: AudioEnginePlaybackToken) async {
+        guard isBuffering != nowPlayingShowsBuffering else { return }
+        let snapshot = await MainActor.run {
+            (wantsPlayback: state.wantsPlayback, isLiveStream: state.isLiveStream,
+             position: state.position, duration: state.duration, songId: state.currentTrack?.id)
+        }
+        guard isCurrentEngineEvent(playbackToken), isBuffering != nowPlayingShowsBuffering,
+              snapshot.wantsPlayback, !snapshot.isLiveStream, let songId = snapshot.songId else { return }
+        nowPlayingShowsBuffering = isBuffering
+        // A replacement item starts at zero until its restore seek lands; the checkpoint is the truth.
+        let usesCheckpoint = pendingRestoreInfo != nil || isMutedForRestore
+        let elapsed = max(0, usesCheckpoint ? snapshot.position : engine.progress)
+        let rate: Float = isBuffering ? 0 : 1
+        nowPlayingAnchor = isBuffering ? nil : NowPlayingPositionAnchor(
+            elapsed: elapsed, duration: snapshot.duration, uptime: ProcessInfo.processInfo.systemUptime
+        )
+        await nowPlayingService?.pushPosition(elapsed: elapsed, rate: rate, duration: snapshot.duration, songId: songId)
     }
 
     /// Reasserts Play after an unexpected network pause. Explicit user pauses remain authoritative.
@@ -4282,6 +4313,7 @@ actor PlayerService: PlayerServiceProtocol {
             radioStationName: nil,
             songId: track.id
         )
+        nowPlayingShowsBuffering = false
         nowPlayingAnchor = resolvedRate > 0
             ? NowPlayingPositionAnchor(
                 elapsed: snapshot.position, duration: duration, uptime: ProcessInfo.processInfo.systemUptime
@@ -4300,7 +4332,8 @@ actor PlayerService: PlayerServiceProtocol {
             (state.playbackState, state.duration, state.isLiveStream, state.currentTrack?.id)
         }
         guard case .playing = playbackState, !isLiveStream, let songId else { return }
-        guard elapsed >= 0, duration > 0 else { return }
+        // Rate 0 stays until AVPlayer renders again; a rate-1 push here would restart the clock.
+        guard elapsed >= 0, duration > 0, !nowPlayingShowsBuffering else { return }
         let now = ProcessInfo.processInfo.systemUptime
         guard Self.nowPlayingNeedsPositionPush(
             anchor: nowPlayingAnchor, elapsed: elapsed, duration: duration, uptime: now
