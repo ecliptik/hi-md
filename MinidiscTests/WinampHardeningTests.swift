@@ -19,4 +19,18 @@ struct WinampHardeningTests {
         #expect(regions["normal"] == nil)
         #expect(regions["windowshade"]?.first?.count == 3)
     }
+
+    // MARK: M3U durations
+
+    @Test func extInfDurationsMustBeFiniteAndAtMostAWeek() {
+        for bad in ["inf", "-inf", "nan", "1e30", "9223372036854775808", "604801", "-5"] {
+            let entries = M3UPlaylist.decode(text: "#EXTM3U\n#EXTINF:\(bad),Artist - Title\nsong.mp3\n")
+            #expect(entries.count == 1, "\(bad)")
+            #expect(entries.first?.duration == nil, "\(bad)")
+            #expect(entries.first?.displayTitle == "Artist - Title", "\(bad)")
+        }
+        #expect(M3UPlaylist.parseDuration("604800") == 604_800)
+        #expect(M3UPlaylist.parseDuration("245.4") == 245)
+        #expect(M3UPlaylist.parseDuration("0") == 0)
+    }
 }
