@@ -10,7 +10,7 @@ struct PlaylistThemedBackground: View {
     /// ~half (full-bleed covers with content floating over them).
     var lightMelt: Bool = false
 
-    private var bodyColor: Color { theme.isThemed ? theme.dominantColor : systemBackground }
+    private var bodyColor: Color { theme.isThemed ? theme.backgroundColor : systemBackground }
 
     var body: some View {
         ZStack(alignment: .top) {

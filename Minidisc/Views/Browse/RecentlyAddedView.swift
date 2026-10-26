@@ -21,7 +21,7 @@ struct RecentlyAddedView: View {
     private var headerTextColor: Color { theme.contentColor }
     private var headerSecondaryColor: Color { theme.secondaryContentColor }
     private var bodyColor: Color {
-        if theme.isThemed { return theme.dominantColor }
+        if theme.isThemed { return theme.backgroundColor }
         return Color(UIColor.systemBackground)
     }
 

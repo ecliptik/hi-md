@@ -603,15 +603,26 @@ struct AlbumDetailPalette {
             )
         }
 
-        let topColor = themedColor(brightnessMultiplier: appearance == .dark ? 1.06 : 1.08)
-        let bottomColor = themedColor(brightnessMultiplier: appearance == .dark ? 0.84 : 0.92)
-        let usesDarkContent = topColor.luminance > 0.62 && bottomColor.luminance > 0.55
+        var topColor = themedColor(brightnessMultiplier: appearance == .dark ? 1.06 : 1.08)
+        var bottomColor = themedColor(brightnessMultiplier: appearance == .dark ? 0.84 : 0.92)
+        // Black or white by WCAG contrast over both stops. Perceived brightness kept white text on
+        // light-mode greens and yellows at 1.9:1, and 70% secondary text at 1.6:1.
+        var usesDarkContent = false
+        var secondaryOpacity = 0.7
+        if let top = WCAGContrast.RGB(topColor.rgbComponents), let bottom = WCAGContrast.RGB(bottomColor.rgbComponents) {
+            let readable = ReadableContent.resolve(backgrounds: [top, bottom])
+            usesDarkContent = readable.usesDarkContent
+            secondaryOpacity = readable.secondaryOpacity
+            let stops = readable.backgrounds.map { Color(red: $0.red, green: $0.green, blue: $0.blue) }
+            topColor = stops[0]
+            bottomColor = stops[1]
+        }
         let foreground: Color = usesDarkContent ? .black : .white
 
         backgroundTopColor = topColor
         backgroundBottomColor = bottomColor
         contentColor = foreground
-        secondaryContentColor = foreground.opacity(0.7)
+        secondaryContentColor = foreground.opacity(secondaryOpacity)
         controlFillColor = foreground.opacity(0.12)
         playLabelColor = themedColor(
             brightnessMultiplier: min(max(0.32 / max(adjustedBrightness, 0.01), 0.5), 1)
@@ -1109,7 +1120,8 @@ private struct AlbumReleaseInformationSection: View {
                 }
             }
             .font(.footnote)
-            .foregroundStyle(textColor.opacity(0.82))
+            // Already the palette's secondary colour, tuned for 4.5:1; a further 82% fell under it.
+            .foregroundStyle(textColor)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, MinidiscSpacing.l)
             .padding(.top, MinidiscSpacing.l)
