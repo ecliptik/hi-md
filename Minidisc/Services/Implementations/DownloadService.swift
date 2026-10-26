@@ -203,7 +203,7 @@ actor DownloadService: DownloadServiceProtocol {
 
     init(serverService: any ServerServiceProtocol, modelContainer: ModelContainer, toastService: ToastService,
          transferTransport: (any DownloadTransport)? = nil, journalURL: URL? = nil,
-         diagnostics: PlaybackDiagnostics? = nil) {
+         diagnostics: PlaybackDiagnostics? = nil, rootDirectory: URL? = nil) {
         self.serverService = serverService
         self.modelContainer = modelContainer
         self.toastService = toastService
@@ -220,7 +220,7 @@ actor DownloadService: DownloadServiceProtocol {
         self.downloadSession = URLSession(configuration: sessionConfig)
 
         let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        let base = docs.appendingPathComponent("app.minidisc", isDirectory: true)
+        let base = rootDirectory ?? docs.appendingPathComponent("app.minidisc", isDirectory: true)
         let downloadsDirectory = base.appendingPathComponent("downloads", isDirectory: true)
         self.downloadsDirectory = downloadsDirectory
         self.coverArtsDirectory = base.appendingPathComponent("coverarts", isDirectory: true)
@@ -376,17 +376,29 @@ actor DownloadService: DownloadServiceProtocol {
         await offlineLibraryReader.downloadedSongIds(serverId: serverId)
     }
 
+    /// Cover IDs come from the server, and ArtworkImageCache adds its `@tier` suffix to them.
+    /// Either way the file must stay inside `directory`.
+    nonisolated static func coverURL(forId coverArtId: String, in directory: URL) -> URL? {
+        SafeFileName.url(forRelativePath: SafeFileName.forID(coverArtId), in: directory)
+    }
+
+    /// `<server>/<song>.<ext>` inside the downloads folder. Ordinary song IDs keep the name earlier
+    /// builds used, so their files are still found after an upgrade.
+    nonisolated static func downloadRelativePath(songId: String, serverId: UUID, fileExtension: String) -> String {
+        "\(serverId.uuidString)/\(SafeFileName.forID(songId)).\(fileExtension)"
+    }
+
     func localCoverArtURL(forId coverArtId: String) async -> URL? {
-        let userURL = userCoversDirectory.appendingPathComponent(coverArtId)
-        if FileManager.default.fileExists(atPath: userURL.path) { return userURL }
-        let url = coverArtsDirectory.appendingPathComponent(coverArtId)
+        if let userURL = Self.coverURL(forId: coverArtId, in: userCoversDirectory),
+           FileManager.default.fileExists(atPath: userURL.path) { return userURL }
+        guard let url = Self.coverURL(forId: coverArtId, in: coverArtsDirectory) else { return nil }
         let exists = FileManager.default.fileExists(atPath: url.path)
         Logger.download.debug("localCoverArtURL id='\(coverArtId, privacy: .public)' path='\(url.path, privacy: .public)' exists=\(exists)")
         return exists ? url : nil
     }
 
     func persistCover(_ data: Data, forId coverArtId: String) async {
-        let url = coverArtsDirectory.appendingPathComponent(coverArtId)
+        guard let url = Self.coverURL(forId: coverArtId, in: coverArtsDirectory) else { return }
         Logger.download.debug("persistCover id='\(coverArtId, privacy: .public)' path='\(url.path, privacy: .public)' bytes=\(data.count, privacy: .public)")
         do {
             try FileManager.default.createDirectory(at: coverArtsDirectory, withIntermediateDirectories: true)
@@ -397,7 +409,7 @@ actor DownloadService: DownloadServiceProtocol {
     }
 
     func persistUserCover(_ data: Data, forId coverArtId: String) async {
-        let url = userCoversDirectory.appendingPathComponent(coverArtId)
+        guard let url = Self.coverURL(forId: coverArtId, in: userCoversDirectory) else { return }
         do {
             try FileManager.default.createDirectory(at: userCoversDirectory, withIntermediateDirectories: true)
             try data.write(to: url, options: .atomic)
@@ -408,10 +420,10 @@ actor DownloadService: DownloadServiceProtocol {
 
     func adoptLegacyUserCover(forId coverArtId: String) async {
         let fm = FileManager.default
-        let destination = userCoversDirectory.appendingPathComponent(coverArtId)
-        guard !fm.fileExists(atPath: destination.path) else { return }
-        let source = coverArtsDirectory.appendingPathComponent(coverArtId)
-        guard fm.fileExists(atPath: source.path) else { return }
+        guard let destination = Self.coverURL(forId: coverArtId, in: userCoversDirectory),
+              !fm.fileExists(atPath: destination.path),
+              let source = Self.coverURL(forId: coverArtId, in: coverArtsDirectory),
+              fm.fileExists(atPath: source.path) else { return }
         do {
             try fm.createDirectory(at: userCoversDirectory, withIntermediateDirectories: true)
             try fm.moveItem(at: source, to: destination)
@@ -421,8 +433,8 @@ actor DownloadService: DownloadServiceProtocol {
     }
 
     func removeCover(forId coverArtId: String) async {
-        let url = coverArtsDirectory.appendingPathComponent(coverArtId)
-        guard FileManager.default.fileExists(atPath: url.path) else { return }
+        guard let url = Self.coverURL(forId: coverArtId, in: coverArtsDirectory),
+              FileManager.default.fileExists(atPath: url.path) else { return }
         do {
             try FileManager.default.removeItem(at: url)
         } catch {
@@ -452,14 +464,16 @@ actor DownloadService: DownloadServiceProtocol {
         guard let entries = try? fm.contentsOfDirectory(at: coverArtsDirectory, includingPropertiesForKeys: nil) else {
             return 0
         }
+        // Files are named after the safe form of each ID, which is the ID itself for ordinary IDs.
+        let referencedFileNames = Set(referencedIds.map(SafeFileName.forID))
         var deletedCount = 0
         for fileURL in entries {
             let filename = fileURL.lastPathComponent
             // Skip tier-suffixed files (id@thumb, id@hero) — those are streaming cache
             // managed by ArtworkImageCache's own eviction, not offline-download GC.
+            // (A hashed name has no `@`; losing such a streaming copy only costs a refetch.)
             guard !filename.contains("@") else { continue }
-            let coverArtId = filename
-            if !referencedIds.contains(coverArtId) {
+            if !referencedFileNames.contains(filename) {
                 do {
                     try fm.removeItem(at: fileURL)
                 } catch {
@@ -552,9 +566,15 @@ actor DownloadService: DownloadServiceProtocol {
         if let sniffed, let declared = song.suffix?.lowercased(), sniffed.rawValue != declared {
             Logger.download.warning("Container mismatch for '\(song.id, privacy: .public)': server declared '\(declared, privacy: .public)', bytes are \(sniffed.rawValue, privacy: .public) — naming the file after the bytes")
         }
-        let ext = sniffed?.rawValue ?? song.suffix ?? mimeType.split(separator: "/").last.map(String.init) ?? "bin"
-        let relativePath = "\(serverId.uuidString)/\(song.id).\(ext)"
-        let fileURL = downloadsDirectory.appendingPathComponent(relativePath)
+        // The suffix and MIME type come from the server too, so only known audio extensions are used.
+        let ext = sniffed?.rawValue
+            ?? SafeFileName.audioExtension(song.suffix)
+            ?? SafeFileName.audioExtension(mimeType.split(separator: "/").last.map(String.init))
+            ?? "bin"
+        let relativePath = Self.downloadRelativePath(songId: song.id, serverId: serverId, fileExtension: ext)
+        guard let fileURL = SafeFileName.url(forRelativePath: relativePath, in: downloadsDirectory) else {
+            throw MinidiscError.downloadFailed(songId: song.id, underlying: CocoaError(.fileWriteInvalidFileName))
+        }
         var incompleteFileURL: URL?
         defer {
             if let incompleteFileURL {
@@ -1042,7 +1062,9 @@ actor DownloadService: DownloadServiceProtocol {
     /// Throws on network or write error — callers must catch and treat as best-effort.
     private func _downloadCoverArt(id: String, serverID: UUID? = nil) async throws {
         try checkDownloadCancellation()
-        let fileURL = coverArtsDirectory.appendingPathComponent(id)
+        guard let fileURL = Self.coverURL(forId: id, in: coverArtsDirectory) else {
+            throw MinidiscError.downloadFailed(songId: id, underlying: CocoaError(.fileWriteInvalidFileName))
+        }
         guard !FileManager.default.fileExists(atPath: fileURL.path) else {
             Logger.download.debug("Cover art '\(id, privacy: .public)' already on disk — skipping.")
             return
