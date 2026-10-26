@@ -28,6 +28,18 @@ final class MacInterface {
         return playlists
     }
 
+    @ObservationIgnored private var homeCache: MacHomeFeed?
+
+    /// Home's feed for the active server, kept while the window shows other sections so going back
+    /// to Home doesn't start over. Nil without a server.
+    func homeFeed(for container: AppContainer) -> MacHomeFeed? {
+        guard let serverID = container.serverState.activeServer?.id else { return nil }
+        if let homeCache, homeCache.serverID == serverID, homeCache.container === container { return homeCache }
+        let feed = MacHomeFeed(container: container, serverID: serverID)
+        homeCache = feed
+        return feed
+    }
+
     /// The Settings > Appearance switch for the menu bar player.
     static let showsMenuBarPlayerKey = "minidisc.mac.showsMenuBarPlayer"
 }

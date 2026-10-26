@@ -46,6 +46,7 @@ struct MacRootView: View {
         .animation(reduceMotion ? nil : .smooth(duration: 0.3), value: navigator.isNowPlayingShown)
         .toolbar(navigator.isNowPlayingShown ? .hidden : .automatic, for: .windowToolbar)
         .frame(minWidth: 900, minHeight: 560)
+        .environment(interface)
         .environment(navigator)
         .environment(playback)
         .environment(playlists)
@@ -85,7 +86,7 @@ private struct MacDetailColumn: View {
     var body: some View {
         @Bindable var navigator = navigator
         NavigationStack(path: $navigator.path) {
-            MacSectionView(container: container, item: navigator.selection ?? .albums)
+            MacSectionView(container: container, item: navigator.selection ?? .home)
                 .navigationDestination(for: MacDestination.self) { destination in
                     MacDestinationView(container: container, destination: destination)
                 }
@@ -103,6 +104,7 @@ private struct MacSectionView: View {
             MacNoServerView()
         } else {
             switch item {
+            case .home: MacHomeView(container: container)
             case .search: MacSearchView(container: container)
             case .discover: MacDiscoverView(container: container)
             case .albums: MacAlbumsView(container: container)
@@ -136,6 +138,8 @@ private struct MacDestinationView: View {
         case .playlist(let id):
             MacPlaylistDetailView(container: container, playlistID: id)
                 .id(id)
+        case .homeShelf(let shelf):
+            MacHomeShelfView(container: container, shelf: shelf)
         }
     }
 }

@@ -3,6 +3,7 @@ import SwiftUI
 
 /// The sidebar's sections and the user's playlists.
 enum MacSidebarItem: Hashable {
+    case home
     case search
     case discover
     case albums
@@ -22,6 +23,8 @@ enum MacDestination: Hashable {
     case artist(id: String, name: String)
     case genre(LibraryFacet)
     case playlist(id: String)
+    /// A Home shelf's full list.
+    case homeShelf(HomeShelf)
 }
 
 extension MacDestination {
@@ -48,7 +51,8 @@ enum MacInspectorPane: String, Hashable {
 @Observable
 @MainActor
 final class MacNavigator {
-    var selection: MacSidebarItem? = .albums {
+    /// Home on launch, as on the iPhone.
+    var selection: MacSidebarItem? = .home {
         didSet { if selection != oldValue { path = [] } }
     }
     var path: [MacDestination] = []
@@ -75,7 +79,7 @@ final class MacNavigator {
     /// brought back instead of being opened twice. Now Playing closes to show it.
     func show(_ destination: MacDestination) {
         isNowPlayingShown = false
-        if selection == nil { selection = .albums }
+        if selection == nil { selection = .home }
         if let index = path.firstIndex(where: { $0.opensSamePage(as: destination) }) {
             path.removeSubrange(index...)
         }
