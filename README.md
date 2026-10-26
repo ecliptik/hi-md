@@ -55,7 +55,7 @@ The fork follows its own direction and doesn't send changes upstream, but it mer
 - Siri and Shortcuts actions, Spotlight indexing of artists, albums and playlists, and plain-language library search with the on-device model.
 - An Apple Watch remote, and iPad and landscape layouts.
 - CarPlay with Home, Library, Downloads and Moods tabs. It runs in the simulator; a device build needs Apple's CarPlay audio entitlement.
-- A native Mac app (`MinidiscMac`) with a Music-style library, a full-window Now Playing view with lyrics, a MiniPlayer and a menu bar player.
+- A native Mac app (`MinidiscMac`) with the iPhone's Home and Discover as Music-style shelves, a Music-style library, a full-window Now Playing view with lyrics, a MiniPlayer and a menu bar player.
 - A Winamp mode on the Mac (View › Winamp Mode, ⌘⇧W): classic `.wsz` skins, docking playlist and equalizer windows, zoom up to 4×, M3U playlists, a server folder browser with search, and a demo clip in the spirit of the original.
 
 **Interface**
