@@ -364,15 +364,6 @@ struct StorageSettingsView: View {
                             .foregroundStyle(.primary)
                     }
                     .tint(Color(.systemGreen))
-
-                    Toggle(isOn: Binding(
-                        get: { cacheSettings.cacheOverCellular },
-                        set: { cacheSettings.cacheOverCellular = $0 }
-                    )) {
-                        Text("Use cellular data")
-                            .foregroundStyle(.primary)
-                    }
-                    .tint(Color(.systemGreen))
                 }
 
                 Button(role: .destructive) {
