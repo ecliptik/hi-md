@@ -4,7 +4,8 @@ import Observation
 import OSLog
 import SwiftSonic
 
-/// Settings > Integrations > AI Recommendations. API keys live in the keychain.
+/// Settings > Integrations > AI Recommendations. API keys live in the keychain; the rest,
+/// including which providers the user has been told about, in defaults.
 @Observable
 @MainActor
 final class AIRecommendationSettings {
@@ -12,28 +13,55 @@ final class AIRecommendationSettings {
         static let provider = "ai-recommendations.provider"
         static let anthropicModel = "ai-recommendations.anthropicModel"
         static let openAIModel = "ai-recommendations.openAIModel"
+        static let sharingAcknowledged = "ai-recommendations.sharingAcknowledged"
     }
-
-    static let defaultAnthropicModel = "claude-sonnet-5-5"
-    static let defaultOpenAIModel = "gpt-5"
 
     @ObservationIgnored private let defaults: UserDefaults
     @ObservationIgnored private let keychain: any KeychainServiceProtocol
+    @ObservationIgnored private var pendingKeySave: Task<Void, Never>?
 
     var provider: AIRecommendationProvider { didSet { defaults.set(provider.rawValue, forKey: Key.provider) } }
+    /// What the user typed. Empty means the provider's default model.
     var anthropicModel: String { didSet { defaults.set(anthropicModel, forKey: Key.anthropicModel) } }
     var openAIModel: String { didSet { defaults.set(openAIModel, forKey: Key.openAIModel) } }
+    /// Cloud providers the user has seen the what-is-sent note for.
+    private(set) var sharingAcknowledged: Set<AIRecommendationProvider> {
+        didSet { defaults.set(sharingAcknowledged.map(\.rawValue).sorted(), forKey: Key.sharingAcknowledged) }
+    }
 
     init(keychain: any KeychainServiceProtocol, defaults: UserDefaults = .standard) {
         self.keychain = keychain
         self.defaults = defaults
         provider = defaults.string(forKey: Key.provider).flatMap(AIRecommendationProvider.init(rawValue:)) ?? .appleIntelligence
-        anthropicModel = defaults.string(forKey: Key.anthropicModel) ?? Self.defaultAnthropicModel
-        openAIModel = defaults.string(forKey: Key.openAIModel) ?? Self.defaultOpenAIModel
+        anthropicModel = defaults.string(forKey: Key.anthropicModel) ?? ""
+        openAIModel = defaults.string(forKey: Key.openAIModel) ?? ""
+        sharingAcknowledged = Set((defaults.stringArray(forKey: Key.sharingAcknowledged) ?? [])
+            .compactMap(AIRecommendationProvider.init(rawValue:)))
+    }
+
+    /// The model to ask: the typed one, or the provider's default when the field is empty.
+    func model(for provider: AIRecommendationProvider) -> String {
+        let typed = switch provider {
+        case .appleIntelligence: ""
+        case .anthropic: anthropicModel
+        case .openAI: openAIModel
+        }
+        let trimmed = typed.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? provider.defaultModel ?? "" : trimmed
+    }
+
+    /// True until the user has been told what goes to this provider. Apple Intelligence never asks.
+    func needsSharingNotice(for provider: AIRecommendationProvider) -> Bool {
+        provider.needsAPIKey && !sharingAcknowledged.contains(provider)
+    }
+
+    func acknowledgeSharing(for provider: AIRecommendationProvider) {
+        sharingAcknowledged.insert(provider)
     }
 
     func apiKey(for provider: AIRecommendationProvider) async -> String? {
         guard provider.needsAPIKey else { return nil }
+        await pendingKeySave?.value
         let key = try? await keychain.retrieve(String.self, forKey: provider.keychainKey)
         return key?.isEmpty == false ? key : nil
     }
@@ -44,11 +72,14 @@ final class AIRecommendationSettings {
         else { try await keychain.store(trimmed, forKey: provider.keychainKey) }
     }
 
-    var model: String {
-        switch provider {
-        case .appleIntelligence: "on-device"
-        case .anthropic: anthropicModel
-        case .openAI: openAIModel
+    /// Saves as the user types. Each write waits for the one before it, so the last edit wins.
+    func saveAPIKey(_ key: String, for provider: AIRecommendationProvider) {
+        let previous = pendingKeySave
+        pendingKeySave = Task {
+            await previous?.value
+            do { try await setAPIKey(key, for: provider) } catch {
+                Logger.ui.error("Couldn't save the \(provider.rawValue, privacy: .public) key: \(error, privacy: .public)")
+            }
         }
     }
 }
@@ -61,6 +92,7 @@ struct AIRecommender {
 
     let container: AppContainer
     let settings: AIRecommendationSettings
+    var client = AIRecommendationCloudClient()
 
     func recommend() async throws -> [AIRecommendationResult] {
         guard let server = container.serverState.activeServer else { throw MusicIntentError.noServer }
@@ -68,15 +100,11 @@ struct AIRecommender {
         guard !profile.isEmpty else { throw AIRecommendationError.notEnoughListening }
         let provider = settings.provider
         let items: [AIRecommendation]
-        switch provider {
-        case .appleIntelligence:
+        if provider == .appleIntelligence {
             items = try await Self.askAppleIntelligence(profile)
-        case .anthropic:
-            guard let key = await settings.apiKey(for: .anthropic) else { throw AIRecommendationError.missingKey }
-            items = try await Self.askAnthropic(profile, key: key, model: settings.anthropicModel)
-        case .openAI:
-            guard let key = await settings.apiKey(for: .openAI) else { throw AIRecommendationError.missingKey }
-            items = try await Self.askOpenAI(profile, key: key, model: settings.openAIModel)
+        } else {
+            guard let key = await settings.apiKey(for: provider) else { throw AIRecommendationError.missingKey(provider) }
+            items = try await client.recommend(profile, provider: provider, key: key, model: settings.model(for: provider))
         }
         Logger.ui.info("AI recommendations: \(items.count) from \(provider.rawValue, privacy: .public)")
         return try await match(items, serverID: server.id)
@@ -125,55 +153,9 @@ struct AIRecommender {
 
     // MARK: - Providers
 
-    nonisolated static func anthropicRequest(_ profile: AIListeningProfile, key: String, model: String) throws -> URLRequest {
-        var request = URLRequest(url: URL(string: "https://api.anthropic.com/v1/messages")!)
-        request.httpMethod = "POST"
-        request.timeoutInterval = 90
-        request.setValue(key, forHTTPHeaderField: "x-api-key")
-        request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
-        request.setValue("application/json", forHTTPHeaderField: "content-type")
-        let body: [String: Any] = [
-            "model": model, "max_tokens": 2048, "system": AIListeningProfile.systemPrompt,
-            "messages": [["role": "user", "content": profile.prompt(count: count)]]
-        ]
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
-        return request
-    }
+    // Anthropic and OpenAI go through `AIRecommendationCloudClient`; this is the on-device one.
 
-    nonisolated static func openAIRequest(_ profile: AIListeningProfile, key: String, model: String) throws -> URLRequest {
-        var request = URLRequest(url: URL(string: "https://api.openai.com/v1/chat/completions")!)
-        request.httpMethod = "POST"
-        request.timeoutInterval = 90
-        request.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
-        request.setValue("application/json", forHTTPHeaderField: "content-type")
-        let body: [String: Any] = [
-            "model": model,
-            "response_format": ["type": "json_object"],
-            "messages": [["role": "system", "content": AIListeningProfile.systemPrompt],
-                         ["role": "user", "content": profile.prompt(count: count)]]
-        ]
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
-        return request
-    }
-
-    @concurrent
-    nonisolated static func askAnthropic(_ profile: AIListeningProfile, key: String, model: String) async throws -> [AIRecommendation] {
-        let data = try await send(anthropicRequest(profile, key: key, model: model))
-        struct Response: Decodable { struct Block: Decodable { let type: String; let text: String? }; let content: [Block] }
-        let response = try JSONDecoder().decode(Response.self, from: data)
-        return try AIRecommendationParser.parse(response.content.compactMap(\.text).joined())
-    }
-
-    @concurrent
-    nonisolated static func askOpenAI(_ profile: AIListeningProfile, key: String, model: String) async throws -> [AIRecommendation] {
-        let data = try await send(openAIRequest(profile, key: key, model: model))
-        struct Response: Decodable {
-            struct Choice: Decodable { struct Message: Decodable { let content: String? }; let message: Message }
-            let choices: [Choice]
-        }
-        let response = try JSONDecoder().decode(Response.self, from: data)
-        return try AIRecommendationParser.parse(response.choices.first?.message.content ?? "")
-    }
+    nonisolated static var isAppleIntelligenceAvailable: Bool { SystemLanguageModel.default.isAvailable }
 
     @concurrent
     nonisolated static func askAppleIntelligence(_ profile: AIListeningProfile) async throws -> [AIRecommendation] {
@@ -190,13 +172,6 @@ struct AIRecommender {
             Logger.ui.info("On-device recommendations failed: \(error, privacy: .public)")
             throw AIRecommendationError.badResponse
         }
-    }
-
-    nonisolated private static func send(_ request: URLRequest) async throws -> Data {
-        let (data, response) = try await URLSession.shared.data(for: request)
-        let status = (response as? HTTPURLResponse)?.statusCode ?? 0
-        guard (200..<300).contains(status) else { throw AIRecommendationError.http(status) }
-        return data
     }
 }
 

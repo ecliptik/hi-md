@@ -7,11 +7,30 @@ nonisolated enum AIRecommendationProvider: String, CaseIterable, Identifiable, S
 
     var id: String { rawValue }
 
-    var title: LocalizedStringResource {
+    /// The company, for the Settings picker and error messages. Brand names stay untranslated.
+    var title: String {
         switch self {
         case .appleIntelligence: "Apple Intelligence"
-        case .anthropic: "Anthropic (Claude)"
+        case .anthropic: "Anthropic"
         case .openAI: "OpenAI"
+        }
+    }
+
+    /// The assistant people know, for the "Suggested by" pill and shared lists.
+    var assistantName: String {
+        switch self {
+        case .appleIntelligence: "Apple Intelligence"
+        case .anthropic: "Claude"
+        case .openAI: "ChatGPT"
+        }
+    }
+
+    /// Used when the model field is left empty. The user can type any model the provider offers.
+    var defaultModel: String? {
+        switch self {
+        case .appleIntelligence: nil
+        case .anthropic: "claude-opus-5-5"
+        case .openAI: "gpt-5.6-terra"
         }
     }
 
@@ -75,16 +94,53 @@ nonisolated struct AIListeningProfile: Sendable, Equatable {
 }
 
 nonisolated enum AIRecommendationError: Error, CustomLocalizedStringResourceConvertible, Equatable {
-    case missingKey, unavailable, badResponse, http(Int), notEnoughListening
+    case missingKey(AIRecommendationProvider)
+    /// 401 or 403: the provider refused the key.
+    case rejectedKey(AIRecommendationProvider)
+    /// 404: the provider has no model by that name.
+    case unknownModel(AIRecommendationProvider, String)
+    /// 429: too many requests, or the account is out of credit.
+    case rateLimited(AIRecommendationProvider)
+    /// 408, 5xx or Anthropic's 529: the provider is down or overloaded.
+    case serviceBusy(AIRecommendationProvider)
+    case offline(AIRecommendationProvider)
+    /// Any other status, with the provider's own message when it sent one.
+    case http(AIRecommendationProvider, status: Int, message: String?)
+    case unavailable, badResponse, notEnoughListening
 
     var localizedStringResource: LocalizedStringResource {
         switch self {
-        case .missingKey: "Add an API key in Settings > Integrations > AI Recommendations."
+        case .missingKey(let provider):
+            "Add your \(provider.title) API key in Settings > Integrations > AI Recommendations."
+        case .rejectedKey(let provider):
+            "\(provider.title) didn't accept the API key. Check it in Settings > Integrations > AI Recommendations."
+        case .unknownModel(let provider, let model):
+            "\(provider.title) doesn't offer the model \(model). Check the model name in Settings > Integrations > AI Recommendations."
+        case .rateLimited(let provider):
+            "\(provider.title) is limiting requests, or your account is out of credit. Wait a minute and try again."
+        case .serviceBusy(let provider):
+            "\(provider.title) is busy right now. Try again in a few minutes."
+        case .offline(let provider):
+            "Couldn't reach \(provider.title). Check your connection and try again."
+        case .http(let provider, let status, _):
+            "\(provider.title) returned an error (\(status)). Check the model name in Settings > Integrations > AI Recommendations."
         case .unavailable: "Apple Intelligence isn't available on this device right now."
         case .badResponse: "The recommendation service sent an answer Minidisc couldn't read. Try again."
-        case .http(let status): "The recommendation service returned an error (\(status)). Check your key and try again."
         case .notEnoughListening: "Play some music first, so there's something to base recommendations on."
         }
+    }
+
+    /// Whether changing a setting fixes it, so the screen offers a way there.
+    var isFixedInSettings: Bool {
+        switch self {
+        case .missingKey, .rejectedKey, .unknownModel, .http, .unavailable: true
+        case .rateLimited, .serviceBusy, .offline, .badResponse, .notEnoughListening: false
+        }
+    }
+
+    /// The provider's own explanation, in English, shown under the message.
+    var detail: String? {
+        if case .http(_, _, let message) = self { message } else { nil }
     }
 }
 
@@ -140,5 +196,32 @@ nonisolated enum AIRecommendationLinks {
             URLQueryItem(name: "method", value: "advanced")
         ]
         return components?.url
+    }
+}
+
+/// Plain text for the share sheet, laid out to paste cleanly into Notes or a message.
+nonisolated enum AIRecommendationShareText {
+    /// "Album — Artist (Year)", the reason, then the search links, one per line.
+    static func single(_ item: AIRecommendation) -> String {
+        lines(item).joined(separator: "\n")
+    }
+
+    /// A heading, then each album as a bullet with its details indented under it.
+    static func all(_ items: [AIRecommendation], heading: String) -> String {
+        let blocks = items.map { item in
+            lines(item).enumerated().map { index, line in (index == 0 ? "• " : "  ") + line }.joined(separator: "\n")
+        }
+        return ([heading] + blocks).joined(separator: "\n\n")
+    }
+
+    private static func lines(_ item: AIRecommendation) -> [String] {
+        var title = "\(item.album) — \(item.artist)"
+        if let year = item.year { title += " (\(String(year)))" }
+        var lines = [title]
+        let reason = item.reason.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !reason.isEmpty { lines.append(reason) }
+        if let url = AIRecommendationLinks.bandcamp(item) { lines.append("Bandcamp: \(url.absoluteString)") }
+        if let url = AIRecommendationLinks.musicBrainz(item) { lines.append("MusicBrainz: \(url.absoluteString)") }
+        return lines
     }
 }

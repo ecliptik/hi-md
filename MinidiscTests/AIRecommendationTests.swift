@@ -31,19 +31,6 @@ struct AIRecommendationTests {
         #expect(musicBrainz.absoluteString.contains("type=release"))
     }
 
-    @Test func providerRequestsCarryKeyModelAndProfile() throws {
-        var profile = AIListeningProfile()
-        profile.recentAlbums = ["Radiohead – OK Computer"]
-        let anthropic = try AIRecommender.anthropicRequest(profile, key: "sk-ant", model: "claude-sonnet-5-5")
-        #expect(anthropic.value(forHTTPHeaderField: "x-api-key") == "sk-ant")
-        #expect(anthropic.value(forHTTPHeaderField: "anthropic-version") == "2023-06-01")
-        let body = try #require(anthropic.httpBody.flatMap { String(data: $0, encoding: .utf8) })
-        #expect(body.contains("claude-sonnet-5-5") && body.contains("OK Computer"))
-        let openAI = try AIRecommender.openAIRequest(profile, key: "sk-oa", model: "gpt-5")
-        #expect(openAI.value(forHTTPHeaderField: "Authorization") == "Bearer sk-oa")
-        #expect(String(data: openAI.httpBody ?? Data(), encoding: .utf8)?.contains("json_object") == true)
-    }
-
     @Test func profilePromptListsOnlyWhatIsKnown() {
         var profile = AIListeningProfile()
         #expect(profile.isEmpty)

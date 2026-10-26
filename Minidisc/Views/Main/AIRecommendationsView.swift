@@ -6,9 +6,12 @@ struct AIRecommendationsView: View {
     @Environment(\.appContainer) private var container
     @Environment(\.openURL) private var openURL
     @State private var results: [AIRecommendationResult] = []
+    /// Who suggested `results`, for the shared list's heading.
+    @State private var resultsProvider: AIRecommendationProvider?
     @State private var isLoading = false
-    @State private var error: String?
+    @State private var failure: Failure?
     @State private var lidarrTarget: LidarrTarget?
+    @State private var showSettings = false
 
     private struct LidarrTarget: Identifiable {
         let artist: LidarrArtistLookup
@@ -16,17 +19,26 @@ struct AIRecommendationsView: View {
         var id: String { artist.id }
     }
 
+    private struct Failure: Equatable {
+        let message: String
+        var detail: String?
+        var isFixedInSettings = false
+    }
+
     var body: some View {
         List {
             if let settings = container?.aiRecommendationSettings {
                 Section {
                     Label {
-                        Text("Suggested by \(Text(settings.provider.title))")
+                        Text("Suggested by \(settings.provider.assistantName)")
                     } icon: {
                         Image(systemName: "sparkles").foregroundStyle(Color.minidiscAccent)
                     }
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
+                }
+                if settings.needsSharingNotice(for: settings.provider) {
+                    sharingNotice(settings)
                 }
             }
             if isLoading {
@@ -34,10 +46,22 @@ struct AIRecommendationsView: View {
                     ProgressView()
                     Text("Thinking about your library…").foregroundStyle(.secondary)
                 }
-            } else if let error {
-                EmptyStateView(systemImage: "sparkles", title: "No recommendations", subtitle: LocalizedStringKey(error),
-                               action: .init(label: "Try Again") { Task { await load() } })
-                    .listRowSeparator(.hidden)
+            } else if let failure {
+                VStack(spacing: MinidiscSpacing.s) {
+                    EmptyStateView(
+                        systemImage: "sparkles", title: "No recommendations", subtitle: LocalizedStringKey(failure.message),
+                        action: failure.isFixedInSettings
+                            ? .init(label: "Open Settings") { showSettings = true }
+                            : .init(label: "Try Again") { Task { await load() } }
+                    )
+                    if let detail = failure.detail {
+                        Text(verbatim: detail)
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                    }
+                }
+                .listRowSeparator(.hidden)
             }
             ForEach(results) { result in
                 row(result)
@@ -47,20 +71,73 @@ struct AIRecommendationsView: View {
         .navigationTitle("Recommended for You")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
+                ShareLink(item: shareAllText, subject: Text("Recommended for You")) {
+                    Label("Share All", systemImage: "square.and.arrow.up")
+                }
+                .disabled(results.isEmpty)
+            }
+            ToolbarItem(placement: .primaryAction) {
                 Button("Refresh", systemImage: "arrow.clockwise") { Task { await load() } }
-                    .disabled(isLoading)
+                    .disabled(isLoading || needsSharingNotice)
             }
         }
-        .task { if results.isEmpty { await load() } }
+        .task { if results.isEmpty, !needsSharingNotice { await load() } }
+        .sheet(isPresented: $showSettings, onDismiss: { if !needsSharingNotice { Task { await load() } } }) {
+            NavigationStack {
+                AIRecommendationSettingsView()
+                    .toolbar {
+                        ToolbarItem(placement: .confirmationAction) {
+                            Button("Done") { showSettings = false }
+                        }
+                    }
+            }
+        }
         .sheet(item: $lidarrTarget) { target in
             LidarrAddArtistSheet(artist: target.artist, client: target.client) { lidarrTarget = nil }
         }
         .miniPlayerBottomMargin()
     }
 
+    private var needsSharingNotice: Bool {
+        guard let settings = container?.aiRecommendationSettings else { return false }
+        return settings.needsSharingNotice(for: settings.provider)
+    }
+
+    private var shareAllText: String {
+        let provider = resultsProvider ?? container?.aiRecommendationSettings.provider ?? .appleIntelligence
+        return AIRecommendationShareText.all(
+            results.map(\.recommendation), heading: String(localized: "Album suggestions from \(provider.assistantName)")
+        )
+    }
+
+    /// Shown once per cloud provider, before anything is sent to it.
+    private func sharingNotice(_ settings: AIRecommendationSettings) -> some View {
+        let provider = settings.provider
+        return Section {
+            VStack(alignment: .leading, spacing: MinidiscSpacing.s) {
+                Label("What Minidisc sends to \(provider.title)", systemImage: "hand.raised")
+                    .font(.headline)
+                Text("To suggest albums, Minidisc sends \(provider.title) the names of up to 20 recently played albums, 15 favourite albums, your 25 most collected artists and 15 playlists. Nothing else is sent: no server address, account details or play counts. The terms of your API key apply.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.vertical, MinidiscSpacing.xs)
+            Button("Continue") {
+                settings.acknowledgeSharing(for: provider)
+                Task { await load() }
+            }
+            Button("Use Apple Intelligence Instead") {
+                settings.provider = .appleIntelligence
+                Task { await load() }
+            }
+        }
+        .tint(.minidiscAccent)
+    }
+
     @ViewBuilder
     private func row(_ result: AIRecommendationResult) -> some View {
         let item = result.recommendation
+        let shareText = AIRecommendationShareText.single(item)
         VStack(alignment: .leading, spacing: MinidiscSpacing.xs) {
             HStack(alignment: .firstTextBaseline) {
                 VStack(alignment: .leading, spacing: 2) {
@@ -74,12 +151,24 @@ struct AIRecommendationsView: View {
                         .labelStyle(.iconOnly)
                         .foregroundStyle(Color.minidiscAccent)
                 }
+                ShareLink(item: shareText, subject: Text(item.album)) {
+                    Label("Share", systemImage: "square.and.arrow.up")
+                        .labelStyle(.iconOnly)
+                }
+                .buttonStyle(.borderless)
+                .foregroundStyle(.secondary)
             }
             Text(item.reason).font(.footnote).foregroundStyle(.secondary)
             actions(result)
                 .padding(.top, MinidiscSpacing.xs)
         }
         .padding(.vertical, MinidiscSpacing.xs)
+        .contextMenu {
+            ShareLink(item: shareText, subject: Text(item.album)) {
+                Label("Share", systemImage: "square.and.arrow.up")
+            }
+            Button("Copy", systemImage: "doc.on.doc") { PlatformPasteboard.copy(shareText) }
+        }
     }
 
     @ViewBuilder
@@ -109,19 +198,23 @@ struct AIRecommendationsView: View {
 
     private func load() async {
         guard let container else { return }
+        let settings = container.aiRecommendationSettings
+        if resultsProvider != settings.provider { results = [] }
         isLoading = true
-        error = nil
+        failure = nil
         defer { isLoading = false }
         do {
-            results = try await AIRecommender(container: container, settings: container.aiRecommendationSettings).recommend()
-        } catch let failure as AIRecommendationError {
-            error = String(localized: failure.localizedStringResource)
-        } catch let failure as MusicIntentError {
-            error = String(localized: failure.localizedStringResource)
+            results = try await AIRecommender(container: container, settings: settings).recommend()
+            resultsProvider = settings.provider
+        } catch let error as AIRecommendationError {
+            failure = Failure(message: String(localized: error.localizedStringResource), detail: error.detail,
+                              isFixedInSettings: error.isFixedInSettings)
+        } catch let error as MusicIntentError {
+            failure = Failure(message: String(localized: error.localizedStringResource))
         } catch is CancellationError {
         } catch {
             Logger.ui.error("AI recommendations failed: \(error, privacy: .public)")
-            self.error = String(localized: "Couldn't reach the recommendation service. Check your connection.")
+            failure = Failure(message: String(localized: "Couldn't reach the recommendation service. Check your connection."))
         }
     }
 
@@ -149,9 +242,24 @@ struct AIRecommendationsView: View {
 /// Settings > Integrations > AI Recommendations.
 struct AIRecommendationSettingsView: View {
     @Environment(\.appContainer) private var container
-    @State private var anthropicKey = ""
-    @State private var openAIKey = ""
-    @State private var saved = false
+    /// Re-masks a revealed key when the app leaves the foreground.
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var keyDraft = ""
+    /// The key as last loaded or saved, and whose it is. Nil while switching providers.
+    @State private var storedKey: StoredKey?
+    @State private var showKey = false
+    @State private var isTesting = false
+    @State private var testResult: TestResult?
+
+    private struct StoredKey: Equatable {
+        let provider: AIRecommendationProvider
+        var value: String
+    }
+
+    private enum TestResult: Equatable {
+        case success
+        case failure(String)
+    }
 
     var body: some View {
         if let settings = container?.aiRecommendationSettings {
@@ -161,51 +269,140 @@ struct AIRecommendationSettingsView: View {
 
     private func form(_ settings: AIRecommendationSettings) -> some View {
         @Bindable var settings = settings
+        let provider = settings.provider
+        let hasKey = !keyDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         return Form {
             Section {
                 Picker("Provider", selection: $settings.provider) {
                     ForEach(AIRecommendationProvider.allCases) { Text($0.title).tag($0) }
                 }
+                if provider == .appleIntelligence, !AIRecommender.isAppleIntelligenceAvailable {
+                    warning("Apple Intelligence isn't available on this device right now.")
+                }
             } footer: {
                 Text("Apple Intelligence runs on this device. Anthropic and OpenAI receive the names of your recently played and favourite albums, most collected artists and playlists, and use your own API key.")
             }
-            if settings.provider == .anthropic {
-                Section("Anthropic") {
-                    SecureField("API Key", text: $anthropicKey)
-                    TextField("Model", text: $settings.anthropicModel)
-                        .textInputAutocapitalization(.never).autocorrectionDisabled()
-                }
-            }
-            if settings.provider == .openAI {
-                Section("OpenAI") {
-                    SecureField("API Key", text: $openAIKey)
-                    TextField("Model", text: $settings.openAIModel)
-                        .textInputAutocapitalization(.never).autocorrectionDisabled()
-                }
-            }
-            if settings.provider.needsAPIKey {
+            if provider.needsAPIKey {
                 Section {
-                    Button(saved ? "Saved" : "Save Key") {
-                        Task {
-                            try? await settings.setAPIKey(anthropicKey, for: .anthropic)
-                            try? await settings.setAPIKey(openAIKey, for: .openAI)
-                            saved = true
+                    if !hasKey, storedKey != nil {
+                        warning("Enter your \(provider.title) API key to get recommendations.")
+                    }
+                    keyField
+                    LabeledContent("Model") {
+                        TextField("Model", text: provider == .anthropic ? $settings.anthropicModel : $settings.openAIModel,
+                                  prompt: Text(verbatim: provider.defaultModel ?? ""))
+                            .autocorrectionDisabled()
+                            .textInputAutocapitalization(.never)
+                            .keyboardType(.asciiCapable)
+                            .multilineTextAlignment(.trailing)
+                    }
+                    Button {
+                        Task { await testConnection(settings) }
+                    } label: {
+                        HStack {
+                            Text("Test Connection")
+                            if isTesting {
+                                Spacer()
+                                ProgressView().controlSize(.small)
+                            }
                         }
                     }
+                    .disabled(!hasKey || isTesting)
+                    if let testResult {
+                        switch testResult {
+                        case .success:
+                            Label("Connected.", systemImage: "checkmark.circle")
+                                .font(.minidiscCaption)
+                                .foregroundStyle(.green)
+                        case .failure(let message):
+                            Label(message, systemImage: "exclamationmark.triangle")
+                                .font(.minidiscCaption)
+                                .foregroundStyle(.orange)
+                        }
+                    }
+                } header: {
+                    Text(verbatim: provider.title)
                 } footer: {
-                    Text("Keys are stored in the keychain on this device.")
+                    VStack(alignment: .leading, spacing: MinidiscSpacing.xs) {
+                        Text("Leave Model empty to use \(provider.defaultModel ?? ""), or enter any model your key can use.")
+                        if provider == .anthropic {
+                            Text("claude-sonnet-5-5 and claude-haiku-5-5 answer faster and cost less.")
+                        }
+                        Text("Keys are stored in the keychain on this device.")
+                    }
                 }
             }
         }
         .formStyle(.grouped)
         .navigationTitle("AI Recommendations")
         .navigationBarTitleDisplayModeInline()
-        .task {
-            anthropicKey = await settings.apiKey(for: .anthropic) ?? ""
-            openAIKey = await settings.apiKey(for: .openAI) ?? ""
+        .task(id: provider) {
+            storedKey = nil
+            testResult = nil
+            let key = await settings.apiKey(for: provider) ?? ""
+            keyDraft = key
+            storedKey = StoredKey(provider: provider, value: key)
         }
-        .onChange(of: anthropicKey) { saved = false }
-        .onChange(of: openAIKey) { saved = false }
+        .onChange(of: keyDraft) { _, draft in
+            // Only the user's edits are saved, never the draft loaded for another provider.
+            guard let storedKey, storedKey.provider == settings.provider, storedKey.value != draft else { return }
+            settings.saveAPIKey(draft, for: storedKey.provider)
+            self.storedKey?.value = draft
+            testResult = nil
+        }
+        .onChange(of: settings.model(for: provider)) { testResult = nil }
+        .onChange(of: scenePhase) { _, phase in
+            if phase != .active { showKey = false }
+        }
+    }
+
+    /// Masked by default, with an eye button to check what was pasted.
+    private var keyField: some View {
+        HStack {
+            Group {
+                if showKey {
+                    TextField("API Key", text: $keyDraft)
+                } else {
+                    SecureField("API Key", text: $keyDraft)
+                }
+            }
+            .textContentType(.password)
+            .autocorrectionDisabled()
+            .textInputAutocapitalization(.never)
+            .keyboardType(.asciiCapable)
+            Button(showKey ? "Hide Key" : "Show Key", systemImage: showKey ? "eye.slash" : "eye") { showKey.toggle() }
+                .labelStyle(.iconOnly)
+                .buttonStyle(.borderless)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private func warning(_ text: LocalizedStringKey) -> some View {
+        Label(text, systemImage: "exclamationmark.triangle")
+            .font(.footnote)
+            .foregroundStyle(.orange)
+    }
+
+    /// One tiny request with the typed key and model. No listening data is sent.
+    private func testConnection(_ settings: AIRecommendationSettings) async {
+        let provider = settings.provider
+        let key = keyDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        isTesting = true
+        testResult = nil
+        defer { isTesting = false }
+        let result: TestResult
+        do {
+            try await AIRecommendationCloudClient().testConnection(provider: provider, key: key, model: settings.model(for: provider))
+            result = .success
+        } catch let error as AIRecommendationError {
+            let message = String(localized: error.localizedStringResource)
+            result = .failure(error.detail.map { message + "\n" + $0 } ?? message)
+        } catch is CancellationError {
+            return
+        } catch {
+            result = .failure(String(localized: "Couldn't reach the recommendation service. Check your connection."))
+        }
+        if settings.provider == provider { testResult = result }
     }
 }
 

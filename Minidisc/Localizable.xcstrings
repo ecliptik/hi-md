@@ -51686,110 +51686,6 @@
         }
       }
     },
-    "Save Key" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Schlüssel speichern"
-          }
-        },
-        "el" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Αποθήκευση κλειδιού"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Guardar clave"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Enregistrer la clé"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Salva chiave"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "キーを保存"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "保存密钥"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "儲存金鑰"
-          }
-        }
-      }
-    },
-    "Saved" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Gespeichert"
-          }
-        },
-        "el" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Αποθηκεύτηκε"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Guardado"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Enregistré"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Salvato"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "保存しました"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "已保存"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "已儲存"
-          }
-        }
-      }
-    },
     "Keys are stored in the keychain on this device." : {
       "localizations" : {
         "de" : {
@@ -51890,58 +51786,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Apple Intelligence 在此裝置上執行。Anthropic 和 OpenAI 會收到你最近播放和收藏的專輯、收藏最多的藝人和播放列表的名稱，並使用你自己的 API 金鑰。"
-          }
-        }
-      }
-    },
-    "Add an API key in Settings > Integrations > AI Recommendations." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Füge in Einstellungen > Integrationen > KI-Empfehlungen einen API-Schlüssel hinzu."
-          }
-        },
-        "el" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Προσθέστε κλειδί API στις Ρυθμίσεις > Ενσωματώσεις > Προτάσεις ΤΝ."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Añade una clave de API en Ajustes > Integraciones > Recomendaciones con IA."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ajoutez une clé d'API dans Réglages > Intégrations > Recommandations IA."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Aggiungi una chiave API in Impostazioni > Integrazioni > Consigli IA."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "設定 > 連携 > AIによるおすすめ でAPIキーを追加してください。"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "请在“设置”>“集成”>“AI 推荐”中添加 API 密钥。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "請在「設定」>「整合」>「AI 推薦」中加入 API 金鑰。"
           }
         }
       }
@@ -52050,58 +51894,6 @@
         }
       }
     },
-    "The recommendation service returned an error (%lld). Check your key and try again." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Der Empfehlungsdienst meldet einen Fehler (%lld). Prüfe deinen Schlüssel und versuche es erneut."
-          }
-        },
-        "el" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Η υπηρεσία προτάσεων επέστρεψε σφάλμα (%lld). Ελέγξτε το κλειδί σας και δοκιμάστε ξανά."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "El servicio de recomendaciones devolvió un error (%lld). Revisa tu clave e inténtalo de nuevo."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Le service de recommandations a renvoyé une erreur (%lld). Vérifiez votre clé et réessayez."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Il servizio di consigli ha restituito un errore (%lld). Controlla la chiave e riprova."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "おすすめサービスがエラー（%lld）を返しました。キーを確認してもう一度お試しください。"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "推荐服务返回错误（%lld）。请检查密钥后重试。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "推薦服務回傳錯誤（%lld）。請檢查金鑰後再試一次。"
-          }
-        }
-      }
-    },
     "Play some music first, so there's something to base recommendations on." : {
       "localizations" : {
         "de" : {
@@ -52150,6 +51942,942 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "請先播放一些音樂，以便為推薦提供依據。"
+          }
+        }
+      }
+    },
+    "Add your %@ API key in Settings > Integrations > AI Recommendations." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Füge in Einstellungen > Integrationen > KI-Empfehlungen deinen API-Schlüssel für %@ hinzu."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Προσθέστε το κλειδί API για %@ στις Ρυθμίσεις > Ενσωματώσεις > Προτάσεις ΤΝ."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Añade tu clave de API de %@ en Ajustes > Integraciones > Recomendaciones con IA."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajoutez votre clé d'API %@ dans Réglages > Intégrations > Recommandations IA."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiungi la tua chiave API di %@ in Impostazioni > Integrazioni > Consigli IA."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "設定 > 連携 > AIによるおすすめ で%@のAPIキーを追加してください。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请在“设置”>“集成”>“AI 推荐”中添加你的 %@ API 密钥。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "請在「設定」>「整合」>「AI 推薦」中加入你的 %@ API 金鑰。"
+          }
+        }
+      }
+    },
+    "%@ didn't accept the API key. Check it in Settings > Integrations > AI Recommendations." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ hat den API-Schlüssel nicht akzeptiert. Prüfe ihn in Einstellungen > Integrationen > KI-Empfehlungen."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Η %@ δεν αποδέχτηκε το κλειδί API. Ελέγξτε το στις Ρυθμίσεις > Ενσωματώσεις > Προτάσεις ΤΝ."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ no aceptó la clave de API. Revísala en Ajustes > Integraciones > Recomendaciones con IA."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ n'a pas accepté la clé d'API. Vérifiez-la dans Réglages > Intégrations > Recommandations IA."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ non ha accettato la chiave API. Controllala in Impostazioni > Integrazioni > Consigli IA."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@がAPIキーを受け付けませんでした。設定 > 連携 > AIによるおすすめ で確認してください。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 未接受该 API 密钥。请在“设置”>“集成”>“AI 推荐”中检查。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 未接受此 API 金鑰。請在「設定」>「整合」>「AI 推薦」中檢查。"
+          }
+        }
+      }
+    },
+    "%@ doesn't offer the model %@. Check the model name in Settings > Integrations > AI Recommendations." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ bietet das Modell %2$@ nicht an. Prüfe den Modellnamen in Einstellungen > Integrationen > KI-Empfehlungen."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Η %1$@ δεν προσφέρει το μοντέλο %2$@. Ελέγξτε το όνομα του μοντέλου στις Ρυθμίσεις > Ενσωματώσεις > Προτάσεις ΤΝ."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ no ofrece el modelo %2$@. Revisa el nombre del modelo en Ajustes > Integraciones > Recomendaciones con IA."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ ne propose pas le modèle %2$@. Vérifiez le nom du modèle dans Réglages > Intégrations > Recommandations IA."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ non offre il modello %2$@. Controlla il nome del modello in Impostazioni > Integrazioni > Consigli IA."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@にはモデル「%2$@」がありません。設定 > 連携 > AIによるおすすめ でモデル名を確認してください。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ 不提供模型 %2$@。请在“设置”>“集成”>“AI 推荐”中检查模型名称。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ 不提供模型 %2$@。請在「設定」>「整合」>「AI 推薦」中檢查模型名稱。"
+          }
+        }
+      }
+    },
+    "%@ is limiting requests, or your account is out of credit. Wait a minute and try again." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ begrenzt gerade die Anfragen, oder dein Konto hat kein Guthaben mehr. Warte eine Minute und versuche es erneut."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Η %@ περιορίζει τα αιτήματα ή ο λογαριασμός σας δεν έχει υπόλοιπο. Περιμένετε ένα λεπτό και δοκιμάστε ξανά."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ está limitando las solicitudes o tu cuenta no tiene saldo. Espera un minuto e inténtalo de nuevo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ limite les requêtes, ou votre compte n'a plus de crédit. Patientez une minute et réessayez."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ sta limitando le richieste, oppure il tuo account ha esaurito il credito. Attendi un minuto e riprova."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@がリクエストを制限しているか、アカウントのクレジットが不足しています。1分ほど待ってからもう一度お試しください。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 正在限制请求，或你的账户余额不足。请稍等一分钟后重试。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 正在限制請求，或你的帳號餘額不足。請稍等一分鐘後再試一次。"
+          }
+        }
+      }
+    },
+    "%@ is busy right now. Try again in a few minutes." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ ist gerade ausgelastet. Versuche es in ein paar Minuten erneut."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Η %@ είναι απασχολημένη αυτή τη στιγμή. Δοκιμάστε ξανά σε λίγα λεπτά."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ está ocupado ahora mismo. Inténtalo de nuevo en unos minutos."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ est saturé pour le moment. Réessayez dans quelques minutes."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ è sovraccarico in questo momento. Riprova tra qualche minuto."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "現在%@が混み合っています。数分後にもう一度お試しください。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 目前繁忙。请几分钟后重试。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 目前忙碌中。請幾分鐘後再試一次。"
+          }
+        }
+      }
+    },
+    "Couldn't reach %@. Check your connection and try again." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ ist nicht erreichbar. Prüfe deine Verbindung und versuche es erneut."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Δεν ήταν δυνατή η σύνδεση με την %@. Ελέγξτε τη σύνδεσή σας και δοκιμάστε ξανά."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo contactar con %@. Revisa tu conexión e inténtalo de nuevo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible de joindre %@. Vérifiez votre connexion et réessayez."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile raggiungere %@. Controlla la connessione e riprova."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@に接続できませんでした。接続を確認してもう一度お試しください。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法连接 %@。请检查网络连接后重试。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法連接 %@。請檢查網路連線後再試一次。"
+          }
+        }
+      }
+    },
+    "%@ returned an error (%lld). Check the model name in Settings > Integrations > AI Recommendations." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ meldet einen Fehler (%2$lld). Prüfe den Modellnamen in Einstellungen > Integrationen > KI-Empfehlungen."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Η %1$@ επέστρεψε σφάλμα (%2$lld). Ελέγξτε το όνομα του μοντέλου στις Ρυθμίσεις > Ενσωματώσεις > Προτάσεις ΤΝ."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ devolvió un error (%2$lld). Revisa el nombre del modelo en Ajustes > Integraciones > Recomendaciones con IA."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ a renvoyé une erreur (%2$lld). Vérifiez le nom du modèle dans Réglages > Intégrations > Recommandations IA."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ ha restituito un errore (%2$lld). Controlla il nome del modello in Impostazioni > Integrazioni > Consigli IA."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@がエラー（%2$lld）を返しました。設定 > 連携 > AIによるおすすめ でモデル名を確認してください。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ 返回错误（%2$lld）。请在“设置”>“集成”>“AI 推荐”中检查模型名称。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ 回傳錯誤（%2$lld）。請在「設定」>「整合」>「AI 推薦」中檢查模型名稱。"
+          }
+        }
+      }
+    },
+    "Share All" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alle teilen"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Κοινοποίηση όλων"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compartir todo"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tout partager"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Condividi tutto"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "すべて共有"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全部分享"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全部分享"
+          }
+        }
+      }
+    },
+    "Album suggestions from %@" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Albumvorschläge von %@"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Προτάσεις άλμπουμ από %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Álbumes sugeridos por %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Albums suggérés par %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Album suggeriti da %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@がおすすめするアルバム"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 推荐的专辑"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 推薦的專輯"
+          }
+        }
+      }
+    },
+    "What Minidisc sends to %@" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Was Minidisc an %@ sendet"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Τι στέλνει το Minidisc στην %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Qué envía Minidisc a %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce que Minidisc envoie à %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cosa invia Minidisc a %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Minidiscが%@に送信する情報"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Minidisc 会向 %@ 发送什么"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Minidisc 會向 %@ 傳送什麼"
+          }
+        }
+      }
+    },
+    "To suggest albums, Minidisc sends %@ the names of up to 20 recently played albums, 15 favourite albums, your 25 most collected artists and 15 playlists. Nothing else is sent: no server address, account details or play counts. The terms of your API key apply." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Für Albumvorschläge sendet Minidisc an %@ die Namen von bis zu 20 zuletzt gespielten Alben, 15 Lieblingsalben, deinen 25 meistgesammelten Künstlern und 15 Playlists. Sonst wird nichts gesendet: keine Serveradresse, keine Kontodaten und keine Wiedergabezahlen. Es gelten die Bedingungen deines API-Schlüssels."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Για να προτείνει άλμπουμ, το Minidisc στέλνει στην %@ τα ονόματα έως 20 πρόσφατων άλμπουμ, 15 αγαπημένων άλμπουμ, των 25 καλλιτεχνών με τα περισσότερα άλμπουμ και 15 λιστών σας. Δεν στέλνεται τίποτε άλλο: ούτε διεύθυνση διακομιστή, ούτε στοιχεία λογαριασμού, ούτε αριθμοί αναπαραγωγών. Ισχύουν οι όροι του κλειδιού API σας."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Para sugerir álbumes, Minidisc envía a %@ los nombres de hasta 20 álbumes recientes, 15 álbumes favoritos, tus 25 artistas más coleccionados y 15 playlists. No se envía nada más: ni la dirección del servidor, ni los datos de la cuenta, ni el número de reproducciones. Se aplican las condiciones de tu clave de API."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pour suggérer des albums, Minidisc envoie à %@ les noms de 20 albums récents au plus, de 15 albums favoris, de vos 25 artistes les plus présents et de 15 playlists. Rien d'autre n'est envoyé : ni l'adresse du serveur, ni les informations de compte, ni le nombre d'écoutes. Les conditions de votre clé d'API s'appliquent."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Per suggerire album, Minidisc invia a %@ i nomi di un massimo di 20 album recenti, 15 album preferiti, dei tuoi 25 artisti più presenti e di 15 playlist. Non viene inviato nient'altro: né l'indirizzo del server, né i dati dell'account, né il numero di ascolti. Si applicano le condizioni della tua chiave API."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アルバムを提案するために、Minidiscは最近再生したアルバム最大20件、お気に入りのアルバム15件、よく集めているアーティスト25組、プレイリスト15件の名前を%@に送信します。それ以外は送信されません。サーバーのアドレス、アカウント情報、再生回数は含まれません。APIキーの利用規約が適用されます。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "为了推荐专辑，Minidisc 会向 %@ 发送最多 20 张最近播放的专辑、15 张收藏专辑、你收藏最多的 25 位艺人和 15 个播放列表的名称。不会发送其他任何内容：没有服务器地址、账户信息或播放次数。适用你的 API 密钥的条款。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "為了推薦專輯，Minidisc 會向 %@ 傳送最多 20 張最近播放的專輯、15 張收藏專輯、你收藏最多的 25 位藝人和 15 個播放列表的名稱。不會傳送其他任何內容：沒有伺服器位址、帳號資料或播放次數。適用你的 API 金鑰的條款。"
+          }
+        }
+      }
+    },
+    "Use Apple Intelligence Instead" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stattdessen Apple Intelligence verwenden"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Χρήση του Apple Intelligence αντί αυτού"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usar Apple Intelligence en su lugar"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utiliser plutôt Apple Intelligence"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usa invece Apple Intelligence"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "代わりにApple Intelligenceを使用"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "改用 Apple 智能"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "改用 Apple Intelligence"
+          }
+        }
+      }
+    },
+    "Enter your %@ API key to get recommendations." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gib deinen API-Schlüssel für %@ ein, um Empfehlungen zu erhalten."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Εισαγάγετε το κλειδί API για %@ για να λαμβάνετε προτάσεις."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Introduce tu clave de API de %@ para recibir recomendaciones."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saisissez votre clé d'API %@ pour obtenir des recommandations."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inserisci la tua chiave API di %@ per ricevere consigli."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "おすすめを受け取るには%@のAPIキーを入力してください。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "输入你的 %@ API 密钥以获取推荐。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "輸入你的 %@ API 金鑰以取得推薦。"
+          }
+        }
+      }
+    },
+    "Test Connection" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verbindung testen"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Δοκιμή σύνδεσης"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Probar conexión"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tester la connexion"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prova connessione"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "接続をテスト"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "测试连接"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "測試連線"
+          }
+        }
+      }
+    },
+    "Leave Model empty to use %@, or enter any model your key can use." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lass „Modell“ leer, um %@ zu verwenden, oder gib ein beliebiges Modell ein, das dein Schlüssel nutzen kann."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Αφήστε το «Μοντέλο» κενό για να χρησιμοποιηθεί το %@ ή εισαγάγετε οποιοδήποτε μοντέλο επιτρέπει το κλειδί σας."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deja «Modelo» vacío para usar %@, o introduce cualquier modelo que admita tu clave."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Laissez « Modèle » vide pour utiliser %@, ou saisissez tout modèle accessible avec votre clé."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lascia vuoto «Modello» per usare %@, oppure inserisci un modello qualsiasi disponibile per la tua chiave."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「モデル」を空欄にすると%@を使用します。キーで利用できる任意のモデルを入力することもできます。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将“模型”留空即使用 %@，也可以输入你的密钥可用的任何模型。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "將「模型」留空即使用 %@，也可以輸入你的金鑰可用的任何模型。"
+          }
+        }
+      }
+    },
+    "claude-sonnet-5-5 and claude-haiku-5-5 answer faster and cost less." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "claude-sonnet-5-5 und claude-haiku-5-5 antworten schneller und kosten weniger."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Τα claude-sonnet-5-5 και claude-haiku-5-5 απαντούν πιο γρήγορα και κοστίζουν λιγότερο."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "claude-sonnet-5-5 y claude-haiku-5-5 responden más rápido y cuestan menos."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "claude-sonnet-5-5 et claude-haiku-5-5 répondent plus vite et coûtent moins cher."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "claude-sonnet-5-5 e claude-haiku-5-5 rispondono più velocemente e costano meno."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "claude-sonnet-5-5とclaude-haiku-5-5は応答が速く、料金も安くなります。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "claude-sonnet-5-5 和 claude-haiku-5-5 响应更快、费用更低。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "claude-sonnet-5-5 和 claude-haiku-5-5 回應更快、費用更低。"
+          }
+        }
+      }
+    },
+    "Show Key" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schlüssel einblenden"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Εμφάνιση κλειδιού"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostrar clave"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher la clé"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostra chiave"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "キーを表示"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示密钥"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "顯示金鑰"
+          }
+        }
+      }
+    },
+    "Hide Key" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schlüssel ausblenden"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Απόκρυψη κλειδιού"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ocultar clave"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Masquer la clé"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nascondi chiave"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "キーを隠す"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "隐藏密钥"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "隱藏金鑰"
           }
         }
       }
