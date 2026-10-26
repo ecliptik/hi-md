@@ -29,7 +29,7 @@ struct EqualizerCurveEditor: View {
                 .gesture(dragGesture(in: proxy.size), isEnabled: isEnabled)
                 .overlay { accessibilityBands(in: proxy.size) }
             }
-            .frame(height: curveHeight)
+            .frame(height: min(curveHeight, 300))
             labelRow { band in
                 Text(Self.frequencyLabel(Equalizer.frequencies[band]))
                     .foregroundStyle(.secondary)
@@ -48,10 +48,13 @@ struct EqualizerCurveEditor: View {
                 label(band)
                     .font(.caption2.monospacedDigit().weight(.semibold))
                     .lineLimit(1)
-                    .minimumScaleFactor(0.5)
+                    .minimumScaleFactor(0.6)
                     .frame(maxWidth: .infinity)
             }
         }
+        // Ten columns can't hold accessibility sizes; each band reads its value to VoiceOver,
+        // and the rest of the page keeps growing with the text size.
+        .dynamicTypeSize(...DynamicTypeSize.xLarge)
         .accessibilityHidden(true)
     }
 
@@ -104,8 +107,8 @@ struct EqualizerCurveEditor: View {
     private func points(in size: CGSize) -> some View {
         ForEach(0..<Equalizer.bandCount, id: \.self) { band in
             Circle()
-                .fill(draggedBand == band ? MinidiscColors.accent : Color.primary)
-                .overlay(Circle().strokeBorder(MinidiscColors.accent, lineWidth: 2))
+                .fill(MinidiscColors.accent)
+                .overlay(Circle().strokeBorder(MinidiscColors.backgroundPrimary, lineWidth: 2))
                 .frame(width: pointRadius * 2, height: pointRadius * 2)
                 .scaleEffect(draggedBand == band ? 1.3 : 1)
                 .position(x: x(for: band, width: size.width), y: y(for: gains[band], height: size.height))

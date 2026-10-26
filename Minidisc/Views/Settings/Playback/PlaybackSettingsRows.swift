@@ -21,19 +21,27 @@ struct SettingsRowLabel: View {
 }
 
 /// A navigation row: title and explanation on the leading side, the current choice trailing.
+/// The value stays beside the title; at accessibility text sizes it moves underneath.
 struct SettingsValueRow: View {
     let title: LocalizedStringKey
     var subtitle: LocalizedStringKey?
     let value: Text
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     var body: some View {
-        LabeledContent {
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 2))
+            : AnyLayout(HStackLayout(alignment: .center, spacing: MinidiscSpacing.m))
+        layout {
+            SettingsRowLabel(title: title, subtitle: subtitle)
+                .frame(maxWidth: .infinity, alignment: .leading)
             value
                 .foregroundStyle(.secondary)
                 .monospacedDigit()
-        } label: {
-            SettingsRowLabel(title: title, subtitle: subtitle)
+                .fixedSize()
         }
+        .accessibilityElement(children: .combine)
     }
 }
 

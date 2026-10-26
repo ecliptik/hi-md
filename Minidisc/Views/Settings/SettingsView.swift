@@ -61,15 +61,9 @@ struct SettingsView: View {
                         .foregroundStyle(.primary)
                 }
                 NavigationLink {
-                    PlaybackSettingsView()
+                    PlaybackSettingsView(downloadsVM: downloadsVM)
                 } label: {
                     Label("Playback", systemImage: "play.circle")
-                        .foregroundStyle(.primary)
-                }
-                NavigationLink {
-                    EqualizerView()
-                } label: {
-                    Label("Equalizer", systemImage: "slider.vertical.3")
                         .foregroundStyle(.primary)
                 }
                 NavigationLink {
@@ -767,70 +761,6 @@ private struct LibraryIndexStorageSection: View {
 }
 
 // MARK: - Settings sub-pages
-
-private struct PlaybackSettingsView: View {
-    @Environment(\.appContainer) private var container
-
-    var body: some View {
-        Form {
-            if let stream = container?.streamSettings {
-                Section {
-                    NavigationLink {
-                        QualitySettingsView(settings: stream)
-                    } label: {
-                        SettingsRowLabel(title: "Quality", subtitle: "Choose between the original files and saving data.")
-                    }
-                }
-            }
-            if let lyrics = container?.lyricsSettings {
-                LyricsSettingsSection(settings: lyrics)
-            }
-            if let replayGain = container?.replayGainSettings {
-                Section {
-                    NavigationLink {
-                        LoudnessLevelingView(settings: replayGain)
-                    } label: {
-                        SettingsRowLabel(title: "Loudness Leveling", subtitle: "Every song at a similar volume, without clipping.")
-                    }
-                }
-            }
-            CrossfadeSettingsSection()
-            Section {
-                NavigationLink {
-                    AutoplaySettingsView()
-                } label: {
-                    SettingsRowLabel(title: "Autoplay", subtitle: "Keep the music going when the queue runs out.")
-                }
-            }
-        }
-        .formStyle(.grouped)
-        .navigationTitle("Playback")
-        .navigationBarTitleDisplayModeInline()
-    }
-}
-
-private struct LyricsSettingsSection: View {
-    @Bindable var settings: LyricsSettings
-
-    var body: some View {
-        Section {
-            Picker(selection: $settings.source) {
-                ForEach(LyricsSource.allCases) { source in
-                    Text(source.displayName).tag(source)
-                }
-            } label: {
-                Text("Lyrics source")
-                    .foregroundStyle(.primary)
-            }
-            .pickerStyle(.menu)
-            .tint(.secondary)
-        } header: {
-            Text("Lyrics")
-        } footer: {
-            Text("Auto checks Navidrome first and falls back to LRCLIB. LRCLIB requests include the track title, artist, album, and duration.")
-        }
-    }
-}
 
 private struct IntegrationsSettingsView: View {
     var body: some View {
