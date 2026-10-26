@@ -101,14 +101,20 @@ nonisolated enum WinampRegions {
             let coordinates = numbers(values["pointlist"] ?? "")
             var polygons: [[CGPoint]] = []
             var cursor = 0
+            var isValid = true
             for count in counts where count > 0 {
-                guard cursor + count * 2 <= coordinates.count else { break }
+                // Compared by division so a huge count can't overflow; a section that claims more
+                // points than it lists is dropped whole.
+                guard count <= (coordinates.count - cursor) / 2 else {
+                    isValid = false
+                    break
+                }
                 polygons.append((0..<count).map {
                     CGPoint(x: coordinates[cursor + $0 * 2], y: coordinates[cursor + $0 * 2 + 1])
                 })
                 cursor += count * 2
             }
-            if !polygons.isEmpty { regions[section] = polygons }
+            if isValid, !polygons.isEmpty { regions[section] = polygons }
         }
         return regions
     }
