@@ -174,16 +174,33 @@ struct PerformanceBenchmarks {
         Bench.measure("trackchange.legacy.autoExtendRead", scale: "20000-song queue", runs: 9) {
             LegacyHotPaths.autoExtendRead(state)
         }
+        // The MainActor read now takes the queue by reference; the ID set is built off it, later,
+        // and only when fewer than 16 tracks remain.
+        Bench.measure("trackchange.autoExtendRead", scale: "20000-song queue", runs: 9) {
+            (state.queue.count - state.currentIndex - 1, state.queue)
+        }
     }
 
     @Test func sessionSave() async throws {
         let service = PlaybackSessionService(modelContainer: try ModelContainer.session(inMemory: true))
         let queue = PerformanceFixtures.songs(20_000)
         var index = 0
-        await Bench.measureAsync("session.save.indexOnly", scale: "20000-song queue", runs: 7) {
+        await Bench.measureAsync("session.save.unknownRevision", scale: "20000-song queue", runs: 7) {
             index += 1
             await service.save(playerState: SessionPayload(currentIndex: index, currentPosition: 0, queue: queue,
                                                            currentTrack: queue[index], repeatMode: .off))
+        }
+        await Bench.measureAsync("session.save.indexOnly", scale: "20000-song queue", runs: 7) {
+            index += 1
+            await service.save(playerState: SessionPayload(currentIndex: index, currentPosition: 0, queue: queue,
+                                                           currentTrack: queue[index], repeatMode: .off, queueRevision: 1))
+        }
+        var revision: UInt64 = 1
+        await Bench.measureAsync("session.save.queueChanged", scale: "20000-song queue", runs: 7) {
+            index += 1
+            revision += 1
+            await service.save(playerState: SessionPayload(currentIndex: index, currentPosition: 0, queue: queue,
+                                                           currentTrack: queue[index], repeatMode: .off, queueRevision: revision))
         }
     }
 

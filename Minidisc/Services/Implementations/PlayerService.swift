@@ -1408,9 +1408,11 @@ actor PlayerService: PlayerServiceProtocol {
 
     private func evaluateAutoExtend() async {
         let expectedQueueGeneration = queueGeneration
-        let (isEnabled, repeatMode, currentRadio, remaining, queueIds, seedTrackId) = await MainActor.run {
+        // Runs on every track change: take the queue by reference and build its ID set here, and
+        // only once the cheap guards pass, instead of on the MainActor every time.
+        let (isEnabled, repeatMode, currentRadio, remaining, queue, seedTrackId) = await MainActor.run {
             let remaining = state.queue.count - state.currentIndex - 1
-            return (state.isAutoExtendEnabled, state.repeatMode, state.currentRadio, remaining, Set(state.queue.map(\.id)), state.currentTrack?.id)
+            return (state.isAutoExtendEnabled, state.repeatMode, state.currentRadio, remaining, state.queue, state.currentTrack?.id)
         }
         guard expectedQueueGeneration == queueGeneration else { return }
         guard isEnabled, await MainActor.run(body: { state.currentTrack?.isLocalFile != true }) else { return }
@@ -1418,6 +1420,7 @@ actor PlayerService: PlayerServiceProtocol {
         guard currentRadio == nil else { return }
         guard autoExtendFetchTask == nil else { return }
         guard remaining <= 15 else { return }
+        let queueIds = Set(queue.map(\.id))
 
         Logger.player.info("Auto-extend triggered: \(remaining) tracks remaining, fetching 50 seeded on '\(seedTrackId ?? "none", privacy: .public)'")
 
@@ -2323,7 +2326,8 @@ actor PlayerService: PlayerServiceProtocol {
                 currentPosition: state.position,
                 queue: state.queue,
                 currentTrack: state.currentTrack,
-                repeatMode: state.repeatMode
+                repeatMode: state.repeatMode,
+                queueRevision: state.queueRevision
             )
         }
         await sessionService.save(playerState: snapshot)
