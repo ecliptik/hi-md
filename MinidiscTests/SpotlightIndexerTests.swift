@@ -30,6 +30,20 @@ struct SpotlightIndexerTests {
         #expect(router.take() == nil)
     }
 
+    @Test func routerKeepsALinkUntilAServerIsActive() throws {
+        let router = LinkRouter()
+        let widgetTap = try #require(URL(string: "minidisc://album/a1?name=Blue"))
+        let laterTap = try #require(URL(string: "minidisc://playlist/p1?name=Road%20Trip"))
+        router.open(widgetTap)
+        // Local-only mode has nowhere to show it, so the link waits instead of being dropped.
+        #expect(router.take(hasActiveServer: false) == nil)
+        #expect(router.pending == widgetTap)
+        // A newer tap wins over the one still waiting.
+        router.open(laterTap)
+        #expect(router.take(hasActiveServer: true) == laterTap)
+        #expect(router.pending == nil)
+    }
+
     @Test func fingerprintFollowsNamesAndMembership() {
         let a = MusicIntentRecord(scope: scope, album: AlbumID3(id: "a", name: "First", songCount: 1, duration: 60))
         let b = MusicIntentRecord(scope: scope, artist: ArtistID3(id: "b", name: "Band"))

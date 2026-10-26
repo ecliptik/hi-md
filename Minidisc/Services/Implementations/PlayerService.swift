@@ -4293,10 +4293,8 @@ actor PlayerService: PlayerServiceProtocol {
     // MARK: - Artwork / NowPlaying helpers
 
     private func resolveArtworkURL(for song: DisplayableSong) async -> URL? {
-        if song.isLocalFile {
-            await artworkImageCache.load(coverArtId: song.coverArtId, tier: .hero)
-            return nil
-        }
+        // NowPlayingService loads a local file's cover itself, after the song's details are showing.
+        if song.isLocalFile { return nil }
         guard let client = try? await serverService.activeConnection().makeSwiftSonicClient() else { return nil }
         let artId = song.coverArtId ?? song.id
         return client.coverArtURL(id: artId, size: 600)

@@ -87,7 +87,12 @@ struct LidarrInteractiveSearchView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if let errorMessage {
-                EmptyStateView(systemImage: "exclamationmark.triangle", title: "Search Failed", subtitle: LocalizedStringKey(errorMessage))
+                EmptyStateView(
+                    systemImage: "exclamationmark.triangle",
+                    title: "Search Failed",
+                    subtitle: LocalizedStringKey(errorMessage),
+                    action: .init(label: "Retry") { Task { await load() } }
+                )
             } else if filtered.isEmpty {
                 EmptyStateView(systemImage: "magnifyingglass", title: "No Releases", subtitle: "No release matched this album.")
             } else {
