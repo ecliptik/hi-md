@@ -1,6 +1,6 @@
 # Local UX verification
 
-`ux-fixture-server.py` serves a small, disposable Subsonic library on loopback port 18992. It generates silent WAV audio, supports byte ranges and can slow or fail streams. No real Navidrome account is needed. Request logs omit query strings, including the fixture's fake authentication parameters.
+`ux-fixture-server.py` serves a small, disposable Subsonic library on loopback port 18992 (`--port` picks another, so separate checks can each run their own). It generates silent WAV audio, supports byte ranges and can slow or fail streams. No real Navidrome account is needed. Request logs omit query strings, including the fixture's fake authentication parameters.
 
 Create a fresh iOS Simulator named **Minidisc UX Verification** in Xcode's Devices and Simulators window. Keep it dedicated to this fixture; the UI tests deliberately skip other simulators and physical devices. Do not configure a real server in it.
 

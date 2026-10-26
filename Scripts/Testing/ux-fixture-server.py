@@ -498,5 +498,9 @@ class Handler(BaseHTTPRequestHandler):
         return self.send(json.dumps({"subsonic-response": response}).encode())
 
 if __name__ == "__main__":
-    print("Minidisc UX fixture on http://127.0.0.1:18992", flush=True)
-    ThreadingHTTPServer(("127.0.0.1", 18992), Handler).serve_forever()
+    import argparse
+    parser = argparse.ArgumentParser(description="Disposable Subsonic fixture for UX verification.")
+    parser.add_argument("--port", type=int, default=18992, help="loopback port to listen on (default 18992)")
+    port = parser.parse_args().port
+    print(f"Minidisc UX fixture on http://127.0.0.1:{port}", flush=True)
+    ThreadingHTTPServer(("127.0.0.1", port), Handler).serve_forever()
