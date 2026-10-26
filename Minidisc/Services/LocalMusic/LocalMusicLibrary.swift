@@ -29,6 +29,12 @@ nonisolated struct LocalFileReference: Codable, Hashable, Sendable {
         }
         return url
     }
+
+    /// The file itself, for an entry that is one chosen file rather than a folder.
+    func url(ofChosenFile file: URL) throws -> URL {
+        guard relativePath == file.lastPathComponent else { throw LocalMusicError.unavailable }
+        return file.standardizedFileURL
+    }
 }
 
 nonisolated enum LocalMusicError: Error, LocalizedError, Codable, Equatable {
@@ -49,11 +55,12 @@ nonisolated final class LocalFileAccess: Sendable {
     private let root: URL
     private let scoped: Bool
 
-    init(root: URL, reference: LocalFileReference) throws {
+    /// `root` is the folder's URL, or the file's when `isFile`.
+    init(root: URL, reference: LocalFileReference, isFile: Bool = false) throws {
         self.root = root
         scoped = root.startAccessingSecurityScopedResource()
         do {
-            url = try reference.url(in: root)
+            url = isFile ? try reference.url(ofChosenFile: root) : try reference.url(in: root)
             guard try LocalMusicStore.isAvailable(url) else { throw LocalMusicError.unavailable }
         } catch {
             if scoped { root.stopAccessingSecurityScopedResource() }
@@ -69,6 +76,16 @@ nonisolated struct LocalMusicFolder: Identifiable, Codable, Equatable, Sendable 
     var name: String
     var bookmark: Data
     var isAccessible = true
+    /// True when the entry is one audio file the listener chose, as Winamp mode's ADD > FILE on
+    /// the Mac adds, rather than a folder to scan. Nil in indexes written before files existed.
+    var isFile: Bool? = nil
+}
+
+/// Songs from files and folders the listener just chose, in the order chosen.
+nonisolated struct LocalMusicImport: Sendable, Equatable {
+    let songs: [DisplayableSong]
+    /// True when there were more songs than the limit.
+    let isTruncated: Bool
 }
 
 nonisolated struct LocalMusicTrack: Identifiable, Codable, Equatable, Sendable {
@@ -112,25 +129,122 @@ actor LocalMusicStore {
 
     func current() -> LocalMusicSnapshot { snapshot }
 
-    func add(_ urls: [URL]) throws {
+    // MARK: Bookmarks
+
+    // On iOS a bookmark to a picked folder carries its access. A sandboxed Mac app needs a
+    // security-scoped bookmark to reach the file or folder again after a relaunch.
+    #if os(macOS)
+    private static let bookmarkOptions: URL.BookmarkCreationOptions = [.withSecurityScope, .securityScopeAllowOnlyReadAccess]
+    private static let resolutionOptions: URL.BookmarkResolutionOptions = [.withSecurityScope, .withoutUI]
+    #else
+    private static let bookmarkOptions: URL.BookmarkCreationOptions = .minimalBookmark
+    private static let resolutionOptions: URL.BookmarkResolutionOptions = [.withoutUI]
+    #endif
+
+    private static func makeBookmark(_ url: URL) throws -> Data {
+        do {
+            return try url.bookmarkData(options: bookmarkOptions, includingResourceValuesForKeys: nil, relativeTo: nil)
+        } catch {
+            #if os(macOS)
+            // Without a security scope the songs still play until the app quits.
+            Logger.library.error("No security-scoped bookmark for a local file or folder: \(String(describing: error), privacy: .public)")
+            return try url.bookmarkData(options: .minimalBookmark, includingResourceValuesForKeys: nil, relativeTo: nil)
+            #else
+            throw error
+            #endif
+        }
+    }
+
+    private static func resolveBookmark(_ data: Data, isStale: inout Bool) throws -> URL {
+        do {
+            return try URL(resolvingBookmarkData: data, options: resolutionOptions, bookmarkDataIsStale: &isStale)
+        } catch {
+            #if os(macOS)
+            // A bookmark made without a security scope still resolves; it may only work this launch.
+            return try URL(resolvingBookmarkData: data, options: [.withoutUI], bookmarkDataIsStale: &isStale)
+            #else
+            throw error
+            #endif
+        }
+    }
+
+    // MARK: Folders and files
+
+    /// Adds folders to scan, or single audio files, and returns each one's entry ID in order.
+    /// One already in the index keeps its entry and gets a fresh bookmark.
+    @discardableResult
+    func add(_ urls: [URL]) throws -> [UUID] {
         var updated = snapshot
+        var ids: [UUID] = []
         for url in urls {
             let scoped = url.startAccessingSecurityScopedResource()
             defer { if scoped { url.stopAccessingSecurityScopedResource() } }
-            guard (try? url.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true else {
+            let values = try? url.resourceValues(forKeys: [.isDirectoryKey, .isRegularFileKey])
+            let isFile: Bool
+            if values?.isDirectory == true {
+                isFile = false
+            } else if values?.isRegularFile == true {
+                isFile = true
+            } else {
                 throw LocalMusicError.folderAccess
             }
-            let bookmark = try url.bookmarkData(options: .minimalBookmark, includingResourceValuesForKeys: nil, relativeTo: nil)
+            let bookmark = try Self.makeBookmark(url)
             if let index = updated.folders.firstIndex(where: { (try? resolve($0).standardizedFileURL) == url.standardizedFileURL }) {
                 updated.folders[index].bookmark = bookmark
                 updated.folders[index].isAccessible = true
+                ids.append(updated.folders[index].id)
             } else {
-                updated.folders.append(LocalMusicFolder(id: UUID(), name: url.lastPathComponent, bookmark: bookmark))
+                let folder = LocalMusicFolder(id: UUID(), name: url.lastPathComponent, bookmark: bookmark,
+                                              isFile: isFile ? true : nil)
+                updated.folders.append(folder)
+                ids.append(folder.id)
             }
         }
         try persist(updated)
         snapshot = updated
         revision += 1
+        return ids
+    }
+
+    /// Adds the files and folders the listener chose, scans them, and returns their playable songs
+    /// in the order chosen: each file where it was picked, and each folder's audio files sorted by
+    /// path as the Finder sorts them, subfolders included. A song already indexed under another
+    /// folder keeps that entry, so it's found by where the file is rather than by entry.
+    func importSongs(_ urls: [URL], limit: Int) async throws -> LocalMusicImport {
+        try add(urls)
+        let scanned = try await refresh()
+        var roots: [UUID: (url: URL, isFile: Bool)] = [:]
+        for folder in scanned.folders {
+            if let root = try? resolve(folder) { roots[folder.id] = (root, folder.isFile == true) }
+        }
+        var songsByPath: [String: DisplayableSong] = [:]
+        for track in scanned.tracks where track.isAvailable {
+            guard let reference = track.song.localFile, let root = roots[reference.folderID] else { continue }
+            let file = root.isFile ? root.url : root.url.appendingPathComponent(reference.relativePath)
+            songsByPath[Self.comparablePath(file)] = track.song
+        }
+        var songs: [DisplayableSong] = []
+        var seen = Set<String>()
+        for url in urls {
+            let path = Self.comparablePath(url)
+            let matches: [DisplayableSong]
+            if let song = songsByPath[path] {
+                matches = [song]
+            } else {
+                matches = songsByPath.keys.filter { $0.hasPrefix(path + "/") }
+                    .sorted { $0.localizedStandardCompare($1) == .orderedAscending }
+                    .compactMap { songsByPath[$0] }
+            }
+            for song in matches where seen.insert(song.id).inserted {
+                guard songs.count < limit else { return LocalMusicImport(songs: songs, isTruncated: true) }
+                songs.append(song)
+            }
+        }
+        return LocalMusicImport(songs: songs, isTruncated: false)
+    }
+
+    private static func comparablePath(_ url: URL) -> String {
+        url.standardizedFileURL.resolvingSymlinksInPath().path
     }
 
     func remove(_ id: UUID) throws {
@@ -149,7 +263,7 @@ actor LocalMusicStore {
             throw LocalMusicError.folderAccess
         }
         guard let root = try? resolve(folder) else { throw LocalMusicError.folderAccess }
-        return try LocalFileAccess(root: root, reference: reference)
+        return try LocalFileAccess(root: root, reference: reference, isFile: folder.isFile == true)
     }
 
     func artwork(_ id: String) -> Data? {
@@ -169,19 +283,20 @@ actor LocalMusicStore {
             let folder = updated.folders[index]
             do {
                 var stale = false
-                let root = try URL(resolvingBookmarkData: folder.bookmark, options: [.withoutUI], bookmarkDataIsStale: &stale)
+                let root = try Self.resolveBookmark(folder.bookmark, isStale: &stale)
                 let scoped = root.startAccessingSecurityScopedResource()
                 defer { if scoped { root.stopAccessingSecurityScopedResource() } }
                 if stale {
-                    updated.folders[index].bookmark = try root.bookmarkData(options: .minimalBookmark, includingResourceValuesForKeys: nil, relativeTo: nil)
+                    updated.folders[index].bookmark = try Self.makeBookmark(root)
                 }
-                let files = try Self.listAudioFiles(root)
+                let isFile = folder.isFile == true
+                let files = isFile ? try Self.chosenFile(root) : try Self.listAudioFiles(root)
                 updated.folders[index].isAccessible = true
                 updated.folders[index].name = root.lastPathComponent
                 for url in files {
                     try Task.checkCancellation()
                     guard seenURLs.insert(url.standardizedFileURL).inserted else { continue }
-                    let relative = String(url.path.dropFirst(root.path.count + 1))
+                    let relative = isFile ? root.lastPathComponent : String(url.path.dropFirst(root.path.count + 1))
                     let reference = LocalFileReference(folderID: folder.id, relativePath: relative)
                     let values = try? url.resourceValues(forKeys: [.contentModificationDateKey, .fileSizeKey])
                     let available = (try? Self.isAvailable(url)) == true
@@ -229,6 +344,14 @@ actor LocalMusicStore {
         if isUbiquitous && status != .current && status != .downloaded { return false }
         // Dataless placeholders from other file providers must not be opened to inspect their tags.
         return (allocatedSize ?? 0) > 0
+    }
+
+    /// A chosen file's entry lists just that file, while it's still there.
+    nonisolated static func chosenFile(_ url: URL) throws -> [URL] {
+        guard (try? url.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile) == true else {
+            throw LocalMusicError.unavailable
+        }
+        return [url]
     }
 
     nonisolated static func listAudioFiles(_ root: URL) throws -> [URL] {
@@ -313,7 +436,7 @@ actor LocalMusicStore {
 
     private func resolve(_ folder: LocalMusicFolder) throws -> URL {
         var stale = false
-        return try URL(resolvingBookmarkData: folder.bookmark, options: [.withoutUI], bookmarkDataIsStale: &stale)
+        return try Self.resolveBookmark(folder.bookmark, isStale: &stale)
     }
 
     private func artworkURL(_ id: String) -> URL { directory.appendingPathComponent(String(id.dropFirst(6)) + ".artwork") }
@@ -358,6 +481,15 @@ final class LocalMusicLibrary {
     func add(_ urls: [URL]) async {
         do { try await store.add(urls); await refresh() }
         catch { errorMessage = LocalMusicError.folderAccess.localizedDescription }
+    }
+
+    /// Adds files and folders the listener chose and returns their songs, for queueing them
+    /// straight away (Winamp mode's ADD > FILE and ADD > DIR on the Mac).
+    func importSongs(_ urls: [URL], limit: Int) async throws -> LocalMusicImport {
+        let result = try await store.importSongs(urls, limit: limit)
+        let stored = await store.current()
+        if snapshot != stored { snapshot = stored }
+        return result
     }
 
     func remove(_ folder: LocalMusicFolder) async {
