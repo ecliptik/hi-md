@@ -95,7 +95,15 @@ final class MinidiscUXVerificationTests: XCTestCase {
         try tap(regenerate, named: "regenerate-mood-playlists-manually")
         // Untagged fixture tracks must report no matches rather than successful empty generation.
         let result = app.staticTexts["Impossible de régénérer les playlists d’ambiance. Vérifiez votre connexion et vos sources musicales, puis réessayez."]
-        try require(result, timeout: 30)
+        // The message sits below the button. With the App Icon picker above it, the List
+        // may not have created that row yet, so scroll down until it exists.
+        let deadline = Date.now.addingTimeInterval(30)
+        while !result.exists && Date.now < deadline {
+            if !result.waitForExistence(timeout: 3) {
+                app.swipeUp(velocity: .slow)
+            }
+        }
+        try require(result)
         XCTAssertEqual(toggle.value as? String, "0", "Manual regeneration must not re-enable automatic generation")
         XCTAssertTrue(regenerate.isEnabled)
         capturePlayerScreenshot("Mood-settings-no-matching-tracks")
