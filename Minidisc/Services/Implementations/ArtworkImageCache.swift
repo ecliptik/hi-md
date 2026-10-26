@@ -192,6 +192,10 @@ final class ArtworkImageCache {
     /// Ids whose revalidation failed this run (offline / error). Skipped until relaunch so an
     /// offline session doesn't fire a HEAD per cover on every scroll.
     private var revalidationDeferred: Set<String> = []
+    /// Covers the server answered with its own stand-in image, and when to ask again. A `no-store`
+    /// stand-in means the server is still resolving the artwork, so it is asked for again at once.
+    private var missingArtwork: [String: Date] = [:]
+    private static let missingArtworkRecheck: TimeInterval = 10 * 60
 
     convenience init(
         downloadService: any DownloadServiceProtocol,
@@ -311,6 +315,7 @@ final class ArtworkImageCache {
             revalidateIfDue(coverArtId: coverArtId, tier: tier)
             return hit
         }
+        if let recheck = missingArtwork[coverArtId], recheck > .now { return nil }
 
         let waiterID = UUID()
         if let existing = inFlight[key] {
@@ -469,8 +474,15 @@ final class ArtworkImageCache {
                     epoch: epoch,
                     coverGeneration: coverGeneration
                 ) else { return nil }
+                if let image, ServerPlaceholderArtwork.matches(image) {
+                    // Saved by an earlier build: forget it and show the app's own placeholder.
+                    noteMissingArtwork(coverArtId, recheckAfter: Self.missingArtworkRecheck)
+                    await removeCoverOperation(tieredDiskId)
+                    return nil
+                }
                 if let image {
                     store(image: image, forKey: key)
+                    missingArtwork.removeValue(forKey: coverArtId)
                     Logger.artworkCache.debug("ArtworkImageCache: disk hit \(coverArtId, privacy: .public) tier=\(tier.rawValue, privacy: .public) (\(self.cache.count, privacy: .public)/\(self.maxEntries, privacy: .public))")
                     revalidateIfDue(coverArtId: coverArtId, tier: tier)
                     return image
@@ -512,6 +524,7 @@ final class ArtworkImageCache {
         }
 
         store(image: serverArtwork.image, forKey: key)
+        missingArtwork.removeValue(forKey: coverArtId)
         revalidationStore.record(id: coverArtId, lastModified: serverArtwork.lastModified)
         return serverArtwork.image
     }
@@ -545,10 +558,18 @@ final class ArtworkImageCache {
             Logger.artworkCache.warning("[NET-COVER] failed status=\(http.statusCode) id=\(coverArtId, privacy: .public)")
             return nil
         }
-        guard !ArtworkResponsePolicy.isTransient(response) else { return nil }
+        if ArtworkResponsePolicy.isTransient(response) {
+            noteMissingArtwork(coverArtId, recheckAfter: 0)
+            return nil
+        }
         let image = await imageDecoder(data, maxDim)
         guard !Task.isCancelled, let image else {
             Logger.artworkCache.warning("[NET-COVER] failed (decode) id=\(coverArtId, privacy: .public) duration=\(Int(Date().timeIntervalSince(t0) * 1000))ms")
+            return nil
+        }
+        if ServerPlaceholderArtwork.matches(image) {
+            Logger.artworkCache.debug("[NET-COVER] server placeholder id=\(coverArtId, privacy: .public)")
+            noteMissingArtwork(coverArtId, recheckAfter: Self.missingArtworkRecheck)
             return nil
         }
         Logger.artworkCache.debug("[NET-COVER] done id=\(coverArtId, privacy: .public) tier=\(tier.rawValue, privacy: .public) duration=\(Int(Date().timeIntervalSince(t0) * 1000))ms bytes=\(data.count, privacy: .public)")
@@ -743,8 +764,19 @@ final class ArtworkImageCache {
         )
     }
 
+    /// Whether the server answered the last request for this cover with its own stand-in image, so
+    /// callers show the app's placeholder rather than loading the URL themselves.
+    func hasNoArtwork(_ coverArtId: String) -> Bool {
+        missingArtwork[coverArtId] != nil
+    }
+
+    private func noteMissingArtwork(_ coverArtId: String, recheckAfter interval: TimeInterval) {
+        missingArtwork[coverArtId] = Date.now.addingTimeInterval(interval)
+    }
+
     func invalidate(for coverArtId: String) async {
         _ = bumpCoverGeneration(for: coverArtId)
+        missingArtwork.removeValue(forKey: coverArtId)
         cancelRevalidation(for: coverArtId)
         revalidationDeferred.remove(coverArtId)
         revalidationStore.remove(id: coverArtId)
@@ -778,6 +810,7 @@ final class ArtworkImageCache {
         revalidating.removeAll()
         cache.removeAll()
         accessOrder.removeAll()
+        missingArtwork.removeAll()
     }
 
     /// Forgets all revalidation metadata. Called from the version-bump disk wipe so a fresh cache

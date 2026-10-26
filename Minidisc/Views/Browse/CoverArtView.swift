@@ -44,6 +44,8 @@ private struct CoverArtViewContent: View {
     @State private var url: URL?
     /// Associates local image state with its source id to prevent stale artwork.
     @State private var displayedId: String?
+    /// The server has no artwork for this id (it answered with its stand-in image).
+    @State private var hasNoArtwork = false
 
     init(id: String, size: Int?, tier: ArtworkTier?, cornerRadius: CGFloat, placeholderSystemImage: String, initialImage: PlatformImage?, loadingEnabled: Bool = true) {
         self.id = id
@@ -66,7 +68,7 @@ private struct CoverArtViewContent: View {
                 Image(platformImage: cached)
                     .resizable()
                     .scaledToFill()
-            } else if id.hasPrefix("local:") {
+            } else if id.hasPrefix("local:") || hasNoArtwork {
                 placeholder
             } else {
                 AsyncImage(url: url) { phase in
@@ -94,6 +96,7 @@ private struct CoverArtViewContent: View {
         .task(id: "\(loadingEnabled):\(id):\(coverArtUploadVersion)") {
             guard loadingEnabled else { return }
             url = nil
+            hasNoArtwork = false
             let t = resolvedTier
             let online = container?.serverState.isOnline ?? true
 
@@ -109,9 +112,10 @@ private struct CoverArtViewContent: View {
                 return
             }
 
-            if id.hasPrefix("local:") {
+            if id.hasPrefix("local:") || artworkCache.hasNoArtwork(id) {
                 cachedImage = nil
                 displayedId = nil
+                hasNoArtwork = !id.hasPrefix("local:")
                 return
             }
             if displayedId == id { return }
@@ -121,6 +125,13 @@ private struct CoverArtViewContent: View {
                 if let baseURL = await container?.downloadService.localCoverArtURL(forId: diskId),
                    let image = await Self.decodedImage(at: baseURL, maxDimension: t.decodePixels) {
                     guard !Task.isCancelled else { return }
+                    // A download from before the app recognised the server's stand-in image.
+                    if ServerPlaceholderArtwork.matches(image) {
+                        cachedImage = nil
+                        displayedId = nil
+                        hasNoArtwork = true
+                        return
+                    }
                     apply(image, for: id)
                     return
                 }

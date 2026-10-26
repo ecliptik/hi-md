@@ -15,8 +15,10 @@ struct LyricsLineView: View {
         return abs(index - currentIndex)
     }
 
+    /// Full screen keeps the strong depth-of-field; in the player, other lines only dim, so the lyrics
+    /// stay legible next to the controls.
     private var blurRadius: CGFloat {
-        guard isSynced, currentIndex != nil else { return 0 }
+        guard isKaraoke, isSynced, currentIndex != nil else { return 0 }
         switch distance {
         case 0: return 0
         case 1: return 1.5
@@ -27,6 +29,7 @@ struct LyricsLineView: View {
 
     private var opacity: Double {
         guard isSynced, currentIndex != nil else { return 1.0 }
+        guard isKaraoke else { return distance == 0 ? 1.0 : 0.5 }
         switch distance {
         case 0: return 1.0
         case 1: return 0.7
@@ -41,7 +44,7 @@ struct LyricsLineView: View {
     }
 
     private var lineFont: Font {
-        isKaraoke ? .system(.largeTitle, design: .rounded, weight: .heavy) : .system(.title, design: .rounded, weight: .bold)
+        isKaraoke ? .system(.largeTitle, design: .rounded, weight: .heavy) : .system(.title2, design: .rounded, weight: .bold)
     }
 
     var body: some View {
