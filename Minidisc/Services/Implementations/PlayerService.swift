@@ -734,12 +734,16 @@ actor PlayerService: PlayerServiceProtocol {
         } else {
             playbackProgressTracker.startTrack()
         }
+        let isRemoteStream = if case .stream = source { true } else { false }
         await MainActor.run {
             state.currentTrack = song
             state.duration = duration
             state.position = initialPosition
             state.playbackState = .playing
             state.isPlaybackAvailable = true
+            // Set with the track itself, so pre-caching never starts in the gap before the
+            // playing song's own download begins.
+            state.currentSongNeedsNetwork = isRemoteStream && cacheSettings.cacheWhilePlaying
         }
         playbackDiagnostics.record(.playbackStateChanged(.playing))
         guard generation == playbackGeneration,
@@ -1746,6 +1750,10 @@ actor PlayerService: PlayerServiceProtocol {
         startProgressTimer()
         startPositionSaveTimer()
         resumeCurrentSongDownloadIfNeeded()
+        if currentSongDownload?.playbackGeneration != playbackGeneration {
+            // A pause during startup skipped the download; nothing holds pre-caching back.
+            await publishCurrentSongNeedsNetwork(false)
+        }
     }
 
     /// Fresh download > cache > stream resolution for the cold-start resume path.

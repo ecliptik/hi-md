@@ -16,6 +16,8 @@ final class CacheSettings {
     @ObservationIgnored private var _keepRecentlyPlayedOffline: Bool
     @ObservationIgnored private var _keepPinnedOffline: Bool
     @ObservationIgnored private var _cacheUpcomingSongs: Bool
+    @ObservationIgnored private var _wifiLookahead: CacheLookahead
+    @ObservationIgnored private var _cellularLookahead: CacheLookahead
 
     // MARK: - Visible properties (manual observation hooks)
 
@@ -126,6 +128,7 @@ final class CacheSettings {
     }
 
     /// Auto-caching: the next songs in the queue, saved into the stream cache ahead of time.
+    /// `wifiLookahead` and `cellularLookahead` set how many.
     var cacheUpcomingSongs: Bool {
         get {
             access(keyPath: \.cacheUpcomingSongs)
@@ -135,6 +138,35 @@ final class CacheSettings {
             withMutation(keyPath: \.cacheUpcomingSongs) { _cacheUpcomingSongs = newValue }
             defaults.set(newValue, forKey: Self.cacheUpcomingSongsKey)
         }
+    }
+
+    /// How far down the queue to cache on Wi-Fi. The stream cache size limit always applies.
+    var wifiLookahead: CacheLookahead {
+        get {
+            access(keyPath: \.wifiLookahead)
+            return _wifiLookahead
+        }
+        set {
+            withMutation(keyPath: \.wifiLookahead) { _wifiLookahead = newValue }
+            defaults.set(newValue.storedValue, forKey: Self.wifiLookaheadKey)
+        }
+    }
+
+    /// How far down the queue to cache on cellular data, including over a VPN on cellular.
+    var cellularLookahead: CacheLookahead {
+        get {
+            access(keyPath: \.cellularLookahead)
+            return _cellularLookahead
+        }
+        set {
+            withMutation(keyPath: \.cellularLookahead) { _cellularLookahead = newValue }
+            defaults.set(newValue.storedValue, forKey: Self.cellularLookaheadKey)
+        }
+    }
+
+    /// The look-ahead for the current network. Low Data Mode is handled by the callers.
+    func lookahead(isCellular: Bool) -> CacheLookahead {
+        isCellular ? cellularLookahead : wifiLookahead
     }
 
     /// Whether any automatic copy is kept in the offline store.
@@ -149,6 +181,10 @@ final class CacheSettings {
     static let defaultFormat: CacheFormat = .matchStream
     static let defaultCacheOverCellular: Bool = false
     static let defaultCacheArtwork: Bool = true
+    static let defaultWifiLookahead: CacheLookahead = .entireQueue
+    static let defaultCellularLookahead: CacheLookahead = .songs(3)
+    static let wifiLookaheadChoices: [CacheLookahead] = [.songs(0), .songs(1), .songs(3), .songs(5), .songs(10), .songs(25), .entireQueue]
+    static let cellularLookaheadChoices: [CacheLookahead] = [.songs(0), .songs(1), .songs(3), .songs(5), .songs(10)]
 
     private static let capacityMegabytesKey = "minidisc.cache.capacityMegabytes"
     private static let legacyMaxTracksKey = "minidisc.cache.maxTracks"
@@ -160,6 +196,8 @@ final class CacheSettings {
     private static let keepPinnedOfflineKey = "minidisc.cache.pinnedOffline"
     private static let cacheUpcomingSongsKey = "minidisc.cache.upcomingSongs"
     private static let cacheArtworkKey = "minidisc.cache.artwork"
+    private static let wifiLookaheadKey = "minidisc.cache.wifiLookahead"
+    private static let cellularLookaheadKey = "minidisc.cache.cellularLookahead"
 
     // MARK: - Init
 
@@ -169,6 +207,10 @@ final class CacheSettings {
         self._keepRecentlyPlayedOffline = defaults.object(forKey: Self.keepRecentlyPlayedOfflineKey) as? Bool ?? true
         self._keepPinnedOffline = defaults.object(forKey: Self.keepPinnedOfflineKey) as? Bool ?? true
         self._cacheUpcomingSongs = defaults.object(forKey: Self.cacheUpcomingSongsKey) as? Bool ?? true
+        self._wifiLookahead = (defaults.object(forKey: Self.wifiLookaheadKey) as? Int).map(CacheLookahead.init(storedValue:))
+            ?? Self.defaultWifiLookahead
+        self._cellularLookahead = (defaults.object(forKey: Self.cellularLookaheadKey) as? Int).map(CacheLookahead.init(storedValue:))
+            ?? Self.defaultCellularLookahead
 
         if defaults.object(forKey: Self.capacityMegabytesKey) != nil {
             self._capacityMegabytes = Self.normalizedCapacity(
