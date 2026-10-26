@@ -50,7 +50,7 @@ final class AppContainer {
     let listenBrainzService: ListenBrainzService
     let externalProvidersStore: ExternalProvidersStore
     let externalArtworkCache = ExternalArtworkCache()
-    let externalArtistImageResolver = ExternalArtistImageResolver()
+    let externalArtistImageResolver = ExternalArtistImageResolver(musicBrainzRateLimiter: .shared)
     let searchHistoryService: SearchHistoryService
     let replayGainSettings: ReplayGainSettings
     let crossfadeSettings: CrossfadeSettings

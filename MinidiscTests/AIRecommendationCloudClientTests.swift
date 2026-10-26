@@ -217,6 +217,28 @@ struct AIRecommendationCloudClientTests {
         }
     }
 
+    @Test func choosingSendsCandidatesButOnlyProfileArtistsAsSeeds() async throws {
+        let picks = #"{\"picks\": [{\"id\": \"c1\", \"reason\": \"r\"}]}"#
+        CloudStubProtocol.respond(body: #"{"content": [{"type": "text", "text": "\#(picks)"}], "stop_reason": "end_turn"}"#)
+        let (client, session) = makeClient()
+        defer { session.invalidateAndCancel() }
+        let album = MusicBrainzAlbum(releaseGroupID: "rg", title: "Vespertine", artistCredit: "Björk", artistIDs: ["a"],
+                                     artistNames: ["Björk"], year: 2001, ratingVotes: 0)
+        let model = CloudRecommendationModel(client: client, provider: .anthropic, key: fixtureKey, model: "m")
+
+        let result = try await model.choose(
+            from: [AIRecommendationCandidate(id: "c1", album: album, seeds: ["Björk", "OnlyOnListenBrainz"])],
+            profile: profile, count: 12
+        )
+
+        #expect(result == [AIRecommendationPick(id: "c1", reason: "r")])
+        let body = try #require(CloudStubProtocol.lastBody)
+        #expect(body["system"] as? String == AIListeningProfile.choiceSystemPrompt)
+        let prompt = try #require((body["messages"] as? [[String: Any]])?.first?["content"] as? String)
+        #expect(prompt.contains("- c1: Vespertine — Björk (2001); similar to Björk"))
+        #expect(!prompt.contains("OnlyOnListenBrainz"))
+    }
+
     @Test func messagesNameTheProviderAndPointAtSettings() {
         let missing = String(localized: AIRecommendationError.missingKey(.anthropic).localizedStringResource)
         #expect(missing.contains("Anthropic") && missing.contains("AI Recommendations"))

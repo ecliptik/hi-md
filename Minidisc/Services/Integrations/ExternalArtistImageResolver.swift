@@ -18,6 +18,10 @@ extension URLSession: ArtistImageHTTPClient {}
 actor MusicBrainzRateLimiter {
     typealias Sleeper = @Sendable (Duration) async throws -> Void
 
+    /// The app-wide limiter, so artist images and AI recommendation checks together stay at one
+    /// MusicBrainz request a second.
+    static let shared = MusicBrainzRateLimiter()
+
     private struct Waiter {
         let id: UUID
         let continuation: CheckedContinuation<Bool, Never>
@@ -156,10 +160,12 @@ actor ExternalArtistImageResolver {
 
     init(
         httpClient: any ArtistImageHTTPClient = URLSession.shared,
-        minimumMBRequestInterval: Duration = .seconds(1)
+        minimumMBRequestInterval: Duration = .seconds(1),
+        musicBrainzRateLimiter: MusicBrainzRateLimiter? = nil
     ) {
         self.httpClient = httpClient
-        musicBrainzRateLimiter = MusicBrainzRateLimiter(minimumInterval: minimumMBRequestInterval)
+        self.musicBrainzRateLimiter = musicBrainzRateLimiter
+            ?? MusicBrainzRateLimiter(minimumInterval: minimumMBRequestInterval)
     }
 
     // MARK: - Public API

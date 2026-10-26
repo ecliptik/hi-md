@@ -34,6 +34,20 @@ nonisolated struct AIRecommendationCloudClient: Sendable {
         return try AIRecommendationParser.parse(Self.replyText(from: data, provider: provider))
     }
 
+    /// Picks from verified candidates by id. The pipeline drops ids that aren't on the list.
+    @concurrent
+    func choose(
+        from candidates: [AIRecommendationCandidate], profile: AIListeningProfile,
+        provider: AIRecommendationProvider, key: String, model: String
+    ) async throws -> [AIRecommendationPick] {
+        let request = try Self.request(
+            provider, key: key, model: model, system: AIListeningProfile.choiceSystemPrompt,
+            user: profile.choicePrompt(candidates, count: AIRecommender.count), maxTokens: Self.maxTokens
+        )
+        let data = try await send(request, provider: provider, model: model)
+        return try AIRecommendationParser.parsePicks(Self.replyText(from: data, provider: provider))
+    }
+
     /// The smallest round trip that proves the key and model work. Sends no listening data, and
     /// only the status matters: a short cap can leave a thinking model with no text to return.
     @concurrent

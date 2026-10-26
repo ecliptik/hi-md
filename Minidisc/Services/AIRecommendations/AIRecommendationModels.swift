@@ -38,12 +38,14 @@ nonisolated enum AIRecommendationProvider: String, CaseIterable, Identifiable, S
     var keychainKey: String { "ai-recommendations.\(rawValue)" }
 }
 
-/// One suggested album, as the model returned it.
+/// One suggested album. Once verified, the artist, title and year are MusicBrainz's, not the model's.
 nonisolated struct AIRecommendation: Codable, Sendable, Hashable, Identifiable {
     var artist: String
     var album: String
     var year: Int?
     var reason: String
+    /// The MusicBrainz release group, once verified.
+    var releaseGroupID: String? = nil
 
     var id: String { artist.lowercased() + "\u{1F}" + album.lowercased() }
 }
@@ -72,10 +74,17 @@ nonisolated struct AIListeningProfile: Sendable, Equatable {
     var isEmpty: Bool { recentAlbums.isEmpty && topArtists.isEmpty && favoriteAlbums.isEmpty }
 
     static let systemPrompt = """
-        You are a music recommender. Suggest albums the listener doesn't own yet, based on their \
-        listening. Prefer real, well-known albums whose artist and title you are certain of, mix \
-        artists they own with new ones, and keep each reason to one short sentence that names \
-        what in their listening it connects to. Never invent albums.
+        You are a music recommender. Suggest studio albums (not songs or singles) the listener \
+        doesn't own yet, based on their listening. Prefer real, well-known albums whose artist and \
+        title you are certain of, mix artists they own with new ones, and keep each reason to one \
+        short sentence that names what in their listening it connects to. Never invent albums.
+        """
+
+    /// For choosing from verified candidates: the model explains, it doesn't supply facts.
+    static let choiceSystemPrompt = """
+        You are a music recommender. You choose albums for a listener from a list of real albums \
+        and say in one short sentence why each fits. Use only the facts you are given: never \
+        mention an artist, album, year or genre that isn't in the list or the listener's profile.
         """
 
     func prompt(count: Int) -> String {
@@ -89,6 +98,26 @@ nonisolated struct AIListeningProfile: Sendable, Equatable {
             + """
             Recommend \(count) albums. Answer with JSON only, in this shape:
             {"recommendations": [{"artist": "…", "album": "…", "year": 1999, "reason": "…"}]}
+            """
+    }
+
+    /// The profile, then the candidates by id, each with the listener's artists it is similar to.
+    func choicePrompt(_ candidates: [AIRecommendationCandidate], count: Int) -> String {
+        func list(_ title: String, _ items: [String]) -> String {
+            items.isEmpty ? "" : "\(title):\n" + items.map { "- \($0)" }.joined(separator: "\n") + "\n\n"
+        }
+        return list("Recently played albums", Array(recentAlbums.prefix(10)))
+            + list("Most collected artists", Array(topArtists.prefix(15)))
+            + list("Favourite albums", Array(favoriteAlbums.prefix(10)))
+            + "Candidate albums (id: album — artist (year); similar to the listener's artists):\n"
+            + candidates.map(\.promptLine).joined(separator: "\n")
+            + """
+
+
+            Choose up to \(count) albums from the candidates, best first. Give each one's id exactly as \
+            listed and one short sentence on why it fits, naming only that album, its artist, its year \
+            or the listener's artists it is similar to. Answer with JSON only, in this shape:
+            {"picks": [{"id": "c1", "reason": "…"}]}
             """
     }
 }
@@ -107,6 +136,10 @@ nonisolated enum AIRecommendationError: Error, CustomLocalizedStringResourceConv
     /// Any other status, with the provider's own message when it sent one.
     case http(AIRecommendationProvider, status: Int, message: String?)
     case unavailable, badResponse, notEnoughListening
+    /// The model or the album checks took too long.
+    case timedOut
+    /// None of the suggestions could be confirmed with MusicBrainz.
+    case unverified
 
     var localizedStringResource: LocalizedStringResource {
         switch self {
@@ -127,6 +160,8 @@ nonisolated enum AIRecommendationError: Error, CustomLocalizedStringResourceConv
         case .unavailable: "Apple Intelligence isn't available on this device right now."
         case .badResponse: "The recommendation service sent an answer Minidisc couldn't read. Try again."
         case .notEnoughListening: "Play some music first, so there's something to base recommendations on."
+        case .timedOut: "Recommendations took too long. Try again."
+        case .unverified: "Minidisc couldn't confirm any of the suggested albums with MusicBrainz. Try again in a moment."
         }
     }
 
@@ -134,7 +169,7 @@ nonisolated enum AIRecommendationError: Error, CustomLocalizedStringResourceConv
     var isFixedInSettings: Bool {
         switch self {
         case .missingKey, .rejectedKey, .unknownModel, .http, .unavailable: true
-        case .rateLimited, .serviceBusy, .offline, .badResponse, .notEnoughListening: false
+        case .rateLimited, .serviceBusy, .offline, .badResponse, .notEnoughListening, .timedOut, .unverified: false
         }
     }
 
@@ -161,16 +196,33 @@ nonisolated enum AIRecommendationParser {
         throw AIRecommendationError.badResponse
     }
 
+    private struct PicksEnvelope: Decodable { let picks: [AIRecommendationPick] }
+
+    /// Reads `{"picks": [{"id": …, "reason": …}]}` or a bare array, like `parse`.
+    static func parsePicks(_ text: String) throws -> [AIRecommendationPick] {
+        let decoder = JSONDecoder()
+        if let start = text.firstIndex(of: "{"), let end = text.lastIndex(of: "}"),
+           let envelope = try? decoder.decode(PicksEnvelope.self, from: Data(text[start...end].utf8)) {
+            return envelope.picks
+        }
+        if let start = text.firstIndex(of: "["), let end = text.lastIndex(of: "]"),
+           let list = try? decoder.decode([AIRecommendationPick].self, from: Data(text[start...end].utf8)) {
+            return list
+        }
+        throw AIRecommendationError.badResponse
+    }
+
     private static func clean(_ items: [AIRecommendation]) -> [AIRecommendation] {
         var seen = Set<String>()
         return items.filter { !$0.artist.isEmpty && !$0.album.isEmpty && seen.insert($0.id).inserted }
     }
 }
 
-/// Library matching that ignores case, punctuation and "The".
+/// Library matching that ignores case, punctuation and "The", and reads "&" as "and".
 nonisolated enum AIRecommendationMatcher {
     static func key(_ text: String) -> String {
         var value = text.lowercased().folding(options: [.diacriticInsensitive], locale: nil)
+            .replacingOccurrences(of: "&", with: " and ")
         if value.hasPrefix("the ") { value.removeFirst(4) }
         // Edition suffixes such as "(Deluxe Edition)" or "[Remastered]".
         if let bracket = value.firstIndex(where: { $0 == "(" || $0 == "[" }), bracket != value.startIndex {
@@ -188,7 +240,11 @@ nonisolated enum AIRecommendationLinks {
         return components?.url
     }
 
+    /// The release group's page once verified, a search otherwise.
     static func musicBrainz(_ item: AIRecommendation) -> URL? {
+        if let id = item.releaseGroupID, !id.isEmpty, id.allSatisfy({ $0.isHexDigit || $0 == "-" }) {
+            return URL(string: "https://musicbrainz.org/release-group/\(id)")
+        }
         var components = URLComponents(string: "https://musicbrainz.org/search")
         components?.queryItems = [
             URLQueryItem(name: "query", value: "release:\"\(item.album)\" AND artist:\"\(item.artist)\""),

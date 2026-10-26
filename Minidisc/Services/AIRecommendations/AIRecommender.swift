@@ -84,88 +84,120 @@ final class AIRecommendationSettings {
     }
 }
 
-/// Builds a listening profile from local data, asks the chosen model for albums, and checks each
-/// against the library.
+/// Gathers the listening profile and library from local data, then runs
+/// `AIRecommendationPipeline` with the chosen model: grounded candidates when ListenBrainz is
+/// connected, verified free suggestions otherwise.
 @MainActor
 struct AIRecommender {
-    nonisolated static let count = 12
+    nonisolated static let count = AIRecommendationPipeline.requested
 
     let container: AppContainer
     let settings: AIRecommendationSettings
     var client = AIRecommendationCloudClient()
+    var musicBrainz: any MusicBrainzAlbumLookup = MusicBrainzClient.shared
 
     func recommend() async throws -> [AIRecommendationResult] {
         guard let server = container.serverState.activeServer else { throw MusicIntentError.noServer }
-        let profile = try await listeningProfile(serverID: server.id)
-        guard !profile.isEmpty else { throw AIRecommendationError.notEnoughListening }
+        let local = try await localData(serverID: server.id)
+        guard !local.profile.isEmpty else { throw AIRecommendationError.notEnoughListening }
         let provider = settings.provider
-        let items: [AIRecommendation]
+        let model: any AIRecommendationModel
         if provider == .appleIntelligence {
-            items = try await Self.askAppleIntelligence(profile)
+            model = AppleIntelligenceRecommendationModel()
         } else {
             guard let key = await settings.apiKey(for: provider) else { throw AIRecommendationError.missingKey(provider) }
-            items = try await client.recommend(profile, provider: provider, key: key, model: settings.model(for: provider))
+            model = CloudRecommendationModel(client: client, provider: provider, key: key, model: settings.model(for: provider))
         }
-        Logger.ui.info("AI recommendations: \(items.count) from \(provider.rawValue, privacy: .public)")
-        return try await match(items, serverID: server.id)
+        var pipeline = AIRecommendationPipeline(model: model, musicBrainz: musicBrainz, library: local.library)
+        let listenBrainz = await container.listenBrainzService.currentSnapshot()
+        if listenBrainz.isEnabled {
+            pipeline.graph = ListenBrainzArtistGraph(client: ListenBrainzClient(transport: URLSessionListenBrainzTransport()))
+            pipeline.username = listenBrainz.username
+            pipeline.librarySeeds = local.seeds
+        }
+        let results = try await pipeline.recommend(local.profile)
+        Logger.ui.info("AI recommendations: \(results.count) verified from \(provider.rawValue, privacy: .public)")
+        return results
     }
 
-    // MARK: - Profile
+    // MARK: - Local data
 
-    private func listeningProfile(serverID: UUID) async throws -> AIListeningProfile {
+    private struct LocalData {
         var profile = AIListeningProfile()
-        if let feed = await HomeFeedCache.shared.load(serverID: serverID) {
-            profile.recentAlbums = feed.recentlyPlayed.prefix(20).map { "\($0.artist ?? "Unknown") – \($0.name)" }
-            profile.favoriteAlbums = (feed.favorites?.albums ?? []).prefix(15).map { "\($0.artist ?? "Unknown") – \($0.name)" }
-        }
-        let store = container.libraryIndexStore
-        let albums = try await store.albums(serverID: serverID)
-        var counts: [String: Int] = [:]
-        for album in albums { if let artist = album.artist { counts[artist, default: 0] += 1 } }
-        profile.topArtists = counts.sorted { $0.value > $1.value }.prefix(25).map(\.key)
-        profile.playlists = try await store.playlists(serverID: serverID)
-            .map(\.name).filter { name in !Mood.allCases.contains { $0.playlistName == name } }.prefix(15).map { $0 }
-        return profile
+        var library = AIRecommendationLibrary()
+        /// The listener's artists with MusicBrainz ids, most played first.
+        var seeds: [AIRecommendationArtist] = []
     }
 
-    // MARK: - Library match
-
-    private func match(_ items: [AIRecommendation], serverID: UUID) async throws -> [AIRecommendationResult] {
+    private func localData(serverID: UUID) async throws -> LocalData {
+        var data = LocalData()
+        let feed = await HomeFeedCache.shared.load(serverID: serverID)
+        if let feed {
+            data.profile.recentAlbums = feed.recentlyPlayed.prefix(20).map { "\($0.artist ?? "Unknown") – \($0.name)" }
+            data.profile.favoriteAlbums = (feed.favorites?.albums ?? []).prefix(15).map { "\($0.artist ?? "Unknown") – \($0.name)" }
+        }
         let store = container.libraryIndexStore
         let albums = try await store.albums(serverID: serverID)
         let artists = try await store.artists(serverID: serverID).flatMap(\.artist)
-        var albumsByKey: [String: AlbumID3] = [:]
-        for album in albums {
-            albumsByKey[AIRecommendationMatcher.key(album.artist ?? "") + "|" + AIRecommendationMatcher.key(album.name)] = album
+        var counts: [String: Int] = [:]
+        for album in albums { if let artist = album.artist { counts[artist, default: 0] += 1 } }
+        data.profile.topArtists = counts.sorted { $0.value > $1.value }.prefix(25).map(\.key)
+        data.profile.playlists = try await store.playlists(serverID: serverID)
+            .map(\.name).filter { name in !Mood.allCases.contains { $0.playlistName == name } }.prefix(15).map { $0 }
+
+        data.library = AIRecommendationLibrary(
+            albums: albums.map { .init(id: $0.id, name: $0.name, artist: $0.artist ?? $0.displayArtist ?? "", coverArtID: $0.coverArt) },
+            artists: artists.map { .init(id: $0.id, name: $0.name, mbid: $0.musicBrainzId) }
+        )
+
+        // Seeds: most played, then recently played, then favourite albums' artists, then the most collected.
+        let byID = Dictionary(artists.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        let byName = Dictionary(artists.map { (AIRecommendationMatcher.key($0.name), $0) }, uniquingKeysWith: { first, _ in first })
+        let feedAlbums = (feed?.mostPlayed ?? []) + (feed?.recentlyPlayed ?? []) + (feed?.favorites?.albums ?? [])
+        let feedArtists = feedAlbums.compactMap { album in
+            album.artistId.flatMap { byID[$0] } ?? album.artist.flatMap { byName[AIRecommendationMatcher.key($0)] }
         }
-        let artistsByKey = Dictionary(artists.map { (AIRecommendationMatcher.key($0.name), $0) }, uniquingKeysWith: { first, _ in first })
-        return items.map { item in
-            let artistKey = AIRecommendationMatcher.key(item.artist)
-            if let album = albumsByKey[artistKey + "|" + AIRecommendationMatcher.key(item.album)] {
-                return AIRecommendationResult(recommendation: item, availability: .inLibrary(albumID: album.id, coverArtID: album.coverArt))
-            }
-            if let artist = artistsByKey[artistKey] {
-                return AIRecommendationResult(recommendation: item, availability: .artistInLibrary(artistID: artist.id))
-            }
-            return AIRecommendationResult(recommendation: item, availability: .missing)
+        let collected = data.profile.topArtists.compactMap { byName[AIRecommendationMatcher.key($0)] }
+        var seen = Set<String>()
+        data.seeds = (feedArtists + collected).compactMap { artist in
+            guard let mbid = artist.musicBrainzId, !mbid.isEmpty, seen.insert(mbid).inserted else { return nil }
+            return AIRecommendationArtist(name: artist.name, mbid: mbid)
+        }
+        return data
+    }
+
+    nonisolated static var isAppleIntelligenceAvailable: Bool { SystemLanguageModel.default.isAvailable }
+}
+
+// MARK: - Models
+
+/// The on-device model, with guided generation.
+nonisolated struct AppleIntelligenceRecommendationModel: AIRecommendationModel {
+    @concurrent
+    func suggest(_ profile: AIListeningProfile, count: Int) async throws -> [AIRecommendation] {
+        let response = try await respond(
+            instructions: AIListeningProfile.systemPrompt, prompt: profile.prompt(count: count),
+            generating: GeneratedRecommendations.self
+        )
+        return response.recommendations.map {
+            AIRecommendation(artist: $0.artist, album: $0.album, year: $0.year > 0 ? $0.year : nil, reason: $0.reason)
         }
     }
 
-    // MARK: - Providers
-
-    // Anthropic and OpenAI go through `AIRecommendationCloudClient`; this is the on-device one.
-
-    nonisolated static var isAppleIntelligenceAvailable: Bool { SystemLanguageModel.default.isAvailable }
-
     @concurrent
-    nonisolated static func askAppleIntelligence(_ profile: AIListeningProfile) async throws -> [AIRecommendation] {
+    func choose(from candidates: [AIRecommendationCandidate], profile: AIListeningProfile, count: Int) async throws -> [AIRecommendationPick] {
+        let response = try await respond(
+            instructions: AIListeningProfile.choiceSystemPrompt, prompt: profile.choicePrompt(candidates, count: count),
+            generating: GeneratedPicks.self
+        )
+        return response.picks.map { AIRecommendationPick(id: $0.id, reason: $0.reason) }
+    }
+
+    private func respond<Content: Generable>(instructions: String, prompt: String, generating type: Content.Type) async throws -> Content {
         guard SystemLanguageModel.default.isAvailable else { throw AIRecommendationError.unavailable }
-        let session = LanguageModelSession(instructions: AIListeningProfile.systemPrompt)
+        let session = LanguageModelSession(instructions: instructions)
         do {
-            let response = try await session.respond(to: profile.prompt(count: count), generating: GeneratedRecommendations.self)
-            return response.content.recommendations.map {
-                AIRecommendation(artist: $0.artist, album: $0.album, year: $0.year > 0 ? $0.year : nil, reason: $0.reason)
-            }
+            return try await session.respond(to: prompt, generating: type).content
         } catch is CancellationError {
             throw CancellationError()
         } catch {
@@ -175,10 +207,44 @@ struct AIRecommender {
     }
 }
 
+/// Anthropic or OpenAI with the user's key.
+nonisolated struct CloudRecommendationModel: AIRecommendationModel {
+    let client: AIRecommendationCloudClient
+    let provider: AIRecommendationProvider
+    let key: String
+    let model: String
+
+    func suggest(_ profile: AIListeningProfile, count: Int) async throws -> [AIRecommendation] {
+        try await client.recommend(profile, provider: provider, key: key, model: model)
+    }
+
+    /// The sharing notice lists what goes to the provider, so a candidate's "similar to" names are
+    /// limited to artists already in the profile (ListenBrainz's top artists may not be).
+    func choose(from candidates: [AIRecommendationCandidate], profile: AIListeningProfile, count: Int) async throws -> [AIRecommendationPick] {
+        let shared = Set(profile.artistNames)
+        let sent = candidates.map { AIRecommendationCandidate(id: $0.id, album: $0.album, seeds: $0.seeds.filter(shared.contains)) }
+        return try await client.choose(from: sent, profile: profile, provider: provider, key: key, model: model)
+    }
+}
+
 @Generable(description: "Album recommendations for a listener")
 nonisolated struct GeneratedRecommendations {
-    @Guide(description: "Albums to recommend", .count(8))
+    @Guide(description: "Albums to recommend", .count(12))
     var recommendations: [GeneratedRecommendation]
+}
+
+@Generable(description: "Albums chosen from the candidate list")
+nonisolated struct GeneratedPicks {
+    @Guide(description: "Chosen albums, best first", .maximumCount(12))
+    var picks: [GeneratedPick]
+}
+
+@Generable
+nonisolated struct GeneratedPick {
+    @Guide(description: "The candidate's id exactly as listed, such as c3")
+    var id: String
+    @Guide(description: "One short sentence on why it fits, naming only the album, its artist, its year or the listener's artists it is similar to")
+    var reason: String
 }
 
 @Generable
