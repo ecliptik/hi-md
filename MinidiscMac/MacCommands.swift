@@ -15,6 +15,10 @@ struct MacCommands: Commands {
         let navigator = interface.navigator
         let commands = playback?.commands
         let state = container?.playerState
+        // Read here, not only inside bindings, so the menus update when these change.
+        let shownPane = navigator.inspector
+        let isShuffled = state?.isShuffled == true
+        let repeatMode = state?.repeatMode ?? .off
 
         CommandGroup(replacing: .newItem) {
             Button("New Playlist…") { playlists?.requestNewPlaylist() }
@@ -52,9 +56,9 @@ struct MacCommands: Commands {
 
             Divider()
 
-            Toggle("Shuffle", isOn: Binding(get: { state?.isShuffled == true }, set: { _ in playback?.toggleShuffle() }))
+            Toggle("Shuffle", isOn: Binding(get: { isShuffled }, set: { _ in playback?.toggleShuffle() }))
                 .disabled(commands?.canShuffle != true)
-            Picker("Repeat", selection: Binding(get: { state?.repeatMode ?? .off }, set: { playback?.setRepeatMode($0) })) {
+            Picker("Repeat", selection: Binding(get: { repeatMode }, set: { playback?.setRepeatMode($0) })) {
                 Text("Off").tag(RepeatMode.off)
                 Text("All").tag(RepeatMode.all)
                 Text("One").tag(RepeatMode.one)
@@ -63,18 +67,18 @@ struct MacCommands: Commands {
         }
 
         CommandGroup(before: .sidebar) {
-            Toggle("Lyrics", isOn: inspectorBinding(.lyrics, navigator: navigator))
+            Toggle("Lyrics", isOn: inspectorBinding(.lyrics, shown: shownPane, navigator: navigator))
                 .keyboardShortcut("l", modifiers: [.command, .option])
-                .disabled(commands?.canShowLyrics != true && navigator.inspector != .lyrics)
-            Toggle("Playing Next", isOn: inspectorBinding(.queue, navigator: navigator))
+                .disabled(commands?.canShowLyrics != true && shownPane != .lyrics)
+            Toggle("Playing Next", isOn: inspectorBinding(.queue, shown: shownPane, navigator: navigator))
                 .keyboardShortcut("u", modifiers: [.command, .option])
             Divider()
         }
     }
 
-    private func inspectorBinding(_ pane: MacInspectorPane, navigator: MacNavigator) -> Binding<Bool> {
+    private func inspectorBinding(_ pane: MacInspectorPane, shown: MacInspectorPane?, navigator: MacNavigator) -> Binding<Bool> {
         Binding {
-            navigator.inspector == pane
+            shown == pane
         } set: { isOn in
             navigator.inspector = isOn ? pane : nil
         }

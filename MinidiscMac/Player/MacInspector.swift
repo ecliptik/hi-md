@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// The inspector on the right of the window: the playing song's lyrics, or the queue.
+/// The panel on the right of the window: the playing song's lyrics, or the queue.
 struct MacInspector: View {
     let container: AppContainer
 
@@ -24,7 +24,7 @@ struct MacInspector: View {
                 MacQueuePane()
             }
         }
-        .inspectorColumnWidth(min: 260, ideal: 320, max: 460)
+        .background(.background)
     }
 }
 

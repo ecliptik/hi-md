@@ -2,7 +2,7 @@ import SwiftSonic
 import SwiftUI
 
 /// The main window: the sidebar, the selected section with the pages opened above it, the
-/// lyrics and queue inspector on the right, and the player bar along the bottom.
+/// lyrics and queue panel on the right, and the player bar along the bottom.
 struct MacRootView: View {
     let container: AppContainer
     let interface: MacInterface
@@ -15,20 +15,23 @@ struct MacRootView: View {
         let playlists = interface.playlists(for: container)
         @Bindable var bindableNavigator = navigator
         VStack(spacing: 0) {
-            NavigationSplitView {
-                MacSidebar(container: container)
-            } detail: {
-                NavigationStack(path: $bindableNavigator.path) {
-                    MacSectionView(container: container, item: navigator.selection ?? .albums)
-                        .navigationDestination(for: MacDestination.self) { destination in
-                            MacDestinationView(container: container, destination: destination)
-                        }
+            HStack(spacing: 0) {
+                NavigationSplitView {
+                    MacSidebar(container: container)
+                } detail: {
+                    MacDetailColumn(container: container)
+                }
+                .searchable(text: $bindableNavigator.searchText, placement: .toolbar, prompt: Text("Artists, Albums, Songs"))
+                // The lyrics and queue panel, like the Music app's Playing Next. Read here, in the
+                // root view's body, so showing and hiding it always redraws the window.
+                if navigator.inspector != nil {
+                    Divider()
+                    MacInspector(container: container)
+                        .frame(width: 320)
+                        .transition(.move(edge: .trailing))
                 }
             }
-            .searchable(text: $bindableNavigator.searchText, placement: .toolbar, prompt: Text("Artists, Albums, Songs"))
-            .inspector(isPresented: $bindableNavigator.isInspectorPresented) {
-                MacInspector(container: container)
-            }
+            .animation(.smooth(duration: 0.25), value: navigator.inspector)
             Divider()
             MacPlayerBar()
         }
@@ -58,6 +61,24 @@ struct MacRootView: View {
         .onChange(of: container.playerState.currentTrack?.id) {
             // Lyrics can't follow a song that has none, such as a local file.
             if navigator.inspector == .lyrics, !playback.commands.canShowLyrics { navigator.inspector = .queue }
+        }
+    }
+}
+
+/// The pages of the selected section. Its own view, so navigation changes redraw it: the split
+/// view calls its detail closure outside the root view's update.
+private struct MacDetailColumn: View {
+    let container: AppContainer
+
+    @Environment(MacNavigator.self) private var navigator
+
+    var body: some View {
+        @Bindable var navigator = navigator
+        NavigationStack(path: $navigator.path) {
+            MacSectionView(container: container, item: navigator.selection ?? .albums)
+                .navigationDestination(for: MacDestination.self) { destination in
+                    MacDestinationView(container: container, destination: destination)
+                }
         }
     }
 }

@@ -12,6 +12,8 @@ struct MacPlayerBar: View {
 
     var body: some View {
         let commands = playback.commands
+        // Read here, not only inside the bindings, so the buttons redraw when the panel changes.
+        let shownPane = navigator.inspector
         HStack(spacing: 18) {
             MacTransportControls(commands: commands)
                 .frame(width: 210, alignment: .leading)
@@ -21,12 +23,12 @@ struct MacPlayerBar: View {
             HStack(spacing: 14) {
                 MacVolumeSlider()
                     .frame(width: 120)
-                Toggle(isOn: inspectorBinding(.lyrics)) {
+                Toggle(isOn: inspectorBinding(.lyrics, shown: shownPane)) {
                     Label("Lyrics", systemImage: "quote.bubble")
                 }
-                .disabled(!commands.canShowLyrics && navigator.inspector != .lyrics)
+                .disabled(!commands.canShowLyrics && shownPane != .lyrics)
                 .help("Lyrics")
-                Toggle(isOn: inspectorBinding(.queue)) {
+                Toggle(isOn: inspectorBinding(.queue, shown: shownPane)) {
                     Label("Queue", systemImage: "list.bullet")
                 }
                 .help("Playing Next")
@@ -43,9 +45,9 @@ struct MacPlayerBar: View {
         .background(.bar)
     }
 
-    private func inspectorBinding(_ pane: MacInspectorPane) -> Binding<Bool> {
+    private func inspectorBinding(_ pane: MacInspectorPane, shown: MacInspectorPane?) -> Binding<Bool> {
         Binding {
-            navigator.inspector == pane
+            shown == pane
         } set: { isOn in
             navigator.inspector = isOn ? pane : nil
         }
