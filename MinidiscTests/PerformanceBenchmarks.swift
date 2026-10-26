@@ -81,6 +81,18 @@ struct PerformanceBenchmarks {
         Bench.measure("queue.capture.legacy", scale: "\(count) songs", runs: 5) {
             LegacyHotPaths.captureQueue(state)
         }
+        // A new or edited queue: occurrence counts once, then the first page of rows.
+        Bench.measure("queue.rows.queueChange", scale: "\(count) songs", runs: 5) {
+            QueueUpcomingRow.upcoming(in: state, occurrences: QueueUpcomingRow.occurrences(in: state.queue),
+                                      limit: InlineQueueList.pageSize)
+        }
+        // A skip: the counts are reused, and only the page after the new current track is built.
+        let occurrences = QueueUpcomingRow.occurrences(in: state.queue)
+        Bench.measure("queue.rows.skip", scale: "\(count) songs", runs: 9) {
+            state.currentIndex += 1
+            state.currentTrack = state.queue[state.currentIndex]
+            return QueueUpcomingRow.upcoming(in: state, occurrences: occurrences, limit: InlineQueueList.pageSize)
+        }
     }
 
     // MARK: - 3. Placeholder detection
