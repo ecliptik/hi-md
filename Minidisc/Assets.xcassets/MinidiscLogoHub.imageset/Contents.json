@@ -3,6 +3,10 @@
     {
       "filename" : "MinidiscLogoHub.png",
       "idiom" : "universal"
+    },
+    {
+      "filename" : "MinidiscLogoHub-mac.png",
+      "idiom" : "mac"
     }
   ],
   "info" : {
