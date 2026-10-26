@@ -153,6 +153,12 @@ nonisolated struct WinampSkin: @unchecked Sendable {
     }
 
     static let bundledSkinName = "MinidiscGold"
+    /// A classic sheet is at most a few hundred KB; larger entries are treated as missing.
+    static let maximumImageEntrySize = 2 * 1024 * 1024
+    /// `pledit.txt`, `viscolor.txt` and `region.txt` are a few hundred bytes.
+    static let maximumTextEntrySize = 64 * 1024
+    /// Far beyond any classic sheet; a header claiming more is refused before decoding.
+    static let maximumImageDimension = 2048
 
     let name: String
     let sheets: [WinampSpriteSheet: CGImage]
@@ -175,7 +181,7 @@ nonisolated struct WinampSkin: @unchecked Sendable {
         let archive = try ZipArchive(data: data)
         var sheets = fallback?.sheets ?? [:]
         for sheet in WinampSpriteSheet.allCases {
-            guard let bitmap = try? archive.contents(named: sheet.fileName) else { continue }
+            guard let bitmap = try? archive.contents(named: sheet.fileName, maximumSize: maximumImageEntrySize) else { continue }
             if let image = image(fromBMP: bitmap) {
                 sheets[sheet] = image
             }
@@ -192,7 +198,7 @@ nonisolated struct WinampSkin: @unchecked Sendable {
         }
 
         let text = { (file: String) -> String? in
-            (try? archive.contents(named: file)).map { M3UPlaylist.text(from: $0) }
+            (try? archive.contents(named: file, maximumSize: maximumTextEntrySize)).map { M3UPlaylist.text(from: $0) }
         }
         let skin = WinampSkin(
             name: name,
@@ -228,10 +234,56 @@ nonisolated struct WinampSkin: @unchecked Sendable {
         return sheet.cropping(to: sprite.rect)
     }
 
-    /// ImageIO reads every BMP flavour skins use: 8-bit palettes, 24-bit and RLE.
+    /// ImageIO reads every BMP flavour skins use: 8-bit palettes, 24-bit and RLE. Only data that
+    /// starts with `BM` and whose header gives a size within `maximumImageDimension` is decoded.
     static func image(fromBMP data: Data) -> CGImage? {
-        let options = [kCGImageSourceTypeIdentifierHint as String: "com.microsoft.bmp"] as CFDictionary
-        guard let source = CGImageSourceCreateWithData(data as CFData, options) else { return nil }
-        return CGImageSourceCreateImageAtIndex(source, 0, nil)
+        guard let size = bmpSize(data), size.width <= maximumImageDimension, size.height <= maximumImageDimension else {
+            return nil
+        }
+        let options = [kCGImageSourceTypeIdentifierHint as String: "com.microsoft.bmp",
+                       kCGImageSourceShouldCache as String: false] as CFDictionary
+        guard let source = CGImageSourceCreateWithData(data as CFData, options),
+              let image = CGImageSourceCreateImageAtIndex(source, 0, options),
+              image.width == size.width, image.height == size.height else { return nil }
+        return decoded(image)
+    }
+
+    /// Width and height from a BMP's file and DIB headers, or nil if it isn't a BMP. Handles the
+    /// old 12-byte core header and the 40-byte-and-up info headers; top-down images store a
+    /// negative height.
+    static func bmpSize(_ data: Data) -> (width: Int, height: Int)? {
+        let bytes = [UInt8](data.prefix(26))
+        guard bytes.count >= 26, bytes[0] == 0x42, bytes[1] == 0x4D else { return nil }
+        func uint16(_ offset: Int) -> Int { Int(bytes[offset]) | Int(bytes[offset + 1]) << 8 }
+        func int32(_ offset: Int) -> Int {
+            Int(Int32(bitPattern: UInt32(uint16(offset)) | UInt32(uint16(offset + 2)) << 16))
+        }
+        let headerSize = int32(14)
+        let width: Int
+        let height: Int
+        if headerSize == 12 {
+            width = uint16(18)
+            height = uint16(20)
+        } else if headerSize >= 40 {
+            width = int32(18)
+            height = abs(int32(22))
+        } else {
+            return nil
+        }
+        guard width > 0, height > 0 else { return nil }
+        return (width, height)
+    }
+
+    /// Decodes once into a plain bitmap, so sprites cut from it are drawn without decoding the
+    /// BMP again on every frame, since the image source isn't allowed to cache.
+    private static func decoded(_ image: CGImage) -> CGImage? {
+        let space = image.colorSpace.flatMap { $0.model == .rgb ? $0 : nil }
+            ?? CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB()
+        guard let context = CGContext(data: nil, width: image.width, height: image.height, bitsPerComponent: 8,
+                                      bytesPerRow: 0, space: space,
+                                      bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return nil }
+        context.interpolationQuality = .none
+        context.draw(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
+        return context.makeImage()
     }
 }

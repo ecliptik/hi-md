@@ -52,9 +52,10 @@ nonisolated struct ZipArchive: Sendable {
             .min { $0.path.split(separator: "/").count < $1.path.split(separator: "/").count }
     }
 
-    func contents(of entry: Entry) throws -> Data {
+    /// The entry's bytes. Entries larger than `maximumSize` are refused before anything is inflated.
+    func contents(of entry: Entry, maximumSize: Int = maximumEntrySize) throws -> Data {
         guard entry.flags & 0x1 == 0 else { throw ZipError.unsupported("encrypted entry \(entry.path)") }
-        guard entry.uncompressedSize <= Self.maximumEntrySize else { throw ZipError.tooLarge(entry.path) }
+        guard entry.uncompressedSize <= min(maximumSize, Self.maximumEntrySize) else { throw ZipError.tooLarge(entry.path) }
         let header = entry.localHeaderOffset
         guard header + 30 <= bytes.count, Self.uint32(bytes, header) == 0x0403_4B50 else {
             throw ZipError.corrupt("local header for \(entry.path)")
@@ -77,9 +78,9 @@ nonisolated struct ZipArchive: Sendable {
         return Data(output)
     }
 
-    func contents(named name: String) throws -> Data? {
+    func contents(named name: String, maximumSize: Int = maximumEntrySize) throws -> Data? {
         guard let entry = entry(named: name) else { return nil }
-        return try contents(of: entry)
+        return try contents(of: entry, maximumSize: maximumSize)
     }
 
     // MARK: Central directory
