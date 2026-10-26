@@ -58,16 +58,6 @@ nonisolated enum NowPlayingText {
     }
 }
 
-/// The MiniPlayer window's two sizes: the controls alone, or with lyrics or the queue below.
-nonisolated enum MiniPlayerLayout {
-    static let width: Double = 320
-    static let compactHeight: Double = 156
-    static let expandedHeight: Double = 520
-    static let minimumExpandedHeight: Double = 360
-
-    static func height(expanded: Bool) -> Double { expanded ? expandedHeight : compactHeight }
-}
-
 /// The Mac Now Playing view's sizes for a window: the player column grows with the window, as
 /// the Music app's does, and the artwork takes what the height leaves after the controls.
 nonisolated struct NowPlayingMetrics: Equatable, Sendable {

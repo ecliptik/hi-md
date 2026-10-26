@@ -8,6 +8,9 @@ struct MacSongMenu: View {
     var isFavorite = false
     /// A playlist's Remove from Playlist, or nil elsewhere.
     var onRemove: (() -> Void)? = nil
+    /// Runs before Go to Album or Go to Artist, so a window other than the main one (the
+    /// MiniPlayer) can bring the main window forward first.
+    var beforeNavigating: (() -> Void)? = nil
 
     @Environment(MacPlayback.self) private var playback
     @Environment(MacNavigator.self) private var navigator
@@ -34,9 +37,15 @@ struct MacSongMenu: View {
 
         if songs.count == 1, let song = songs.first {
             Divider()
-            Button("Go to Album", systemImage: "square.stack") { navigator.showAlbum(of: song, highlighting: true) }
+            Button("Go to Album", systemImage: "square.stack") {
+                beforeNavigating?()
+                navigator.showAlbum(of: song, highlighting: true)
+            }
                 .disabled(song.albumId == nil)
-            Button("Go to Artist", systemImage: "music.microphone") { navigator.showArtist(of: song) }
+            Button("Go to Artist", systemImage: "music.microphone") {
+                beforeNavigating?()
+                navigator.showArtist(of: song)
+            }
                 .disabled(song.artistId == nil)
         }
 

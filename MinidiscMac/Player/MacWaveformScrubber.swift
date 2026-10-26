@@ -1,0 +1,105 @@
+import SwiftUI
+
+/// Plexamp's scrubber: the elapsed time, the song's waveform and its length. The waveform is
+/// mirrored about its middle, the played part in the accent colour with a thin playhead. Until
+/// the song has a local copy to measure it's a plain rounded bar. Click or drag to seek; the
+/// seek happens on release.
+struct MacWaveformScrubber: View {
+    let envelope: WaveformEnvelope?
+    var height: Double = 26
+
+    @Environment(MacPlayback.self) private var playback
+    @State private var dragPosition: TimeInterval?
+
+    private static let secondary = Color.white.opacity(NowPlayingText.secondaryOpacity)
+    /// The unplayed bars and track: a graphical object, so at least 3:1 on the backdrop.
+    private static let unplayed = Color.white.opacity(PlayerBackgroundPalette.dimmedOpacity)
+    private static let seekStep: TimeInterval = 10
+
+    var body: some View {
+        let state = playback.state
+        let duration = state.duration > 0 ? state.duration : (state.currentTrack?.duration ?? 0)
+        let shown = min(dragPosition ?? state.position, max(duration, 0))
+        let canSeek = state.currentTrack != nil && !state.isLiveStream && duration > 0
+        HStack(spacing: 8) {
+            Text(Self.time(shown))
+                .frame(minWidth: 34, alignment: .trailing)
+            GeometryReader { proxy in
+                let progress = duration > 0 ? shown / duration : 0
+                waveform(progress: progress, size: proxy.size)
+                    .contentShape(Rectangle())
+                    .gesture(DragGesture(minimumDistance: 0)
+                        .onChanged { value in
+                            guard canSeek else { return }
+                            dragPosition = Self.position(at: value.location.x, width: proxy.size.width, duration: duration)
+                        }
+                        .onEnded { value in
+                            guard canSeek else { return }
+                            let target = Self.position(at: value.location.x, width: proxy.size.width, duration: duration)
+                            dragPosition = target
+                            Task {
+                                await playback.seek(to: target)
+                                dragPosition = nil
+                            }
+                        })
+            }
+            .frame(height: height)
+            .accessibilityElement()
+            .accessibilityLabel("Playback position")
+            .accessibilityValue(Text(Self.time(shown)))
+            .accessibilityAdjustableAction { direction in
+                guard canSeek else { return }
+                let step = direction == .increment ? Self.seekStep : -Self.seekStep
+                let target = min(max(state.position + step, 0), duration)
+                Task { await playback.seek(to: target) }
+            }
+            Text(Self.time(duration))
+                .frame(minWidth: 34, alignment: .leading)
+        }
+        .font(.caption.weight(.bold))
+        .monospacedDigit()
+        .foregroundStyle(Self.secondary)
+        .opacity(canSeek || state.currentTrack == nil ? 1 : 0.6)
+    }
+
+    private static func time(_ seconds: TimeInterval) -> String {
+        Duration.seconds(max(seconds, 0)).formatted(.time(pattern: .minuteSecond))
+    }
+
+    private static func position(at x: Double, width: Double, duration: TimeInterval) -> TimeInterval {
+        guard width > 0 else { return 0 }
+        return min(max(x / width, 0), 1) * duration
+    }
+
+    @ViewBuilder
+    private func waveform(progress: Double, size: CGSize) -> some View {
+        let accent = Color.minidiscAccent
+        if let levels = envelope?.levels, !levels.isEmpty {
+            Canvas { context, canvasSize in
+                let count = levels.count
+                let step = canvasSize.width / Double(count)
+                let barWidth = max(step * 0.62, 1)
+                let middle = canvasSize.height / 2
+                let playedX = canvasSize.width * progress
+                for (index, level) in levels.enumerated() {
+                    let x = Double(index) * step + (step - barWidth) / 2
+                    let barHeight = max(Double(level) * canvasSize.height, 1.5)
+                    let bar = Path(roundedRect: CGRect(x: x, y: middle - barHeight / 2, width: barWidth, height: barHeight),
+                                   cornerRadius: barWidth / 2)
+                    context.fill(bar, with: .color(x + barWidth / 2 <= playedX ? accent : Self.unplayed))
+                }
+                let playhead = Path(CGRect(x: min(max(playedX - 0.75, 0), canvasSize.width - 1.5), y: 0,
+                                           width: 1.5, height: canvasSize.height))
+                context.fill(playhead, with: .color(.white))
+            }
+        } else {
+            ZStack(alignment: .leading) {
+                Capsule().fill(Self.unplayed)
+                Capsule().fill(accent)
+                    .frame(width: max(size.width * progress, 0))
+            }
+            .frame(height: 4)
+            .frame(maxHeight: .infinity)
+        }
+    }
+}

@@ -33,6 +33,7 @@ struct MinidiscMacApp: App {
         }
         .commands { MacCommands(container: activeContainer, interface: interface) }
         .commands { WinampCommands() } // Winamp mode: View > Winamp Mode (⌘⇧W)
+        .commands { MiniPlayerCommands() }
         .onChange(of: scenePhase) { _, newPhase in
             guard let container = activeContainer else { return }
             Task { await container.playerService.setAppVisible(newPhase != .background) }
@@ -44,7 +45,10 @@ struct MinidiscMacApp: App {
         // MARK: MiniPlayer
 
         // Window > MiniPlayer (⌥⌘M), as in the Music app. A floating window that keeps its size
-        // and place; closing it doesn't stop playback.
+        // and place; closing it doesn't stop playback. It floats unless Window > Float MiniPlayer
+        // on Top is off (the level is set on the window). It has no visible title bar, like
+        // Plexamp's: the backdrop runs to the top, the traffic lights show on hover, and the
+        // window resizes freely, its shape choosing the layout.
         Window("MiniPlayer", id: MacMiniPlayer.windowID) {
             if let container = activeContainer {
                 MacMiniPlayer(container: container, interface: interface)
@@ -59,8 +63,11 @@ struct MinidiscMacApp: App {
             }
         }
         .keyboardShortcut("m", modifiers: [.command, .option])
-        .windowLevel(.floating)
-        .windowResizability(.contentSize)
+        .windowStyle(.hiddenTitleBar)
+        .windowResizability(.contentMinSize)
+        .windowBackgroundDragBehavior(.enabled)
+        .defaultSize(width: MiniPlayerLayout.defaultWidth,
+                     height: MiniPlayerLayout.compactHeight(forWidth: MiniPlayerLayout.defaultWidth))
         .defaultPosition(.topTrailing)
 
         Settings {
