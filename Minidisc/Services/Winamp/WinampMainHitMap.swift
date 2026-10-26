@@ -51,6 +51,7 @@ nonisolated struct WinampMainHitMap: Sendable {
     let regions: [Region]
 
     static let classic = WinampMainHitMap(regions: classicRegions())
+    static let shade = WinampMainHitMap(regions: shadeRegions())
 
     func control(at point: CGPoint) -> WinampMainControl? {
         regions.first { $0.rect.contains(point) }?.control
@@ -58,6 +59,29 @@ nonisolated struct WinampMainHitMap: Sendable {
 
     func rect(for control: WinampMainControl) -> CGRect? {
         regions.first { $0.control == control }?.rect
+    }
+
+    /// The windowshade bar: the corner buttons (the shade button unshades), the small
+    /// transport, the time and the position slider; the rest drags the window.
+    private static func shadeRegions() -> [Region] {
+        typealias Layout = WinampMainLayout
+        typealias Shade = WinampMainShadeLayout
+        let button = CGSize(width: 9, height: 9)
+        return [
+            Region(control: .options, rect: CGRect(origin: Layout.options, size: button)),
+            Region(control: .minimize, rect: CGRect(origin: Layout.minimize, size: button)),
+            Region(control: .shade, rect: CGRect(origin: Layout.shade, size: button)),
+            Region(control: .close, rect: CGRect(origin: Layout.close, size: button)),
+            Region(control: .previous, rect: Shade.previous),
+            Region(control: .play, rect: Shade.play),
+            Region(control: .pause, rect: Shade.pause),
+            Region(control: .stop, rect: Shade.stop),
+            Region(control: .next, rect: Shade.next),
+            Region(control: .eject, rect: Shade.eject),
+            Region(control: .time, rect: Shade.timeArea),
+            Region(control: .seek, rect: Shade.seekBar),
+            Region(control: .titleBar, rect: CGRect(origin: .zero, size: Shade.size)),
+        ]
     }
 
     private static func classicRegions() -> [Region] {

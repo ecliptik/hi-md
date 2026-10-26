@@ -9,6 +9,9 @@ nonisolated enum WinampMainRenderer {
     static let height = Int(WinampMainLayout.size.height)
 
     static func render(_ state: WinampMainDisplayState, skin: WinampSkin, sprites: WinampSpriteCache? = nil) -> CGImage? {
+        if state.isShaded {
+            return renderShade(state, sprites: sprites ?? WinampSpriteCache(skin: skin))
+        }
         guard let context = CGContext(
             data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: 0,
             space: CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB(),
@@ -52,6 +55,35 @@ nonisolated enum WinampMainRenderer {
         canvas.draw(state.channels == .stereo ? WinampSprites.stereoOn : WinampSprites.stereoOff, at: Layout.stereo)
         drawSliders(state, canvas: &canvas)
         drawButtons(state, canvas: &canvas)
+    }
+
+    // MARK: Windowshade
+
+    /// The 275×14 shade bar: its background from `titlebar.bmp` (which carries the small
+    /// transport's icons), the pressed corner buttons, the time and the position slider.
+    static func renderShade(_ state: WinampMainDisplayState, sprites: WinampSpriteCache) -> CGImage? {
+        guard let canvas = WinampCanvas.make(size: WinampMainShadeLayout.size, scale: 1, sprites: sprites) else { return nil }
+        typealias Layout = WinampMainLayout
+        typealias Shade = WinampMainShadeLayout
+        canvas.draw(state.isActive ? WinampSprites.shadeBarActive : WinampSprites.shadeBarInactive, at: .zero)
+        for (control, sprite, origin) in [
+            (WinampMainControl.options, WinampSprites.options.pressed, Layout.options),
+            (.minimize, WinampSprites.minimize.pressed, Layout.minimize),
+            (.shade, WinampSprites.unshade.pressed, Layout.shade),
+            (.close, WinampSprites.close.pressed, Layout.close),
+        ] where state.pressed == control {
+            canvas.draw(sprite, at: origin)
+        }
+        canvas.drawGlyphs(Shade.timeText(state.time), at: Shade.time)
+        canvas.draw(WinampSprites.shadePositionBackground, at: Shade.seekBar.origin)
+        if let fraction = state.seekFraction {
+            let geometry = WinampSliderGeometry.shadeSeek
+            let offset = geometry.thumbOffset(for: fraction)
+            let thumb = offset == 0 ? WinampSprites.shadePositionThumbLeft
+                : offset == geometry.travel ? WinampSprites.shadePositionThumbRight : WinampSprites.shadePositionThumb
+            canvas.draw(thumb, at: CGPoint(x: Shade.seekBar.minX + CGFloat(offset), y: Shade.seekBar.minY))
+        }
+        return canvas.makeImage()
     }
 
     // MARK: Parts

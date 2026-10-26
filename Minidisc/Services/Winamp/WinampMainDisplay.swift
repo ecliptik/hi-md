@@ -130,6 +130,8 @@ nonisolated struct WinampSliderGeometry: Sendable, Hashable {
     static let seek = WinampSliderGeometry(originX: 16, trackWidth: 248, thumbWidth: 29)
     static let volume = WinampSliderGeometry(originX: 107, trackWidth: 68, thumbWidth: 14)
     static let balance = WinampSliderGeometry(originX: 177, trackWidth: 38, thumbWidth: 14)
+    /// The windowshade bar's small position slider.
+    static let shadeSeek = WinampSliderGeometry(originX: 226, trackWidth: 17, thumbWidth: 3)
 
     /// How far the thumb can move: the track minus the thumb.
     var travel: Int { trackWidth - thumbWidth }
@@ -306,5 +308,7 @@ nonisolated struct WinampMainDisplayState: Sendable, Hashable {
     var isPlaylistOn = false
     var isAlwaysOnTop = false
     var isDoubleSize = false
+    /// Windowshade: only the 275×14 bar with the time, position and small transport.
+    var isShaded = false
     var visualizer: WinampVisualizerPicture = .off
 }
