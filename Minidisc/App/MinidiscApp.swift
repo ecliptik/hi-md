@@ -68,50 +68,7 @@ struct MinidiscApp: App {
                 .task(id: launchAttempt) {
                     await launchIfNeeded()
                 }
-                .task(id: activeContainer?.serverState.libraryIndexPreparationSnapshot) {
-                    guard let container = activeContainer else { return }
-                    let snapshot = container.serverState.libraryIndexPreparationSnapshot
-                    guard snapshot.isOnline else { return }
-                    await container.downloadService.restorePendingDownloads()
-                    await container.listenBrainzService.flushOfflineQueue()
-                    await container.libraryService.flushPendingScrobbles()
-                    do {
-                        try await container.libraryCatalog.prepare(
-                            automaticRefreshAllowed: snapshot.automaticRefreshAllowed
-                        )
-                        MinidiscShortcuts.updateAppShortcutParameters()
-                    } catch is CancellationError {
-                    } catch {
-                        // The persistent cache remains usable; a later reconnect or manual
-                        // refresh retries only the entity scans that never completed.
-                        Logger.library.debug(
-                            "Library index preparation deferred: \(error, privacy: .public)"
-                        )
-                    }
-                }
-                .task(id: activeContainer?.offlineLibrary.request) {
-                    await activeContainer?.offlineLibrary.refresh()
-                }
-                .onChange(of: activeContainer?.serverState.isOfflineModeEnabled) { _, _ in
-                    guard let container = activeContainer else { return }
-                    let event = container.serverState.networkPathEvent
-                    Task { await container.playerService.handleNetworkPathChanged(event) }
-                }
-                .onReceive(NotificationCenter.default.publisher(for: .minidiscOfflineLibraryChanged)) { _ in
-                    activeContainer?.offlineLibrary.revision += 1
-                }
-                .task(id: activeContainer?.offlineFavoritesSync.request) {
-                    await activeContainer?.offlineFavoritesSync.synchronize()
-                }
-                .onReceive(NotificationCenter.default.publisher(for: .minidiscFavoritesChanged)) { _ in
-                    activeContainer?.offlineFavoritesSync.revision += 1
-                }
-                .onReceive(NotificationCenter.default.publisher(for: .minidiscPlaylistsChanged)) { _ in
-                    MinidiscShortcuts.updateAppShortcutParameters()
-                }
-                .onReceive(NotificationCenter.default.publisher(for: .minidiscMoodPlaylistsChanged)) { _ in
-                    MinidiscShortcuts.updateAppShortcutParameters()
-                }
+                .containerLifecycle(activeContainer)
         }
         .commands { PlaybackCommands(container: activeContainer) }
         .onChange(of: scenePhase) { _, newPhase in
@@ -197,93 +154,13 @@ struct MinidiscApp: App {
     }
 
     static func makeContainer(diagnostics: PlaybackDiagnostics) async throws -> AppContainer {
-        let newContainer = try AppContainer(playbackDiagnostics: diagnostics)
-        await newContainer.setup()
-        // Detect an upgraded Navidrome before any cache maintenance or queue
-        // restoration reads resource IDs from the local stores.
-        await newContainer.serverService.loadPersistedState()
-        // Start reachability before the UI is interactive so serverState.isOnline
-        // is corrected from its optimistic default before any view loads data.
-        newContainer.networkMonitor.start(
-            serverState: newContainer.serverState,
-            streamSettings: newContainer.streamSettings,
-            playerService: newContainer.playerService,
-            serverProbe: { [serverService = newContainer.serverService] in
-                await ServerReachability.probe(serverService)
-            }
+        let newContainer = try await AppContainer.launch(
+            diagnostics: diagnostics,
+            backgroundSync: MinidiscApp.backgroundSyncCoordinator
         )
-        await newContainer.nowPlayingService.start()
-        AppContainer.invalidateCoverArtCacheIfNeeded(artworkCache: newContainer.artworkImageCache)
-        if let sweepTask = AppContainer.sweepLegacyCoverArtFiles() {
-            newContainer.retainLifecycleTask(sweepTask)
-        }
-        let modelContainer = newContainer.modelContainer
-        let audioStreamCache = newContainer.audioStreamCache
-        newContainer.retainLifecycleTask(Task { [modelContainer, audioStreamCache] in
-            await AppContainer.migrateAudioExtensionsIfNeeded(
-                modelContainer: modelContainer,
-                audioStreamCache: audioStreamCache
-            )
-        })
-        newContainer.retainLifecycleTask(Task { [modelContainer] in
-            await AppContainer.migrateM4AFaststartIfNeeded(modelContainer: modelContainer)
-        })
-        await newContainer.playerService.restoreSession()
-        let downloadService = newContainer.downloadService
-        newContainer.retainLifecycleTask(Task { [modelContainer, downloadService] in
-            await runCoverArtGarbageCollection(
-                modelContainer: modelContainer,
-                downloadService: downloadService
-            )
-        })
-        await MinidiscApp.backgroundSyncCoordinator.configure(
-            wrappedService: newContainer.wrappedPlaylistService,
-            moodService: newContainer.moodPlaylistService,
-            serverState: newContainer.serverState
-        )
-        // Cold start and BGProcessing share one deduplicated coordinator run.
-        newContainer.retainLifecycleTask(Task {
-            _ = await BackgroundActivity.run("playlist-sync") {
-                await MinidiscApp.backgroundSyncCoordinator.run(calendar: .current)
-            }
-        })
         MinidiscApp.scheduleWrappedUpdate()
         return newContainer
     }
-
-    // MARK: - Cover art garbage collection
-
-    @MainActor
-    private static func runCoverArtGarbageCollection(
-        modelContainer: ModelContainer,
-        downloadService: any DownloadServiceProtocol
-    ) async {
-        let context = modelContainer.mainContext
-        var referencedIds: Set<String> = []
-
-        let albums = (try? context.fetch(FetchDescriptor<DownloadedAlbum>())) ?? []
-        for album in albums {
-            if let id = album.coverArtId { referencedIds.insert(id) }
-        }
-
-        let tracks = (try? context.fetch(FetchDescriptor<DownloadedTrack>())) ?? []
-        for track in tracks {
-            if let id = track.coverArtId { referencedIds.insert(id) }
-        }
-
-        let playlists = (try? context.fetch(FetchDescriptor<DownloadedPlaylist>())) ?? []
-        for playlist in playlists {
-            if let id = playlist.coverArtId { referencedIds.insert(id) }
-        }
-
-        let pinned = (try? context.fetch(FetchDescriptor<PinnedItem>())) ?? []
-        for item in pinned {
-            if let id = item.coverArtId { referencedIds.insert(id) }
-        }
-
-        await downloadService.garbageCollectOrphanedCovers(referencedIds: referencedIds)
-    }
-
 }
 
 private enum AppLaunchState {
