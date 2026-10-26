@@ -44,11 +44,11 @@ struct PlaylistListSearchTests {
         #expect(ids("jazz smoky") == ["jazz"])
     }
 
-    @Test("owner and comment also match")
-    func matchesOwnerAndComment() {
-        #expect(ids("alex") == ["workout"])
+    @Test("the comment also matches, the owner doesn't")
+    func matchesCommentNotOwner() {
         #expect(ids("drives") == ["road"])
-        #expect(ids("alex") == ["energetic", "road"])
+        #expect(ids("alex").isEmpty)
+        #expect(ids("alex").isEmpty)
     }
 
     @Test("an unmatched query returns nothing")

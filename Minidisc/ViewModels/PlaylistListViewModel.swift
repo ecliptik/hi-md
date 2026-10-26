@@ -46,9 +46,10 @@ final class PlaylistListViewModel {
 
     // MARK: - Search
 
-    /// Keeps the server order and matches name, owner and comment, which the playlist list already carries.
+    /// Keeps the server order and matches name and comment. Not the owner: the user's own playlists
+    /// all share one, so their username would match everything.
     static func filter(_ playlists: [Playlist], matching query: String) -> [Playlist] {
-        playlists.filter { matches(query, in: [$0.name, $0.owner, $0.comment]) }
+        playlists.filter { matches(query, in: [$0.name, $0.comment]) }
     }
 
     /// The derived rows match on the title they show.
