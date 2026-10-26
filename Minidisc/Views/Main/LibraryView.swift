@@ -629,7 +629,8 @@ private struct HomeAlbumCell: View {
             displaySubtitle: album.artist ?? "",
             coverArtId: album.coverArt,
             coverImage: coverImage,
-            favoriteType: .album
+            favoriteType: .album,
+            artistId: album.artistId
         ) {
             let detail = try await container?.libraryService.album(id: album.id)
             return (detail?.song ?? []).map { DisplayableSong(from: $0) }

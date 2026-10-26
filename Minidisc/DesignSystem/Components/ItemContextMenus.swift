@@ -145,6 +145,28 @@ struct SongContextMenuModifier: ViewModifier {
                 Label("Instant Mix", systemImage: instantMixSymbol)
             }
 
+            if !song.isLocalFile, song.albumId != nil || song.artistId != nil {
+                Divider()
+
+                if song.albumId != nil, let album = song.albumName, !album.isEmpty {
+                    Button {
+                        postNavigateToAlbum(track: song)
+                    } label: {
+                        Label("Go to Album", systemImage: "music.note.square.stack")
+                        Text(album)
+                    }
+                }
+
+                if song.artistId != nil, let artist = song.artist, !artist.isEmpty {
+                    Button {
+                        postNavigateToArtist(track: song)
+                    } label: {
+                        Label("Go to Artist", systemImage: "music.mic")
+                        Text(artist)
+                    }
+                }
+            }
+
             Divider()
 
             Button {
@@ -182,6 +204,8 @@ struct CollectionContextMenuModifier: ViewModifier {
     let coverImage: PlatformImage?
     let songs: [DisplayableSong]
     let favoriteType: FavoriteType?
+    /// The album's artist, for Go to Artist; the subtitle is the artist's name.
+    var artistId: String? = nil
     let onEdit: (() -> Void)?
     let onDelete: (() -> Void)?
 
@@ -256,6 +280,15 @@ struct CollectionContextMenuModifier: ViewModifier {
                                         context: .instantMix(seed: .album, id: itemId, name: displayName))
                     } label: {
                         Label("Instant Mix", systemImage: instantMixSymbol)
+                    }
+
+                    if let artistId, !displaySubtitle.isEmpty {
+                        Button {
+                            postNavigateToArtist(artistId: artistId, artistName: displaySubtitle, coverArtId: nil)
+                        } label: {
+                            Label("Go to Artist", systemImage: "music.mic")
+                            Text(displaySubtitle)
+                        }
                     }
 
                     Divider()
@@ -350,6 +383,8 @@ struct LazyCollectionContextMenuModifier: ViewModifier {
     let coverArtId: String?
     let coverImage: PlatformImage?
     let favoriteType: FavoriteType?
+    /// The album's artist, for Go to Artist; the subtitle is the artist's name.
+    var artistId: String? = nil
     let songLoader: () async throws -> [DisplayableSong]
 
     @Environment(\.appContainer) private var container
@@ -439,6 +474,15 @@ struct LazyCollectionContextMenuModifier: ViewModifier {
                                         context: .instantMix(seed: .album, id: itemId, name: displayName))
                     } label: {
                         Label("Instant Mix", systemImage: instantMixSymbol)
+                    }
+
+                    if let artistId, !displaySubtitle.isEmpty {
+                        Button {
+                            postNavigateToArtist(artistId: artistId, artistName: displaySubtitle, coverArtId: nil)
+                        } label: {
+                            Label("Go to Artist", systemImage: "music.mic")
+                            Text(displaySubtitle)
+                        }
                     }
 
                     Divider()
@@ -531,6 +575,7 @@ extension View {
         coverImage: PlatformImage? = nil,
         songs: [DisplayableSong] = [],
         favoriteType: FavoriteType? = nil,
+        artistId: String? = nil,
         onEdit: (() -> Void)? = nil,
         onDelete: (() -> Void)? = nil
     ) -> some View {
@@ -543,6 +588,7 @@ extension View {
             coverImage: coverImage,
             songs: songs,
             favoriteType: favoriteType,
+            artistId: artistId,
             onEdit: onEdit,
             onDelete: onDelete
         ))
@@ -556,6 +602,7 @@ extension View {
         coverArtId: String? = nil,
         coverImage: PlatformImage? = nil,
         favoriteType: FavoriteType? = nil,
+        artistId: String? = nil,
         songLoader: @escaping () async throws -> [DisplayableSong]
     ) -> some View {
         modifier(LazyCollectionContextMenuModifier(
@@ -566,6 +613,7 @@ extension View {
             coverArtId: coverArtId,
             coverImage: coverImage,
             favoriteType: favoriteType,
+            artistId: artistId,
             songLoader: songLoader
         ))
     }

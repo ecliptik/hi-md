@@ -89,7 +89,10 @@ struct SongRow: View {
             onRemoveFromPlaylist: onRemoveFromPlaylist,
             onAddToPlaylist: onAddToPlaylist,
             onShare: { shareRequest = song },
-            onGoToAlbum: onGoToAlbum,
+            // Rows that show artwork aren't inside their album, so they can go to it; rows that
+            // show the artist name can go to the artist.
+            onGoToAlbum: onGoToAlbum ?? (showCoverArt && !song.isLocalFile ? { [song] in postNavigateToAlbum(track: song) } : nil),
+            onGoToArtist: showArtist ? { [song] in postNavigateToArtist(track: song) } : nil,
             onGetInfo: { trackInformation = song }
         )
     }
@@ -287,6 +290,7 @@ private struct SongActions: View {
     let onAddToPlaylist: ((DisplayableSong) -> Void)?
     let onShare: () -> Void
     let onGoToAlbum: (() -> Void)?
+    let onGoToArtist: (() -> Void)?
     let onGetInfo: (() -> Void)?
 
     @Environment(\.appContainer) private var container
@@ -351,7 +355,7 @@ private struct SongActions: View {
                 }
             }
 
-            if onGoToAlbum != nil || onGetInfo != nil {
+            if onGoToAlbum != nil || onGoToArtist != nil || onGetInfo != nil {
                 Section {
                     if let onGoToAlbum,
                        song.albumId != nil,
@@ -360,6 +364,18 @@ private struct SongActions: View {
                         Button(action: onGoToAlbum) {
                             Label("Go to Album", systemImage: "music.note.square.stack")
                             Text(albumName)
+                        }
+                        .disabled(!isOnline)
+                    }
+
+                    if let onGoToArtist,
+                       !song.isLocalFile,
+                       song.artistId != nil,
+                       let artist = song.artist,
+                       !artist.isEmpty {
+                        Button(action: onGoToArtist) {
+                            Label("Go to Artist", systemImage: "music.mic")
+                            Text(artist)
                         }
                         .disabled(!isOnline)
                     }

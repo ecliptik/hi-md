@@ -22,6 +22,7 @@ struct AlbumCard: View {
             displaySubtitle: album.artist ?? "",
             coverArtId: album.coverArt,
             favoriteType: .album,
+            artistId: album.artistId,
             songLoader: {
                 guard let c = container else { return [] }
                 let loaded = try await c.libraryService.album(id: album.id)
