@@ -3,6 +3,8 @@ import SwiftSonic
 
 struct LyricsView: View {
     @Bindable var viewModel: LyricsViewModel
+    /// The player's secondary white: the system secondary is 2.9:1 on a saturated backdrop.
+    private static let secondary = Color.white.opacity(PlayerBackgroundPalette.secondaryOpacity)
     @State private var showsKaraoke = false
     @State private var visibility = LyricsVisibilityHandoff()
 
@@ -147,10 +149,10 @@ struct LyricsView: View {
         VStack(spacing: 16) {
             Image(systemName: "music.note.list")
                 .font(.system(size: 40))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Self.secondary)
             Text("No lyrics available")
                 .font(.minidiscDetailTitle)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Self.secondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -159,13 +161,13 @@ struct LyricsView: View {
         VStack(spacing: 16) {
             Image(systemName: "exclamationmark.triangle")
                 .font(.system(size: 40))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Self.secondary)
             Text("Lyrics not supported")
                 .font(.minidiscDetailTitle)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Self.secondary)
             Text("Update your Navidrome server to enable the songLyrics extension")
                 .font(.callout)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Self.secondary)
                 .multilineTextAlignment(.center)
         }
         .padding()
@@ -176,12 +178,12 @@ struct LyricsView: View {
         VStack(spacing: 16) {
             Image(systemName: "exclamationmark.octagon")
                 .font(.system(size: 40))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Self.secondary)
             Text("Failed to load lyrics")
                 .font(.minidiscDetailTitle)
             Text(message)
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Self.secondary)
         }
         .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity)

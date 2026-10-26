@@ -130,7 +130,7 @@ struct FullPlayerView: View {
             .minidiscContentWidth()
             .padding(contentInsets)
             .environment(\.colorScheme, .dark)
-            .environment(\.minidiscPlayingAccent, MinidiscColors.accent)
+            .environment(\.minidiscPlayingAccent, .minidiscTextAccent)
         .background {
             FullPlayerBackground(colors: colors)
         }
@@ -376,6 +376,7 @@ struct FullPlayerView: View {
                 playerState: playerState,
                 contentColor: vm.contentColor,
                 secondaryContentColor: vm.secondaryContentColor,
+                dimmedContentColor: vm.dimmedContentColor,
                 loadArtwork: true
             )
             .environment(\.colorScheme, .dark)
@@ -446,7 +447,7 @@ struct FullPlayerView: View {
             dismissAction()
         } label: {
             Capsule()
-                .fill(vm.contentColor.opacity(0.4))
+                .fill(vm.dimmedContentColor)
                 .frame(width: 60, height: 5)
                 .frame(maxWidth: .infinity, minHeight: 28, alignment: .top)
                 .contentShape(Rectangle())
@@ -1067,7 +1068,8 @@ private struct BottomToolbar: View {
                             if let badge = playerState.queueModeBadge {
                                 Image(systemName: badge)
                                     .font(.system(size: 10, weight: .bold))
-                                    .foregroundStyle(Color.minidiscAccent)
+                                    // The text shade: the fill shade is 4.5:1 on the black disc at best.
+                                    .foregroundStyle(Color.minidiscTextAccent)
                                     .padding(2)
                                     .background(.background, in: Circle())
                                     .overlay(Circle().stroke(.background.opacity(0.5), lineWidth: 0.5))
@@ -1104,17 +1106,24 @@ private struct BottomToolbar: View {
 }
 
 private struct AirPlayRouteButton: UIViewRepresentable {
-    var tintColor: Color = Color.white.opacity(0.7)
+    var tintColor: Color = Color.white.opacity(PlayerBackgroundPalette.secondaryOpacity)
 
     func makeUIView(context: Context) -> AVRoutePickerView {
         let view = AVRoutePickerView()
-        view.activeTintColor = UIColor(Color.minidiscAccent)
+        view.activeTintColor = Self.activeTint
         view.tintColor = UIColor(tintColor)
         view.backgroundColor = .clear
         return view
     }
     func updateUIView(_ uiView: AVRoutePickerView, context: Context) {
         uiView.tintColor = UIColor(tintColor)
+        uiView.activeTintColor = Self.activeTint
+    }
+
+    /// The accent's dark text shade, whatever the device appearance: the fill shade was 1.6:1 on
+    /// the backdrop, the text shade is at least 3.7:1.
+    private static var activeTint: UIColor {
+        UIColor(Color.minidiscTextAccent).resolvedColor(with: UITraitCollection(userInterfaceStyle: .dark))
     }
 }
 

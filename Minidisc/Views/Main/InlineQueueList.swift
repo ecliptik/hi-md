@@ -9,6 +9,7 @@ private struct QueueRow: View {
     let onRemove: (() -> Void)?
     var contentColor: Color = .primary
     var secondaryContentColor: Color = .secondary
+    var dimmedContentColor: Color = .secondary
     var loadArtwork: Bool = true
     var showsReorderHint: Bool = false
 
@@ -18,13 +19,15 @@ private struct QueueRow: View {
     @Query private var favoriteMatches: [FavoriteRecord]
 
     init(song: DisplayableSong, isCurrent: Bool, onRemove: (() -> Void)? = nil,
-         contentColor: Color = .primary, secondaryContentColor: Color = .secondary, loadArtwork: Bool = true,
+         contentColor: Color = .primary, secondaryContentColor: Color = .secondary,
+         dimmedContentColor: Color = .secondary, loadArtwork: Bool = true,
          showsReorderHint: Bool = false) {
         self.song = song
         self.isCurrent = isCurrent
         self.onRemove = onRemove
         self.contentColor = contentColor
         self.secondaryContentColor = secondaryContentColor
+        self.dimmedContentColor = dimmedContentColor
         self.loadArtwork = loadArtwork
         self.showsReorderHint = showsReorderHint
         let cid = "song:\(song.id)"
@@ -46,7 +49,7 @@ private struct QueueRow: View {
             } else if showsReorderHint {
                 // Keep the handle outside the context menu's long-press region.
                 Image(systemName: "line.3.horizontal")
-                    .foregroundStyle(secondaryContentColor.opacity(0.5))
+                    .foregroundStyle(dimmedContentColor)
                     .frame(width: 44, height: 44)
                     .contentShape(Rectangle())
                     .accessibilityLabel("Reorder")
@@ -154,6 +157,8 @@ struct InlineQueueList: View {
     let playerState: PlayerState
     var contentColor: Color = .primary
     var secondaryContentColor: Color = .secondary
+    /// The reorder handles: a glyph, so 3:1 is enough.
+    var dimmedContentColor: Color = .secondary
     var loadArtwork: Bool = true
 
     /// Rows shown before "Show More". A queue from the Songs tab can hold 200,000 tracks; listing
@@ -177,12 +182,14 @@ struct InlineQueueList: View {
         let entries = upcomingRows()
         if entries.isEmpty {
             EmptyStateView(systemImage: "list.bullet", title: "Nothing up next",
-                           subtitle: "Tracks you add to the queue appear here.")
+                           subtitle: "Tracks you add to the queue appear here.",
+                           secondaryStyle: AnyShapeStyle(secondaryContentColor))
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
             let hiddenCount = playerState.queue.count - (entries[entries.count - 1].index + 1)
             ReorderableQueueList(entries: entries, queueCount: playerState.queue.count, hiddenCount: hiddenCount,
                                  contentColor: contentColor, secondaryContentColor: secondaryContentColor,
+                                 dimmedContentColor: dimmedContentColor,
                                  loadArtwork: loadArtwork, onShowMore: { rowLimit += Self.pageSize })
         }
     }
@@ -203,6 +210,7 @@ private struct QueueEntryRow: View {
     let entry: QueueUpcomingRow
     let contentColor: Color
     let secondaryContentColor: Color
+    let dimmedContentColor: Color
     let loadArtwork: Bool
     var showsReorderHint = false
     @Environment(\.appContainer) private var container
@@ -210,6 +218,7 @@ private struct QueueEntryRow: View {
     var body: some View {
         QueueRow(song: entry.song, isCurrent: false, onRemove: remove,
                  contentColor: contentColor, secondaryContentColor: secondaryContentColor,
+                 dimmedContentColor: dimmedContentColor,
                  loadArtwork: loadArtwork, showsReorderHint: showsReorderHint)
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)
@@ -245,6 +254,7 @@ private struct ReorderableQueueList: View {
     let hiddenCount: Int
     let contentColor: Color
     let secondaryContentColor: Color
+    let dimmedContentColor: Color
     let loadArtwork: Bool
     let onShowMore: () -> Void
     @Environment(\.appContainer) private var container
@@ -253,7 +263,8 @@ private struct ReorderableQueueList: View {
         List {
             ForEach(entries) { entry in
                 QueueEntryRow(entry: entry, contentColor: contentColor, secondaryContentColor: secondaryContentColor,
-                              loadArtwork: loadArtwork, showsReorderHint: true)
+                              dimmedContentColor: dimmedContentColor, loadArtwork: loadArtwork,
+                              showsReorderHint: true)
             }
             .reorderable()
             // Apply row traits outside the reorderable wrapper so List receives them.
