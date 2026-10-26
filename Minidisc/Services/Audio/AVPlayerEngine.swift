@@ -11,7 +11,8 @@ import Synchronization
 /// Two AVPlayer decks alternate active and standby roles for gapless playback and crossfades.
 /// A recursive lock protects deck roles and transition state across control calls and callbacks.
 /// ReplayGain boosts use an audio processing tap because AVPlayer.volume cannot exceed 1. The same
-/// tap runs the equalizer, so it is also installed whenever the equalizer is on.
+/// tap runs the equalizer, the stereo fold-down of multichannel sources and the peak limiter, so it
+/// is also installed whenever the equalizer is on or a multichannel track is to be folded down.
 nonisolated final class AVPlayerEngine: AudioEngine, @unchecked Sendable {
     private enum StandbyPreparationState {
         case idle
@@ -113,6 +114,7 @@ nonisolated final class AVPlayerEngine: AudioEngine, @unchecked Sendable {
 
     private var timeControlObservers: [NSKeyValueObservation] = []
     private var equalizerObserver: (any NSObjectProtocol)?
+    private var downmixObserver: (any NSObjectProtocol)?
     private var statusObserver: NSKeyValueObservation?
     private var endObserver: NSObjectProtocol?
     private var failObserver: NSObjectProtocol?
@@ -129,6 +131,11 @@ nonisolated final class AVPlayerEngine: AudioEngine, @unchecked Sendable {
             forName: EqualizerParameters.didChange, object: nil, queue: nil
         ) { [weak self] _ in
             self?.equalizerSettingsDidChange()
+        }
+        downmixObserver = NotificationCenter.default.addObserver(
+            forName: DownmixParameters.didChange, object: DownmixParameters.shared, queue: nil
+        ) { [weak self] _ in
+            self?.downmixSettingsDidChange()
         }
     }
 
@@ -180,6 +187,7 @@ nonisolated final class AVPlayerEngine: AudioEngine, @unchecked Sendable {
 
     deinit {
         if let equalizerObserver { NotificationCenter.default.removeObserver(equalizerObserver) }
+        if let downmixObserver { NotificationCenter.default.removeObserver(downmixObserver) }
         replayGainTaskA?.cancel()
         replayGainTaskB?.cancel()
         overlapTimer?.cancel()
@@ -1119,7 +1127,8 @@ nonisolated final class AVPlayerEngine: AudioEngine, @unchecked Sendable {
         }
         previousTask?.cancel()
 
-        guard Self.requiresAudioTap(linearGain: context.gain) else { return }
+        // Whether a fold-down is needed depends on the track's channel count, known only once loaded.
+        guard Self.requiresAudioTap(linearGain: context.gain) || DownmixParameters.shared.isEnabled else { return }
         // `item` and `asset` are intentionally not captured by the Task: both are non-Sendable
         // Objective-C references. The asynchronous worker resolves them from the locked engine state.
         let request = makeReplayGainInstallRequest(context: context, trackID: trackID)
@@ -1174,12 +1183,18 @@ nonisolated final class AVPlayerEngine: AudioEngine, @unchecked Sendable {
             return
         }
         guard !Task.isCancelled else { return }
+        let formats = (try? await track.load(.formatDescriptions)) ?? []
+        guard !Task.isCancelled else { return }
+        let channelCount = formats.first
+            .flatMap { CMAudioFormatDescriptionGetStreamBasicDescription($0)?.pointee.mChannelsPerFrame }
+            .map(Int.init) ?? 2
+        let channelLabels = formats.first.flatMap(DownmixMatrix.channelLabels(of:))
 
         let installed = lock.withLock {
             guard let target = replayGainTarget(for: request),
-                  Self.requiresAudioTap(linearGain: target.context.gain),
+                  Self.requiresAudioTap(linearGain: target.context.gain, channelCount: channelCount),
                   !target.context.tapInstalled,
-                  let tap = Self.makeReplayGainTap(context: target.context) else { return false }
+                  let tap = Self.makeReplayGainTap(context: target.context, channelLabels: channelLabels) else { return false }
 
             let params = AVMutableAudioMixInputParameters(track: track)
             params.audioTapProcessor = tap
@@ -1233,10 +1248,12 @@ nonisolated final class AVPlayerEngine: AudioEngine, @unchecked Sendable {
         linearGain > 1
     }
 
-    /// A ReplayGain boost or the equalizer needs the tap.
+    /// A ReplayGain boost, the equalizer or a multichannel track to fold down needs the tap.
     nonisolated static func requiresAudioTap(linearGain: Float,
-                                             equalizerEnabled: Bool = EqualizerParameters.shared.isEnabled) -> Bool {
-        requiresReplayGainTap(linearGain: linearGain) || equalizerEnabled
+                                             equalizerEnabled: Bool = EqualizerParameters.shared.isEnabled,
+                                             channelCount: Int = 2,
+                                             downmixEnabled: Bool = DownmixParameters.shared.isEnabled) -> Bool {
+        requiresReplayGainTap(linearGain: linearGain) || equalizerEnabled || (downmixEnabled && channelCount > 2)
     }
 
     /// Turning the equalizer on mid-song installs the tap on the playing and preloaded items.
@@ -1244,12 +1261,26 @@ nonisolated final class AVPlayerEngine: AudioEngine, @unchecked Sendable {
     private func equalizerSettingsDidChange() {
         lock.withLock {
             guard EqualizerParameters.shared.isEnabled else { return }
-            if let trackID = currentTrackID, !activeContext.tapInstalled {
-                installReplayGainTapIfNeeded(context: activeContext, trackID: trackID)
-            }
-            if let trackID = preloadedTrackID, !standbyContext.tapInstalled {
-                installReplayGainTapIfNeeded(context: standbyContext, trackID: trackID)
-            }
+            installMissingTaps()
+        }
+    }
+
+    /// Turning the fold-down on mid-song installs the tap on multichannel items. Turning it off
+    /// leaves installed taps in place; they pass every channel through.
+    private func downmixSettingsDidChange() {
+        lock.withLock {
+            guard DownmixParameters.shared.isEnabled else { return }
+            installMissingTaps()
+        }
+    }
+
+    /// Caller holds `lock`. Each install checks for itself whether its item needs a tap.
+    private func installMissingTaps() {
+        if let trackID = currentTrackID, !activeContext.tapInstalled {
+            installReplayGainTapIfNeeded(context: activeContext, trackID: trackID)
+        }
+        if let trackID = preloadedTrackID, !standbyContext.tapInstalled {
+            installReplayGainTapIfNeeded(context: standbyContext, trackID: trackID)
         }
     }
 
@@ -1257,8 +1288,11 @@ nonisolated final class AVPlayerEngine: AudioEngine, @unchecked Sendable {
         tapInstalled ? 1 : min(linearGain, 1)
     }
 
-    private static func makeReplayGainTap(context: ReplayGainTapContext) -> MTAudioProcessingTap? {
-        let storage = AudioTapStorage(context: context)
+    private static func makeReplayGainTap(
+        context: ReplayGainTapContext,
+        channelLabels: [AudioChannelLabel]?
+    ) -> MTAudioProcessingTap? {
+        let storage = AudioTapStorage(context: context, channelLabels: channelLabels)
         let clientInfo = UnsafeMutableRawPointer(Unmanaged.passRetained(storage).toOpaque())
         var callbacks = MTAudioProcessingTapCallbacks(
             version: kMTAudioProcessingTapCallbacksVersion_0,
@@ -1312,13 +1346,17 @@ private nonisolated func replayGainTapInit(
 }
 
 /// One per tap: the deck's ReplayGain context, shared across that deck's items, and the
-/// equalizer's filter state, which belongs to this tap's item alone.
+/// fold-down, equalizer and limiter state, which belong to this tap's item alone. Both decks read
+/// the same shared settings, so during a crossfade each one is levelled and limited alike.
 private nonisolated final class AudioTapStorage: @unchecked Sendable {
     let context: ReplayGainTapContext
+    let downmix: StereoDownmixProcessor
     let equalizer = EqualizerProcessor()
+    let limiter = PeakLimiter()
 
-    init(context: ReplayGainTapContext) {
+    init(context: ReplayGainTapContext, channelLabels: [AudioChannelLabel]?) {
         self.context = context
+        downmix = StereoDownmixProcessor(labels: channelLabels)
     }
 }
 
@@ -1333,11 +1371,11 @@ private nonisolated func audioTapPrepare(
 ) {
     let storage = Unmanaged<AudioTapStorage>.fromOpaque(MTAudioProcessingTapGetStorage(tap)).takeUnretainedValue()
     let format = processingFormat.pointee
-    storage.equalizer.prepare(
-        sampleRate: format.mSampleRate,
-        channels: Int(format.mChannelsPerFrame),
-        interleaved: format.mFormatFlags & kAudioFormatFlagIsNonInterleaved == 0
-    )
+    let channels = Int(format.mChannelsPerFrame)
+    let interleaved = format.mFormatFlags & kAudioFormatFlagIsNonInterleaved == 0
+    storage.downmix.prepare(channels: channels, interleaved: interleaved)
+    storage.equalizer.prepare(sampleRate: format.mSampleRate, channels: channels, interleaved: interleaved)
+    storage.limiter.prepare(sampleRate: format.mSampleRate, channels: channels, interleaved: interleaved)
 }
 
 private nonisolated func replayGainTapProcess(
@@ -1351,14 +1389,20 @@ private nonisolated func replayGainTapProcess(
     let status = MTAudioProcessingTapGetSourceAudio(tap, numberFrames, bufferListInOut, flagsOut, nil, numberFramesOut)
     guard status == noErr else { return }
     let storage = Unmanaged<AudioTapStorage>.fromOpaque(MTAudioProcessingTapGetStorage(tap)).takeUnretainedValue()
-    storage.equalizer.process(UnsafeMutableAudioBufferListPointer(bufferListInOut), frames: Int(numberFramesOut.pointee))
+    let buffers = UnsafeMutableAudioBufferListPointer(bufferListInOut)
+    let frames = Int(numberFramesOut.pointee)
+    // Fold down first, so the equalizer, gain and limiter work on what is actually heard.
+    storage.downmix.process(buffers, frames: frames)
+    storage.equalizer.process(buffers, frames: frames)
     var gain = storage.context.gain
-    guard gain != 1.0 else { return }
-    // Tap audio is 32-bit float; a flat multiply is correct whether channels are interleaved or not.
-    for buffer in UnsafeMutableAudioBufferListPointer(bufferListInOut) {
-        guard let data = buffer.mData else { continue }
-        let count = Int(buffer.mDataByteSize) / MemoryLayout<Float>.size
-        let samples = data.assumingMemoryBound(to: Float.self)
-        vDSP_vsmul(samples, 1, &gain, samples, 1, vDSP_Length(count))
+    if gain != 1.0 {
+        // Tap audio is 32-bit float; a flat multiply is correct whether channels are interleaved or not.
+        for buffer in buffers {
+            guard let data = buffer.mData else { continue }
+            let count = Int(buffer.mDataByteSize) / MemoryLayout<Float>.size
+            let samples = data.assumingMemoryBound(to: Float.self)
+            vDSP_vsmul(samples, 1, &gain, samples, 1, vDSP_Length(count))
+        }
     }
+    storage.limiter.process(buffers, frames: frames)
 }

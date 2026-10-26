@@ -12,6 +12,7 @@ nonisolated enum AudioContainer: String, Sendable, CaseIterable {
 
     /// MIME type to hand AVFoundation when the server's own label could not be used.
     /// Nil for containers AVFoundation cannot play, where naming the type would not help.
+    /// Ogg plays where Ogg Opus does, which is what conversions to Opus arrive in.
     var mimeType: String? {
         switch self {
         case .flac: "audio/flac"
@@ -20,7 +21,7 @@ nonisolated enum AudioContainer: String, Sendable, CaseIterable {
         case .aac:  "audio/aac"
         case .wav:  "audio/wav"
         case .aiff: "audio/aiff"
-        case .ogg:  nil
+        case .ogg:  ConversionCodec.preferred == .opus ? "audio/ogg" : nil
         }
     }
 

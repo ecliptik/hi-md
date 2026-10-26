@@ -773,40 +773,14 @@ private struct PlaybackSettingsView: View {
 
     var body: some View {
         Form {
-            Section {
-                if let stream = container?.streamSettings {
-                    Picker(selection: Binding(
-                        get: { stream.wifiQuality },
-                        set: { stream.wifiQuality = $0 }
-                    )) {
-                        ForEach(StreamQuality.allCases) { quality in
-                            Text(quality.displayName).tag(quality)
-                        }
+            if let stream = container?.streamSettings {
+                Section {
+                    NavigationLink {
+                        QualitySettingsView(settings: stream)
                     } label: {
-                        Text("Quality on Wi-Fi")
-                            .foregroundStyle(.primary)
+                        SettingsRowLabel(title: "Quality", subtitle: "Choose between the original files and saving data.")
                     }
-                    .pickerStyle(.menu)
-                    .tint(.secondary)
-
-                    Picker(selection: Binding(
-                        get: { stream.cellularQuality },
-                        set: { stream.cellularQuality = $0 }
-                    )) {
-                        ForEach(StreamQuality.allCases) { quality in
-                            Text(quality.displayName).tag(quality)
-                        }
-                    } label: {
-                        Text("Quality on cellular")
-                            .foregroundStyle(.primary)
-                    }
-                    .pickerStyle(.menu)
-                    .tint(.secondary)
                 }
-            } header: {
-                Text("Streaming")
-            } footer: {
-                Text("The server transcodes to the chosen tier for each network. Original streams your files untouched (lossless); a lighter tier saves cellular data and lowers decoding load. Applies to the next track.")
             }
             if let lyrics = container?.lyricsSettings {
                 LyricsSettingsSection(settings: lyrics)

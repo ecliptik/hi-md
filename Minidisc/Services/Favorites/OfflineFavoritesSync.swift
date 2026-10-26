@@ -18,7 +18,7 @@ final class OfflineFavoritesSync {
         let keepPinned: Bool
         let allowsCellular: Bool
         let format: CacheFormat
-        let streamQuality: StreamQuality
+        let streamPolicy: StreamQualityPolicy
         let revision: Int
     }
 
@@ -59,7 +59,7 @@ final class OfflineFavoritesSync {
                 keepRecentlyPlayed: settings.keepRecentlyPlayedOffline,
                 keepPinned: settings.keepPinnedOffline,
                 allowsCellular: settings.cacheOverCellular,
-                format: settings.cacheFormat, streamQuality: streamSettings.currentQuality,
+                format: settings.cacheFormat, streamPolicy: streamSettings.currentPolicy,
                 revision: revision)
     }
 
@@ -170,8 +170,11 @@ final class OfflineFavoritesSync {
                         try check(expected)
                         try await store.store(fileAt: local, songID: song.id, serverID: serverID)
                     } else {
-                        let format = expected.format == .matchStream ? expected.streamQuality.subsonicFormat : expected.format.subsonicFormat
-                        let bitrate = expected.format == .matchStream ? expected.streamQuality.subsonicMaxBitRate : expected.format.subsonicMaxBitRate
+                        let stream = expected.streamPolicy.request(
+                            for: StreamSourceTraits(suffix: song.suffix, bitRate: song.bitRate, channelCount: song.channelCount)
+                        )
+                        let format = expected.format == .matchStream ? stream.format : expected.format.subsonicFormat
+                        let bitrate = expected.format == .matchStream ? stream.maxBitRate : expected.format.subsonicMaxBitRate
                         guard let url = client.streamURL(id: song.id, maxBitRate: bitrate, format: format) else {
                             throw UserFacingError.contentRemoved
                         }

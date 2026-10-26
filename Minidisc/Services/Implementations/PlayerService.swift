@@ -437,7 +437,7 @@ actor PlayerService: PlayerServiceProtocol {
             return .localFile(access)
         }
         guard let serverId else { throw MinidiscError.serverNotConfigured }
-        return try await mediaResolver.resolve(songId: song.id, serverId: serverId)
+        return try await mediaResolver.resolve(songId: song.id, serverId: serverId, traits: song.streamTraits)
     }
 
     // MARK: - Play
@@ -2906,9 +2906,11 @@ actor PlayerService: PlayerServiceProtocol {
                 .attemptStarted(number: attempt, pathGeneration: pathGeneration)
             )
         )
-        await MainActor.run {
-            guard state.currentTrack?.id == trackID, state.wantsPlayback else { return }
-            state.waitingReason = .reconnecting
+        // The rebuilt stream follows the new path's quality threshold.
+        let traits = await MainActor.run { () -> StreamSourceTraits? in
+            guard let track = state.currentTrack, track.id == trackID else { return nil }
+            if state.wantsPlayback { state.waitingReason = .reconnecting }
+            return track.streamTraits
         }
         guard !Task.isCancelled,
               requestGeneration == networkRecoveryTaskGeneration,
@@ -2920,7 +2922,7 @@ actor PlayerService: PlayerServiceProtocol {
             if let localSource {
                 freshSource = localSource
             } else {
-                freshSource = try await mediaResolver.resolve(songId: trackID, serverId: serverID)
+                freshSource = try await mediaResolver.resolve(songId: trackID, serverId: serverID, traits: traits)
             }
         } catch {
             guard !Task.isCancelled,
@@ -4046,7 +4048,9 @@ actor PlayerService: PlayerServiceProtocol {
         try AudioResponseValidator.validate(fileAt: tempURL, response: response, songId: songId, logger: Logger.cache)
 
         let ext = streamURL.pathExtension
-        let mimeType = response.mimeType ?? (ext.isEmpty ? "audio/mpeg" : "audio/\(ext)")
+        // The entry records whether it is the original file or a conversion, and at what bitrate.
+        let mimeType = CachedAudioQuality(streamURL: streamURL)
+            .tagging(response.mimeType ?? (ext.isEmpty ? "audio/mpeg" : "audio/\(ext)"))
         let fileSize = (try? FileManager.default.attributesOfItem(atPath: tempURL.path)[.size] as? Int64) ?? 0
 
         _ = try await audioStreamCache.store(

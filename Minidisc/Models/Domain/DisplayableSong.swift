@@ -24,6 +24,9 @@ nonisolated struct DisplayableSong: Identifiable, Hashable, Sendable, Codable {
     /// OpenSubsonic: used as fallback when the selected mode's gain is absent.
     let replayGainFallbackGain: Double?
     var localFile: LocalFileReference? = nil
+    /// The original file's average bitrate in kbps; decides whether streaming converts it.
+    var bitRate: Int? = nil
+    var channelCount: Int? = nil
 
     var isLocalFile: Bool { localFile != nil }
 }
@@ -49,6 +52,8 @@ extension DisplayableSong {
         self.replayGainAlbumPeak = song.replayGain?.albumPeak
         self.replayGainBaseGain = song.replayGain?.baseGain
         self.replayGainFallbackGain = song.replayGain?.fallbackGain
+        self.bitRate = song.bitRate
+        self.channelCount = song.channelCount
     }
 
     @MainActor

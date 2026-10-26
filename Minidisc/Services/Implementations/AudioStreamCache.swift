@@ -143,8 +143,19 @@ actor AudioStreamCache: AudioStreamCacheProtocol {
         return fileURL
     }
 
+    /// Whether a song's cached copy is the original file or a conversion, from its entry's MIME
+    /// type. Nil when nothing is cached.
+    func cachedQuality(forSongId songId: String, serverId: UUID) -> CachedAudioQuality? {
+        let sid = serverId
+        var descriptor = FetchDescriptor<CachedTrack>(
+            predicate: #Predicate { $0.songId == songId && $0.serverId == sid }
+        )
+        descriptor.fetchLimit = 1
+        return (try? modelContext.fetch(descriptor))?.first.map { CachedAudioQuality(mimeType: $0.mimeType) }
+    }
+
     private func audioExtension(mimeType: String) -> String {
-        switch mimeType.lowercased() {
+        switch CachedAudioQuality.baseType(of: mimeType).lowercased() {
         case "audio/mpeg", "audio/mp3":          return "mp3"
         case "audio/flac", "audio/x-flac":       return "flac"
         case "audio/mp4", "audio/m4a":           return "m4a"

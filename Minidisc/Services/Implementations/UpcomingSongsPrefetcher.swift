@@ -72,11 +72,13 @@ final class UpcomingSongsPrefetcher {
         let serverID = connection.version.serverID
         let client = connection.makeSwiftSonicClient()
         let usesStreamFormat = settings.cacheFormat == .matchStream
-        let format = usesStreamFormat ? streamSettings.currentQuality.subsonicFormat : settings.cacheFormat.subsonicFormat
-        let bitrate = usesStreamFormat ? streamSettings.currentQuality.subsonicMaxBitRate : settings.cacheFormat.subsonicMaxBitRate
+        let policy = streamSettings.currentPolicy
         for song in songs {
             guard !Task.isCancelled else { return }
             if await resolver.localSource(songId: song.id, serverId: serverID) != nil { continue }
+            let stream = policy.request(for: song.streamTraits)
+            let format = usesStreamFormat ? stream.format : settings.cacheFormat.subsonicFormat
+            let bitrate = usesStreamFormat ? stream.maxBitRate : settings.cacheFormat.subsonicMaxBitRate
             guard let url = client.streamURL(id: song.id, maxBitRate: bitrate, format: format) else { continue }
             let request = PlayerService.cacheDownloadRequest(
                 url: url, headers: connection.authorizationHeaders(for: url), allowCellular: settings.cacheOverCellular
@@ -88,7 +90,7 @@ final class UpcomingSongsPrefetcher {
                 guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else { continue }
                 try AudioResponseValidator.validate(fileAt: file, response: response, songId: song.id, logger: Logger.cache)
                 _ = try await cache.store(fileAt: file, forSongId: song.id, serverId: serverID,
-                                          mimeType: response.mimeType ?? "audio/mpeg")
+                                          mimeType: CachedAudioQuality(streamURL: url).tagging(response.mimeType ?? "audio/mpeg"))
                 Logger.cache.info("Auto-cached upcoming '\(song.id, privacy: .public)'")
             } catch {
                 if Task.isCancelled { return }

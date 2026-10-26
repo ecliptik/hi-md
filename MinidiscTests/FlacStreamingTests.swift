@@ -132,7 +132,8 @@ struct FlacStreamingTests {
         #expect(AudioContainer.flac.mimeType == "audio/flac")
         #expect(AudioContainer.mp3.mimeType == "audio/mpeg")
         #expect(AudioContainer.mp4.mimeType == "audio/mp4")
-        #expect(AudioContainer.ogg.mimeType == nil)
+        // Ogg is named only where Ogg Opus plays, as Opus conversions arrive in it.
+        #expect(AudioContainer.ogg.mimeType == (ConversionCodec.preferred == .opus ? "audio/ogg" : nil))
     }
 
     @Test func unidentifiedContainerFailuresAreRecognised() {

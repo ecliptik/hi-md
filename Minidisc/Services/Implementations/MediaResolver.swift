@@ -80,6 +80,10 @@ actor MediaResolver: MediaResolverProtocol {
     }
 
     func resolve(songId: String, serverId: UUID) async throws -> MediaSource {
+        try await resolve(songId: songId, serverId: serverId, traits: nil)
+    }
+
+    func resolve(songId: String, serverId: UUID, traits: StreamSourceTraits?) async throws -> MediaSource {
         if let source = await localSource(songId: songId, serverId: serverId) {
             return source
         }
@@ -92,20 +96,28 @@ actor MediaResolver: MediaResolverProtocol {
 
         let connection = try await serverService.activeConnection()
         let client = connection.makeSwiftSonicClient()
-        let quality = await MainActor.run { streamSettings.currentQuality }
-        // Request an estimated stream length for transcoded audio so AVPlayer can track duration.
-        guard let streamURL = client.streamURL(
-            id: songId,
-            maxBitRate: quality.subsonicMaxBitRate,
-            format: quality.subsonicFormat,
-            estimateContentLength: true
-        ) else {
+        let policy = await MainActor.run { streamSettings.currentPolicy }
+        let request = policy.request(for: traits)
+        guard let streamURL = Self.streamURL(client: client, songId: songId, request: request) else {
             throw MinidiscError.mediaNotFound(songId: songId)
         }
-        Logger.resolver.debug("Resolved '\(songId, privacy: .public)' as stream.")
+        Logger.resolver.debug(
+            "Resolved '\(songId, privacy: .public)' as stream format=\(request.format, privacy: .public) maxBitRate=\(request.maxBitRate ?? 0, privacy: .public)"
+        )
         return .stream(
             streamURL,
             customHeaders: connection.authorizationHeaders(for: streamURL)
+        )
+    }
+
+    /// `format=raw` streams the original file; a codec with `maxBitRate` asks the server to convert.
+    /// The estimated stream length lets AVPlayer track the duration of a conversion.
+    nonisolated static func streamURL(client: SwiftSonicClient, songId: String, request: StreamRequest) -> URL? {
+        client.streamURL(
+            id: songId,
+            maxBitRate: request.maxBitRate,
+            format: request.format,
+            estimateContentLength: true
         )
     }
 

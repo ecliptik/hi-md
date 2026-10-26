@@ -56,6 +56,110 @@
         }
       }
     },
+    "%lld kbps" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld kbit/s"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld kbps"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld kbps"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld kbit/s"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld kbps"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld kbps"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld kbps"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld kbps"
+          }
+        }
+      }
+    },
+    "%lld Mbps" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld Mbit/s"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld Mbps"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld Mbps"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld Mbit/s"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld Mbps"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld Mbps"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld Mbps"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld Mbps"
+          }
+        }
+      }
+    },
     "%lld of %lld tracks ready" : {
       "localizations" : {
         "de" : {
@@ -274,6 +378,58 @@
         }
       }
     },
+    "Always the original file, unless this device can't play its format." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Immer die Originaldatei, außer dieses Gerät kann ihr Format nicht abspielen."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Πάντα το πρωτότυπο αρχείο, εκτός αν αυτή η συσκευή δεν μπορεί να αναπαραγάγει τη μορφή του."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Siempre el archivo original, salvo que este dispositivo no pueda reproducir su formato."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toujours le fichier d’origine, sauf si cet appareil ne peut pas lire son format."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sempre il file originale, a meno che questo dispositivo non possa riprodurne il formato."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このデバイスで再生できない形式を除き、常に元のファイルを使います。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "始终使用原始文件，除非此设备无法播放其格式。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一律使用原始檔案，除非此裝置無法播放其格式。"
+          }
+        }
+      }
+    },
     "App Icon" : {
       "localizations" : {
         "de" : {
@@ -478,6 +634,214 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "瀏覽離線可用的音樂"
+          }
+        }
+      }
+    },
+    "Cellular" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mobilfunk"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Δεδομένα κινητής"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Datos móviles"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Données mobiles"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rete cellulare"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モバイル通信"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "蜂窝网络"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "行動網路"
+          }
+        }
+      }
+    },
+    "Choose between the original files and saving data." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wähle zwischen Originaldateien und Datensparen."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Επιλέξτε ανάμεσα στα πρωτότυπα αρχεία και στην εξοικονόμηση δεδομένων."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elige entre los archivos originales y ahorrar datos."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choisissez entre les fichiers d’origine et l’économie de données."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scegli tra i file originali e il risparmio di dati."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "元のファイルとデータの節約のどちらを優先するかを選びます。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在原始文件和节省流量之间做选择。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在原始檔案與節省數據之間做選擇。"
+          }
+        }
+      }
+    },
+    "Conversion Bitrate" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Konvertierungs-Bitrate"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ρυθμός bit μετατροπής"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tasa de bits de conversión"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Débit de conversion"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bitrate di conversione"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "変換ビットレート"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "转换比特率"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "轉換位元率"
+          }
+        }
+      }
+    },
+    "Converted music streams as %@. Formats this device can't play are always converted. Changes apply from the next song." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Konvertierte Musik wird als %@ gestreamt. Formate, die dieses Gerät nicht abspielen kann, werden immer konvertiert. Änderungen gelten ab dem nächsten Song."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Η μετατρεπόμενη μουσική μεταδίδεται ως %@. Οι μορφές που δεν μπορεί να αναπαραγάγει αυτή η συσκευή μετατρέπονται πάντα. Οι αλλαγές ισχύουν από το επόμενο τραγούδι."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La música convertida se transmite en %@. Los formatos que este dispositivo no puede reproducir siempre se convierten. Los cambios se aplican desde la siguiente canción."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La musique convertie est diffusée en %@. Les formats que cet appareil ne peut pas lire sont toujours convertis. Les changements s’appliquent dès le morceau suivant."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La musica convertita viene riprodotta in %@. I formati che questo dispositivo non può riprodurre vengono sempre convertiti. Le modifiche valgono dal brano successivo."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "変換された音楽は %@ でストリーミングされます。このデバイスで再生できない形式は常に変換されます。変更は次の曲から適用されます。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "转换后的音乐以 %@ 串流。此设备无法播放的格式始终会被转换。更改将从下一首歌开始生效。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "轉換後的音樂以 %@ 串流。此裝置無法播放的格式一律會轉換。變更會從下一首歌開始生效。"
           }
         }
       }
@@ -794,6 +1158,58 @@
         }
       }
     },
+    "Downmix to Stereo" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auf Stereo heruntermischen"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Υποβιβασμός σε στερεοφωνικό"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mezclar a estéreo"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Réduire en stéréo"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Downmix in stereo"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ステレオにダウンミックス"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "缩混为立体声"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "縮混為立體聲"
+          }
+        }
+      }
+    },
     "Favorite tracks and albums are saved automatically, outside Downloads and the stream cache limit. Turning this off removes only these automatic copies. Uses the stream cache format and cellular data settings." : {
       "localizations" : {
         "de" : {
@@ -846,6 +1262,58 @@
         }
       }
     },
+    "Fold surround recordings down to two channels." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mischt Surround-Aufnahmen auf zwei Kanäle herunter."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Συμπτύσσει τις ηχογραφήσεις surround σε δύο κανάλια."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reduce las grabaciones envolventes a dos canales."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ramène les enregistrements surround à deux canaux."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Riduce le registrazioni surround a due canali."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "サラウンド録音を2チャンネルにまとめます。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将环绕声录音缩混为两个声道。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "將環繞聲錄音縮混為兩個聲道。"
+          }
+        }
+      }
+    },
     "Future mood playlists will use your library tags. Automatic updates follow your Application settings." : {
       "localizations" : {
         "de" : {
@@ -894,6 +1362,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "之後的心情播放清單將使用音樂資料庫標籤。自動更新會依照你的應用程式設定。"
+          }
+        }
+      }
+    },
+    "Higher bitrates sound closer to the original and use more data." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Höhere Bitraten klingen näher am Original und verbrauchen mehr Daten."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Οι υψηλότεροι ρυθμοί bit ακούγονται πιο κοντά στο πρωτότυπο και χρησιμοποιούν περισσότερα δεδομένα."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Las tasas de bits más altas suenan más parecidas al original y usan más datos."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un débit plus élevé sonne plus près de l’original et consomme plus de données."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I bitrate più alti suonano più vicini all'originale e usano più dati."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ビットレートが高いほど元の音に近くなり、使用するデータも増えます。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "比特率越高，听起来越接近原始文件，用的流量也越多。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "位元率越高，聽起來越接近原始檔案，使用的數據也越多。"
           }
         }
       }
@@ -1106,6 +1626,58 @@
         }
       }
     },
+    "Maximum" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maximal"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Μέγιστη"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Máxima"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maximale"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Massima"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最高"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最高"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最高"
+          }
+        }
+      }
+    },
     "Mood playlists" : {
       "localizations" : {
         "de" : {
@@ -1310,6 +1882,110 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "心情播放清單已重新產生。"
+          }
+        }
+      }
+    },
+    "Music above this bitrate is converted on cellular data." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Musik über dieser Bitrate wird über Mobilfunk konvertiert."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Η μουσική πάνω από αυτόν τον ρυθμό bit μετατρέπεται στα δεδομένα κινητής."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La música por encima de esta tasa de bits se convierte con datos móviles."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La musique au-delà de ce débit est convertie en données mobiles."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La musica sopra questo bitrate viene convertita su rete cellulare."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モバイル通信では、このビットレートを超える音楽を変換します。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用蜂窝网络时，高于此比特率的音乐会被转换。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用行動網路時，高於此位元率的音樂會被轉換。"
+          }
+        }
+      }
+    },
+    "Music above this bitrate is converted on Wi-Fi and wired networks." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Musik über dieser Bitrate wird im WLAN und in kabelgebundenen Netzwerken konvertiert."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Η μουσική πάνω από αυτόν τον ρυθμό bit μετατρέπεται σε Wi-Fi και ενσύρματα δίκτυα."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La música por encima de esta tasa de bits se convierte en redes Wi-Fi y por cable."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La musique au-delà de ce débit est convertie en Wi-Fi et sur les réseaux filaires."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La musica sopra questo bitrate viene convertita su Wi-Fi e reti cablate."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wi-Fiと有線ネットワークでは、このビットレートを超える音楽を変換します。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用 Wi-Fi 和有线网络时，高于此比特率的音乐会被转换。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用 Wi-Fi 與有線網路時，高於此位元率的音樂會被轉換。"
           }
         }
       }
@@ -1622,6 +2298,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "即使已連接網際網路，也僅顯示和播放儲存在此裝置上的音樂。"
+          }
+        }
+      }
+    },
+    "Recommended" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Empfohlen"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Προτείνεται"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recomendado"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recommandé"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Consigliato"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "推奨"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "推荐"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "建議"
           }
         }
       }
@@ -2146,6 +2874,58 @@
         }
       }
     },
+    "What converted music streams at." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mit dieser Bitrate wird konvertierte Musik gestreamt."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ο ρυθμός bit με τον οποίο μεταδίδεται η μετατρεπόμενη μουσική."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La tasa de bits a la que se transmite la música convertida."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le débit auquel la musique convertie est diffusée."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il bitrate con cui viene riprodotta la musica convertita."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "変換された音楽をストリーミングするビットレートです。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "转换后的音乐串流时使用的比特率。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "轉換後的音樂串流時使用的位元率。"
+          }
+        }
+      }
+    },
     "While offline, the app only shows content available on this device." : {
       "localizations" : {
         "fr" : {
@@ -2194,6 +2974,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "離線時，App 僅顯示此裝置上可用的內容。"
+          }
+        }
+      }
+    },
+    "Wi-Fi" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "WLAN"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wi-Fi"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wi-Fi"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wi-Fi"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wi-Fi"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wi-Fi"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wi-Fi"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wi-Fi"
           }
         }
       }
@@ -29290,110 +30122,6 @@
         }
       }
     },
-    "Quality on cellular" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Qualität über Mobilfunk"
-          }
-        },
-        "el" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ποιότητα σε δεδομένα κινητής"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Calidad con datos móviles"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Qualité en données mobiles"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Qualità con rete cellulare"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "モバイル通信時の品質"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "蜂窝网络下的质量"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "行動網路下的品質"
-          }
-        }
-      }
-    },
-    "Quality on Wi-Fi" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Qualität über WLAN"
-          }
-        },
-        "el" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ποιότητα σε Wi-Fi"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Calidad con Wi-Fi"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Qualité en Wi-Fi"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Qualità su Wi-Fi"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Wi-Fi時の品質"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Wi-Fi 下的质量"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Wi-Fi 下的品質"
-          }
-        }
-      }
-    },
     "Quality Profile" : {
       "localizations" : {
         "de" : {
@@ -35597,58 +36325,6 @@
         }
       }
     },
-    "Streaming" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Streaming"
-          }
-        },
-        "el" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ροή"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Streaming"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Streaming"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Streaming"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ストリーミング"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "流媒体"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "串流"
-          }
-        }
-      }
-    },
     "Submit listens to ListenBrainz" : {
       "localizations" : {
         "de" : {
@@ -37546,58 +38222,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "伺服器回應時間過長。請檢查你的網路後再試一次。"
-          }
-        }
-      }
-    },
-    "The server transcodes to the chosen tier for each network. Original streams your files untouched (lossless); a lighter tier saves cellular data and lowers decoding load. Applies to the next track." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Der Server transkodiert für jedes Netzwerk in die gewählte Stufe. Original streamt deine Dateien unverändert (verlustfrei); eine leichtere Stufe spart mobiles Datenvolumen und senkt die Dekodierlast. Gilt für den nächsten Titel."
-          }
-        },
-        "el" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ο διακομιστής επανακωδικοποιεί στο επιλεγμένο επίπεδο για κάθε δίκτυο. Το Πρωτότυπο μεταδίδει τα αρχεία σας ανέπαφα (χωρίς απώλειες)· ένα ελαφρύτερο επίπεδο εξοικονομεί δεδομένα κινητής και μειώνει το φορτίο αποκωδικοποίησης. Ισχύει για το επόμενο κομμάτι."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "El servidor transcodifica al nivel elegido para cada red. Original transmite tus archivos sin modificar (sin pérdidas); un nivel más ligero ahorra datos móviles y reduce la carga de decodificación. Se aplica a la siguiente pista."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Le serveur transcode vers le niveau choisi pour chaque réseau. Original diffuse vos fichiers tels quels (sans perte) ; un niveau plus léger économise les données mobiles et réduit la charge de décodage. S'applique au titre suivant."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Il server transcodifica al livello scelto per ogni rete. Original riproduce i tuoi file invariati (senza perdita); un livello più leggero risparmia dati cellulari e riduce il carico di decodifica. Si applica alla traccia successiva."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "サーバーはネットワークごとに選択したレベルへトランスコードします。オリジナルはファイルをそのまま（ロスレスで）ストリーミングします。軽いレベルはモバイルデータを節約し、デコード負荷を下げます。次の曲から適用されます。"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "服务器会针对每种网络转码到所选的等级。原始会原封不动地（无损）串流你的文件；较低的等级可节省蜂窝数据并降低解码负担。将在下一首曲目生效。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "伺服器會針對每種網路轉碼到所選的等級。原始會原封不動地（無損）串流你的檔案；較低的等級可節省行動數據並降低解碼負擔。將於下一首曲目生效。"
           }
         }
       }
