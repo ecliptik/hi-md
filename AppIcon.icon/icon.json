@@ -6,14 +6,15 @@
     {
       "layers" : [
         {
-          "image-name" : "minidisc.png",
-          "name" : "minidisc"
+          "image-name" : "minidisc-cartridge.png",
+          "name" : "minidisc-cartridge"
         }
       ],
       "shadow" : {
         "kind" : "neutral",
         "opacity" : 0.5
       },
+      "specular" : false,
       "translucency" : {
         "enabled" : false,
         "value" : 0.2

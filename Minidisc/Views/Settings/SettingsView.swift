@@ -1,5 +1,6 @@
 import OSLog
 import SwiftUI
+import UIKit
 
 struct SettingsSheet: View {
     @Environment(\.dismiss) private var dismiss
@@ -180,9 +181,14 @@ struct SettingsView: View {
         } header: {
             Text("About")
         } footer: {
-            Text("Version \(Self.appVersion)")
-                .frame(maxWidth: .infinity)
-                .padding(.top, 8)
+            VStack(spacing: MinidiscSpacing.s) {
+                MinidiscLogoView()
+                    .frame(width: 72)
+                    .accessibilityHidden(true)
+                Text("Version \(Self.appVersion)")
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.top, 8)
         }
     }
 }
@@ -905,6 +911,7 @@ private struct ApplicationSettingsView: View {
                 }
                 .tint(.primary)
                 AccentColorPicker()
+                AppIconPicker()
                 Picker("Album & Playlist Screens", selection: $appearance.detailStyle) {
                     ForEach(DetailScreenStyle.allCases) { style in
                         Text(style.title).tag(style)
@@ -961,6 +968,54 @@ private struct AccentColorPicker: View {
                     }
                 }
                 .padding(.vertical, 2)
+            }
+        }
+    }
+}
+
+/// The home-screen icon, shown as small copies of each; the selected one is ringed.
+private struct AppIconPicker: View {
+    @State private var selection = AppIconChoice(alternateIconName: UIApplication.shared.alternateIconName)
+
+    private static let side: CGFloat = 56
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: MinidiscSpacing.s) {
+            Text("App Icon")
+            HStack(spacing: MinidiscSpacing.l) {
+                ForEach(AppIconChoice.allCases) { choice in
+                    Button {
+                        select(choice)
+                    } label: {
+                        Image(choice.preview)
+                            .resizable()
+                            .frame(width: Self.side, height: Self.side)
+                            .clipShape(RoundedRectangle(cornerRadius: Self.side * 0.225, style: .continuous))
+                            .padding(3)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: Self.side * 0.225 + 3, style: .continuous)
+                                    .strokeBorder(selection == choice ? MinidiscColors.accent : .clear, lineWidth: 2)
+                            )
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(Text(choice.title))
+                    .accessibilityAddTraits(selection == choice ? .isSelected : [])
+                }
+            }
+            .padding(.vertical, 2)
+        }
+    }
+
+    private func select(_ choice: AppIconChoice) {
+        guard choice != selection else { return }
+        HapticFeedback.light.trigger()
+        let previous = selection
+        selection = choice
+        Task {
+            do {
+                try await UIApplication.shared.setAlternateIconName(choice.alternateIconName)
+            } catch {
+                selection = previous
             }
         }
     }

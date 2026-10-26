@@ -162,9 +162,21 @@ private struct CoverArtViewContent: View {
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
-            Image(systemName: placeholderSystemImage)
-                .font(.title2)
-                .foregroundStyle(.secondary)
+            if placeholderSystemImage == Self.musicPlaceholder {
+                // Albums and songs without artwork get the Minidisc logo.
+                Image(.minidiscLogoThumb)
+                    .resizable()
+                    .scaledToFit()
+                    .scaleEffect(0.78)
+                    .shadow(color: .black.opacity(0.18), radius: 3, y: 1)
+                    .accessibilityHidden(true)
+            } else {
+                Image(systemName: placeholderSystemImage)
+                    .font(.title2)
+                    .foregroundStyle(.secondary)
+            }
         }
     }
+
+    private static let musicPlaceholder = "music.note"
 }

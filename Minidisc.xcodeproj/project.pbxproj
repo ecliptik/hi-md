@@ -8,6 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		8785D13D3012A3A500208269 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 8785D13C3012A3A500208269 /* AppIcon.icon */; };
+		8785D1413012A3A500208269 /* AppIconDark.icon in Resources */ = {isa = PBXBuildFile; fileRef = 8785D1403012A3A500208269 /* AppIconDark.icon */; };
+		8785D1433012A3A500208269 /* AppIconLight.icon in Resources */ = {isa = PBXBuildFile; fileRef = 8785D1423012A3A500208269 /* AppIconLight.icon */; };
 		DBA4A77D2F9BE3C8008BC5A9 /* SwiftSonic in Frameworks */ = {isa = PBXBuildFile; productRef = DBA4A77C2F9BE3C8008BC5A9 /* SwiftSonic */; };
 		EC1D2700000000000000000D /* MinidiscWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = EC1D27000000000000000001 /* MinidiscWidgets.appex */; platformFilter = ios; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		EC1D2700000000000000001B /* MinidiscWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = EC1D27000000000000000010 /* MinidiscWatch.app */; platformFilter = ios; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -71,6 +73,8 @@
 
 /* Begin PBXFileReference section */
 		8785D13C3012A3A500208269 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIcon.icon; sourceTree = "<group>"; };
+		8785D1403012A3A500208269 /* AppIconDark.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIconDark.icon; sourceTree = "<group>"; };
+		8785D1423012A3A500208269 /* AppIconLight.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIconLight.icon; sourceTree = "<group>"; };
 		DBA4A7512F9BBFCB008BC5A9 /* Minidisc.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Minidisc.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		DBA4A75E2F9BBFCC008BC5A9 /* MinidiscTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MinidiscTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		DBA4A7682F9BBFCC008BC5A9 /* MinidiscUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MinidiscUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -191,6 +195,8 @@
 				DBA4A76B2F9BBFCC008BC5A9 /* MinidiscUITests */,
 				DBA4A7522F9BBFCB008BC5A9 /* Products */,
 				8785D13C3012A3A500208269 /* AppIcon.icon */,
+				8785D1403012A3A500208269 /* AppIconDark.icon */,
+				8785D1423012A3A500208269 /* AppIconLight.icon */,
 			);
 			sourceTree = "<group>";
 		};
@@ -395,6 +401,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				8785D13D3012A3A500208269 /* AppIcon.icon in Resources */,
+				8785D1413012A3A500208269 /* AppIconDark.icon in Resources */,
+				8785D1433012A3A500208269 /* AppIconLight.icon in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -619,6 +627,7 @@
 		DBA4A7732F9BBFCC008BC5A9 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = "AppIconDark AppIconLight";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Minidisc/Minidisc.entitlements;
@@ -678,6 +687,7 @@
 		DBA4A7742F9BBFCC008BC5A9 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = "AppIconDark AppIconLight";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Minidisc/Minidisc.entitlements;
