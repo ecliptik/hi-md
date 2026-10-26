@@ -19,6 +19,10 @@ struct MacNowPlayingView: View {
     @AppStorage("minidisc.mac.nowPlayingPaneHidden") private var isPaneHidden = false
     @State private var backdrop = FullPlayerViewModel()
     @State private var showsSpinningDisc = false
+    @State private var lyrics = MacLyricsSession()
+    @State private var isLyricsFullScreen = false
+    @State private var window = MacWindowHandle()
+    @State private var titleBarChange: MacTitleBarChange?
 
     private var state: PlayerState { playback.state }
 
@@ -46,14 +50,40 @@ struct MacNowPlayingView: View {
             .padding(.vertical, NowPlayingMetrics.verticalInset)
             .frame(width: proxy.size.width, height: proxy.size.height)
         }
-        .background { background }
-        .overlay(alignment: .topLeading) { windowButtons }
+        .opacity(isLyricsFullScreen ? 0 : 1)
+        .allowsHitTesting(!isLyricsFullScreen)
+        .accessibilityHidden(isLyricsFullScreen)
+        .overlay(alignment: .topLeading) { if !isLyricsFullScreen { windowButtons } }
         .overlay(alignment: .topTrailing) {
-            MacVolumeSlider()
-                .frame(width: 180)
-                .padding(20)
+            if !isLyricsFullScreen {
+                MacVolumeSlider()
+                    .frame(width: 180)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 16)
+            }
         }
-        .overlay(alignment: .bottomTrailing) { paneButtons(pane) }
+        .overlay(alignment: .bottomTrailing) { if !isLyricsFullScreen { paneButtons(pane) } }
+        .overlay {
+            if isLyricsFullScreen {
+                MacFullScreenLyrics(container: container, session: lyrics, backdropColors: backdrop.backgroundColors) {
+                    setLyricsFullScreen(false)
+                }
+                .transition(.opacity)
+            }
+        }
+        // The backdrop runs under the title bar to the window's top edge.
+        .background { background.ignoresSafeArea() }
+        .ignoresSafeArea(.container, edges: .top)
+        .background(MacWindowReader(handle: window) { window in
+            if titleBarChange == nil { titleBarChange = MacTitleBarChange(applyingTo: window) }
+        })
+        .onDisappear {
+            titleBarChange?.restore()
+            titleBarChange = nil
+        }
+        .onChange(of: pane) { _, newPane in
+            if newPane != .lyrics, isLyricsFullScreen { setLyricsFullScreen(false) }
+        }
         .environment(\.colorScheme, .dark)
         .foregroundStyle(.white)
         .tint(.white)
@@ -61,10 +91,10 @@ struct MacNowPlayingView: View {
             await backdrop.updateColors(for: coverArtID, colorExtractor: colorExtractor,
                                         container: container, reduceMotion: reduceMotion)
         }
-        .onExitCommand { navigator.closeNowPlaying() }
+        .onExitCommand(perform: escape)
         .background {
-            // Escape closes even when no control inside has focus.
-            Button("Close", action: navigator.closeNowPlaying)
+            // Escape closes even when no control inside has focus; full-screen lyrics first.
+            Button("Close", action: escape)
                 .keyboardShortcut(.cancelAction)
                 .opacity(0)
                 .allowsHitTesting(false)
@@ -74,12 +104,24 @@ struct MacNowPlayingView: View {
         .accessibilityLabel("Now Playing")
     }
 
+    private func escape() {
+        if isLyricsFullScreen {
+            setLyricsFullScreen(false)
+        } else {
+            navigator.closeNowPlaying()
+        }
+    }
+
+    private func setLyricsFullScreen(_ on: Bool) {
+        withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.3)) { isLyricsFullScreen = on }
+    }
+
     // MARK: Backdrop
 
     /// The artwork's colours, darkened so white text keeps its contrast. Reduce Transparency
     /// gets a single solid colour instead of the gradient.
     @ViewBuilder private var background: some View {
-        let colors = PlayerBackgroundPalette.colors(from: backdrop.backgroundColors)
+        let colors = PlayerBackgroundPalette.tintedColors(from: backdrop.backgroundColors, accent: .minidiscAccent)
         if reduceTransparency {
             (colors.first ?? .black)
         } else {
@@ -197,8 +239,9 @@ struct MacNowPlayingView: View {
     @ViewBuilder private func sidePane(_ pane: NowPlayingSidePane, metrics: NowPlayingMetrics) -> some View {
         switch pane {
         case .lyrics:
-            MacLyricsPane(container: container)
-                .environment(\.lyricsTypography, .scaled(forWidth: metrics.paneWidth))
+            // Its follow and full-screen buttons sit with the pane buttons in the corner.
+            MacLyricsPane(container: container, session: lyrics)
+                .environment(\.lyricsTypography, .scaled(forWidth: metrics.paneWidth).withoutHeaderButtons())
         case .queue:
             MacQueuePane(isOnBackdrop: true)
         }
@@ -229,7 +272,9 @@ struct MacNowPlayingView: View {
             .help("MiniPlayer")
         }
         .buttonStyle(.plain)
-        .padding(20)
+        // Beside the traffic lights, which now sit over the backdrop.
+        .padding(.leading, 84)
+        .padding(.top, 12)
     }
 
     private var circleFill: AnyShapeStyle {
@@ -238,11 +283,39 @@ struct MacNowPlayingView: View {
 
     private func paneButtons(_ pane: NowPlayingSidePane) -> some View {
         HStack(spacing: 6) {
+            if !isPaneHidden, pane == .lyrics, lyrics.hasLyrics, let viewModel = lyrics.viewModel {
+                lyricsButton("Follow Lyrics", systemImage: "arrow.up.arrow.down", isOn: viewModel.autoScrollEnabled) {
+                    viewModel.autoScrollEnabled.toggle()
+                }
+                lyricsButton("Full Screen Lyrics", systemImage: "arrow.up.left.and.arrow.down.right", isOn: nil) {
+                    setLyricsFullScreen(true)
+                }
+                Divider()
+                    .frame(height: 20)
+                    .overlay(Color.white.opacity(0.3))
+                    .padding(.horizontal, 4)
+            }
             paneButton(.lyrics, title: "Lyrics", systemImage: "quote.bubble", shown: pane)
                 .disabled(!playback.commands.canShowLyrics)
             paneButton(.queue, title: "Playing Next", systemImage: "list.bullet", shown: pane)
         }
         .padding(20)
+    }
+
+    private func lyricsButton(_ title: LocalizedStringKey, systemImage: String, isOn: Bool?,
+                              action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: systemImage)
+                .font(.body.weight(.semibold))
+                .frame(width: 30, height: 30)
+                .foregroundStyle(isOn == true ? Color.black : Color.white)
+                .background(isOn == true ? AnyShapeStyle(Color.white) : circleFill, in: Circle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(Text(title))
+        .accessibilityValue(isOn.map { $0 ? Text("On") : Text("Off") } ?? Text(verbatim: ""))
+        .accessibilityAddTraits(isOn == true ? .isSelected : [])
+        .help(Text(title))
     }
 
     /// Shows its pane, or hides the side pane when its pane is already showing.
@@ -317,5 +390,28 @@ struct MacSpinningDiscArtwork: View {
                 .id(track.coverArtId ?? track.id)
                 .transition(reduceMotion ? .identity : .opacity)
         }
+    }
+}
+
+/// Lets the Now Playing backdrop run under the main window's title bar while it's open, and
+/// puts the window back as it was when it closes.
+@MainActor
+final class MacTitleBarChange {
+    private weak var window: NSWindow?
+    private let wasTransparent: Bool
+    private let hadFullSizeContent: Bool
+
+    init(applyingTo window: NSWindow) {
+        self.window = window
+        wasTransparent = window.titlebarAppearsTransparent
+        hadFullSizeContent = window.styleMask.contains(.fullSizeContentView)
+        window.titlebarAppearsTransparent = true
+        window.styleMask.insert(.fullSizeContentView)
+    }
+
+    func restore() {
+        guard let window else { return }
+        window.titlebarAppearsTransparent = wasTransparent
+        if !hadFullSizeContent { window.styleMask.remove(.fullSizeContentView) }
     }
 }
