@@ -1070,6 +1070,8 @@ actor DownloadService: DownloadServiceProtocol {
             struct HTTPError: Error & Sendable { let statusCode: Int }
             throw MinidiscError.downloadFailed(songId: id, underlying: HTTPError(statusCode: code))
         }
+        // The server's stand-in for a song without artwork; the app shows its own placeholder.
+        guard !ServerPlaceholderArtwork.matches(imageData: data) else { throw URLError(.resourceUnavailable) }
 
         try FileManager.default.createDirectory(at: coverArtsDirectory, withIntermediateDirectories: true)
         try data.write(to: fileURL, options: .atomic)

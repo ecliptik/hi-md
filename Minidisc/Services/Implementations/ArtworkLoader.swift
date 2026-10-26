@@ -24,8 +24,15 @@ actor ArtworkLoader {
         session = URLSession(configuration: config)
     }
 
-    func data(for url: URL, headers: [String: String]) async -> Data? {
-        if let cached = cache.object(forKey: url as NSURL) { return cached as Data }
+    enum Result: Sendable {
+        case artwork(Data)
+        /// The server answered with its stand-in image: the song has no artwork.
+        case noArtwork
+        case unavailable
+    }
+
+    func artwork(for url: URL, headers: [String: String]) async -> Result {
+        if let cached = cache.object(forKey: url as NSURL) { return .artwork(cached as Data) }
 
         var request = URLRequest(url: url)
         for (key, value) in headers {
@@ -38,20 +45,25 @@ actor ArtworkLoader {
               (response as? HTTPURLResponse).map({ (200..<300).contains($0.statusCode) }) ?? true
         else {
             Logger.artworkCache.warning("ArtworkLoader: failed to fetch artwork from \(Self.redacted(url), privacy: .public)")
-            return nil
+            return .unavailable
         }
+        // Navidrome serves artwork it is still resolving as a `no-store` stand-in.
+        if ArtworkResponsePolicy.isTransient(response) { return .noArtwork }
 
-        let normalizedData = await Task.detached(priority: .utility) {
-            Self.normalizedArtworkData(data)
+        let normalized = await Task.detached(priority: .utility) {
+            Self.normalizedArtwork(data)
         }.value
-        guard !Task.isCancelled, let normalizedData else {
-            Logger.artworkCache.warning("ArtworkLoader: artwork could not be decoded from \(Self.redacted(url), privacy: .public)")
-            return nil
-        }
-        if !ArtworkResponsePolicy.isTransient(response) {
+        guard !Task.isCancelled else { return .unavailable }
+        switch normalized {
+        case .jpeg(let normalizedData):
             cache.setObject(normalizedData as NSData, forKey: url as NSURL, cost: normalizedData.count)
+            return .artwork(normalizedData)
+        case .serverPlaceholder:
+            return .noArtwork
+        case .undecodable:
+            Logger.artworkCache.warning("ArtworkLoader: artwork could not be decoded from \(Self.redacted(url), privacy: .public)")
+            return .unavailable
         }
-        return normalizedData
     }
 
     func clearCache() {
@@ -63,9 +75,21 @@ actor ArtworkLoader {
         "\(url.host() ?? "unknown host")\(url.path())"
     }
 
+    private enum NormalizedArtwork: Sendable {
+        case jpeg(Data)
+        case serverPlaceholder
+        case undecodable
+    }
+
     /// Decodes and bounds the image off MainActor, then returns compact bytes that
     /// MediaPlayer can instantiate without decoding a multi-megapixel source on the UI thread.
-    nonisolated private static func normalizedArtworkData(_ data: Data) -> Data? {
+    nonisolated private static func normalizedArtwork(_ data: Data) -> NormalizedArtwork {
+        guard let image = boundedImage(data) else { return .undecodable }
+        if ServerPlaceholderArtwork.matches(image) { return .serverPlaceholder }
+        return jpegData(image).map(NormalizedArtwork.jpeg) ?? .undecodable
+    }
+
+    nonisolated private static func boundedImage(_ data: Data) -> CGImage? {
         guard let source = CGImageSourceCreateWithData(data as CFData, nil),
               let image = CGImageSourceCreateThumbnailAtIndex(
                 source,
@@ -77,7 +101,10 @@ actor ArtworkLoader {
                 ] as CFDictionary
               )
         else { return nil }
+        return image
+    }
 
+    nonisolated private static func jpegData(_ image: CGImage) -> Data? {
         let output = NSMutableData()
         guard let destination = CGImageDestinationCreateWithData(
             output,

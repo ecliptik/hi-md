@@ -1,5 +1,10 @@
 import Foundation
 import OSLog
+#if canImport(UIKit)
+import UIKit
+#else
+import AppKit
+#endif
 
 actor NowPlayingService: NowPlayingServiceProtocol {
     private weak var playerService: (any PlayerServiceProtocol)?
@@ -92,6 +97,10 @@ actor NowPlayingService: NowPlayingServiceProtocol {
         await refreshLikeCommandState()
         guard generation == contentGeneration, currentSong?.songId == snapshot.songId else { return }
 
+        if let coverArtId = snapshot.coverArtId, await artworkImageCache.hasNoArtwork(coverArtId) {
+            await showNoArtwork(fallback: snapshot, generation: generation)
+            return
+        }
         if let coverArtId = snapshot.coverArtId,
            let cachedImage = await artworkImageCache.cached(for: coverArtId, tier: .hero) {
             guard generation == contentGeneration, currentSong?.songId == snapshot.songId else { return }
@@ -103,11 +112,25 @@ actor NowPlayingService: NowPlayingServiceProtocol {
             return
         }
 
-        if let artworkURL = snapshot.artworkURL,
-           let data = await artworkLoader.data(for: artworkURL, headers: snapshot.artworkHeaders) {
+        if let artworkURL = snapshot.artworkURL {
+            let result = await artworkLoader.artwork(for: artworkURL, headers: snapshot.artworkHeaders)
             guard generation == contentGeneration, currentSong?.songId == snapshot.songId else { return }
-            await presenter.setArtwork(data: data, fallback: snapshot, generation: generation)
+            switch result {
+            case .artwork(let data):
+                await presenter.setArtwork(data: data, fallback: snapshot, generation: generation)
+            case .noArtwork:
+                await showNoArtwork(fallback: snapshot, generation: generation)
+            case .unavailable:
+                break
+            }
         }
+    }
+
+    /// The Minidisc cartridge on gold, in place of the server's stand-in image on the Lock Screen,
+    /// in Control Center and in the Dynamic Island.
+    private func showNoArtwork(fallback snapshot: NowPlayingSnapshot, generation: UInt64) async {
+        guard let image = PlatformImage(named: "NowPlayingNoArtwork") else { return }
+        await presenter.setArtwork(image: image, fallback: snapshot, generation: generation)
     }
 
     // MARK: - Periodic position push
