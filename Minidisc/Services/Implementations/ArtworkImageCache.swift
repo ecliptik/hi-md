@@ -451,9 +451,9 @@ final class ArtworkImageCache {
                     coverGeneration: coverGeneration
                 ) else { return nil }
                 guard await decodeGate.acquireOrCancel() else { return nil }
-                let image = await Task.detached(priority: .utility) {
+                let decoded = await Task.detached(priority: .utility) {
                     let diskStart = CFAbsoluteTimeGetCurrent()
-                    guard let data = try? Data(contentsOf: localURL) else { return nil as PlatformImage? }
+                    guard let data = try? Data(contentsOf: localURL) else { return nil as DecodedArtwork? }
                     let diskMs = Int((CFAbsoluteTimeGetCurrent() - diskStart) * 1000)
                     let decodeStart = CFAbsoluteTimeGetCurrent()
                     let image = ArtworkImageCache.thumbnailImage(from: data, maxDimension: maxDim)
@@ -463,7 +463,7 @@ final class ArtworkImageCache {
                     } else {
                         Logger.artworkCache.debug("[DISK] id=\(coverArtId, privacy: .public) tier=\(tier.rawValue, privacy: .public) disk=\(diskMs)ms decode=\(decodeMs)ms")
                     }
-                    return image
+                    return image.map(DecodedArtwork.init)
                 }.value
                 await decodeGate.release()
                 guard canCommitLoad(
@@ -473,7 +473,8 @@ final class ArtworkImageCache {
                     epoch: epoch,
                     coverGeneration: coverGeneration
                 ) else { return nil }
-                if let image, ServerPlaceholderArtwork.matches(image) {
+                let image = decoded?.image
+                if decoded?.isServerPlaceholder == true {
                     // Saved by an earlier build: forget it and show the app's own placeholder.
                     noteMissingArtwork(coverArtId, recheckAfter: Self.missingArtworkRecheck)
                     await removeCoverOperation(tieredDiskId)
@@ -566,7 +567,7 @@ final class ArtworkImageCache {
             Logger.artworkCache.warning("[NET-COVER] failed (decode) id=\(coverArtId, privacy: .public) duration=\(Int(Date().timeIntervalSince(t0) * 1000))ms")
             return nil
         }
-        if ServerPlaceholderArtwork.matches(image) {
+        if await DecodedArtwork.isServerPlaceholder(image) {
             Logger.artworkCache.debug("[NET-COVER] server placeholder id=\(coverArtId, privacy: .public)")
             noteMissingArtwork(coverArtId, recheckAfter: Self.missingArtworkRecheck)
             return nil

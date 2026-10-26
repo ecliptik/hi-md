@@ -123,16 +123,16 @@ private struct CoverArtViewContent: View {
             // Prefer the tiered cache, then the untagged file stored for offline tracks.
             for diskId in ["\(id)@\(t.rawValue)", id] {
                 if let baseURL = await container?.downloadService.localCoverArtURL(forId: diskId),
-                   let image = await Self.decodedImage(at: baseURL, maxDimension: t.decodePixels) {
+                   let decoded = await Self.decodedImage(at: baseURL, maxDimension: t.decodePixels) {
                     guard !Task.isCancelled else { return }
                     // A download from before the app recognised the server's stand-in image.
-                    if ServerPlaceholderArtwork.matches(image) {
+                    if decoded.isServerPlaceholder {
                         cachedImage = nil
                         displayedId = nil
                         hasNoArtwork = true
                         return
                     }
-                    apply(image, for: id)
+                    apply(decoded.image, for: id)
                     return
                 }
                 guard !Task.isCancelled else { return }
@@ -159,10 +159,10 @@ private struct CoverArtViewContent: View {
 
     /// Decodes a local cover file off the main actor at `maxDimension`, reusing the cache's ImageIO
     /// thumbnail path so the base-file fallback decodes identically to the tiered cache.
-    private static func decodedImage(at url: URL, maxDimension: Int) async -> PlatformImage? {
+    private static func decodedImage(at url: URL, maxDimension: Int) async -> DecodedArtwork? {
         await Task.detached(priority: .userInitiated) {
-            guard let data = try? Data(contentsOf: url) else { return nil as PlatformImage? }
-            return ArtworkImageCache.thumbnailImage(from: data, maxDimension: maxDimension)
+            guard let data = try? Data(contentsOf: url) else { return nil as DecodedArtwork? }
+            return ArtworkImageCache.thumbnailImage(from: data, maxDimension: maxDimension).map(DecodedArtwork.init)
         }.value
     }
 
