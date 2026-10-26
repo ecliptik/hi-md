@@ -2,10 +2,35 @@ import AVFAudio
 import Foundation
 import Synchronization
 
+#if os(iOS)
+/// The kind of an audio output, as the audio session reports it.
+typealias AudioOutputPort = AVAudioSession.Port
+#else
+/// The Mac has no AVAudioSession. This stands in for its port kinds so the shared route logic
+/// builds unchanged; the Mac controller only ever reports the system's default output.
+nonisolated struct AudioOutputPort: RawRepresentable, Hashable, Sendable {
+    let rawValue: String
+
+    init(rawValue: String) { self.rawValue = rawValue }
+
+    static let airPlay = AudioOutputPort(rawValue: "AirPlay")
+    static let bluetoothA2DP = AudioOutputPort(rawValue: "BluetoothA2DPOutput")
+    static let bluetoothHFP = AudioOutputPort(rawValue: "BluetoothHFP")
+    static let bluetoothLE = AudioOutputPort(rawValue: "BluetoothLE")
+    static let builtInReceiver = AudioOutputPort(rawValue: "Receiver")
+    static let builtInSpeaker = AudioOutputPort(rawValue: "Speaker")
+    static let carAudio = AudioOutputPort(rawValue: "CarAudio")
+    static let headphones = AudioOutputPort(rawValue: "Headphones")
+    static let headsetMic = AudioOutputPort(rawValue: "HeadsetMicrophone")
+    static let HDMI = AudioOutputPort(rawValue: "HDMIOutput")
+    static let usbAudio = AudioOutputPort(rawValue: "USBAudio")
+}
+#endif
+
 /// Value-only route information; system route descriptions never cross the playback actor.
 nonisolated struct AudioRouteOutputSnapshot: Sendable, Equatable {
     let uid: String
-    let portType: AVAudioSession.Port
+    let portType: AudioOutputPort
 }
 
 /// Configuration is invalidated by a media-services reset even when the source is unchanged.
@@ -16,6 +41,7 @@ nonisolated protocol AudioSessionControlling: Sendable {
     func invalidateConfiguration()
 }
 
+#if os(iOS)
 nonisolated final class SystemAudioSessionController: AudioSessionControlling {
     private let configured = Mutex(false)
 
@@ -45,6 +71,22 @@ nonisolated final class SystemAudioSessionController: AudioSessionControlling {
         configured.withLock { $0 = false }
     }
 }
+#else
+/// Mac apps have no audio session to activate: AVPlayer plays to the system's default output,
+/// with no interruptions or media-services resets. It reports that one output so the recovery
+/// logic, which waits for a route before retrying, always finds one.
+nonisolated final class SystemAudioSessionController: AudioSessionControlling {
+    var outputs: [AudioRouteOutputSnapshot] {
+        [AudioRouteOutputSnapshot(uid: "system-default-output", portType: .builtInSpeaker)]
+    }
+
+    func activate() throws {}
+
+    func deactivate() {}
+
+    func invalidateConfiguration() {}
+}
+#endif
 
 nonisolated struct PlaybackAudioRecoveryTiming: Sendable {
     var retryDelay: Duration = .milliseconds(500)

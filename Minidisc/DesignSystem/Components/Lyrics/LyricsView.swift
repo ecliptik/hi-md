@@ -28,7 +28,7 @@ struct LyricsView: View {
         .onAppear { viewModel.setVisible(true) }
         .onDisappear { viewModel.setVisible(false) }
         .onChange(of: viewModel.isPlaying) { _, _ in viewModel.reconcileTracking() }
-        .fullScreenCover(isPresented: $showsKaraoke) { KaraokeLyricsView(viewModel: viewModel) }
+        .minidiscFullScreenCover(isPresented: $showsKaraoke) { KaraokeLyricsView(viewModel: viewModel) }
     }
 
     // MARK: - Loaded

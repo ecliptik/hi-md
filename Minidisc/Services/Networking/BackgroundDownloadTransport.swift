@@ -1,6 +1,8 @@
 import Foundation
 import Synchronization
+#if os(iOS)
 import UIKit
+#endif
 
 nonisolated struct CompletedDownload: Codable, Sendable {
     let jobID: UUID
@@ -151,13 +153,17 @@ private nonisolated final class DownloadSessionDelegate: NSObject, URLSessionDow
         continuation.yield(.waiting(id))
     }
 
+    #if os(iOS)
     func urlSessionDidFinishEvents(forBackgroundURLSession session: URLSession) {
         // Every preceding completion has a durable receipt. Processing is replayable if iOS
         // suspends us while validating/remuxing/committing metadata.
         Task { @MainActor in MinidiscAppDelegate.finishDownloadEvents() }
     }
+    #endif
 }
 
+// The Mac keeps running while background transfers finish, so it needs no app delegate hand-off.
+#if os(iOS)
 @MainActor
 final class MinidiscAppDelegate: NSObject, UIApplicationDelegate {
     private static var completion: (() -> Void)?
@@ -183,3 +189,4 @@ final class MinidiscAppDelegate: NSObject, UIApplicationDelegate {
         handler()
     }
 }
+#endif

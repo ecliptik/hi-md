@@ -1,4 +1,4 @@
-#if !targetEnvironment(macCatalyst)
+#if os(iOS) && !targetEnvironment(macCatalyst)
 import ActivityKit
 #endif
 import Foundation
@@ -11,7 +11,7 @@ protocol DownloadActivityReporting: AnyObject, Sendable {
     func finished(collectionID: String, completed: Int, total: Int) async
 }
 
-#if !targetEnvironment(macCatalyst)
+#if os(iOS) && !targetEnvironment(macCatalyst)
 /// Shows album and playlist downloads as Live Activities on the Lock Screen and in the Dynamic Island.
 @MainActor
 final class DownloadActivityController: DownloadActivityReporting {
@@ -75,12 +75,12 @@ final class DownloadActivityController: DownloadActivityReporting {
     }
 }
 #else
-/// Mac Catalyst has no Live Activities; this only remembers each download's kind for Cancel.
+/// The Mac has no Live Activities; this only remembers each download's kind for Cancel.
 @MainActor
 final class DownloadActivityController: DownloadActivityReporting {
     private var kinds: [String: String] = [:]
 
-    init(artwork: WidgetArtworkWriter) {}
+    init() {}
 
     func started(collectionID: String, kind: String, title: String, coverArtId: String?, total: Int) async {
         kinds[collectionID] = kind

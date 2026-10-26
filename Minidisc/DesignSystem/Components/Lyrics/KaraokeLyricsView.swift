@@ -1,6 +1,8 @@
 import SwiftSonic
 import SwiftUI
+#if os(iOS)
 import UIKit
+#endif
 
 /// Full-screen lyrics: large centred lines over the blurred cover, following the song, with
 /// tap-to-seek and play/pause. The screen stays awake while it is open.
@@ -31,19 +33,28 @@ struct KaraokeLyricsView: View {
         .overlay(alignment: .top) { header }
         .overlay(alignment: .bottom) { playPause }
         .preferredColorScheme(.dark)
+        #if os(iOS)
         .statusBarHidden()
+        #endif
         .onChange(of: ObjectIdentifier(viewModel), initial: true) {
             shown?.setVisible(false)
             viewModel.setVisible(true)
             shown = viewModel
         }
         .onChange(of: viewModel.isPlaying) { viewModel.reconcileTracking() }
-        .onAppear { UIApplication.shared.isIdleTimerDisabled = true }
+        .onAppear { setIdleTimerDisabled(true) }
         .onDisappear {
             shown?.setVisible(false)
             shown = nil
-            UIApplication.shared.isIdleTimerDisabled = false
+            setIdleTimerDisabled(false)
         }
+    }
+
+    /// Keeps an iPhone or iPad awake while the lyrics are open; the Mac manages its own display sleep.
+    private func setIdleTimerDisabled(_ disabled: Bool) {
+        #if os(iOS)
+        UIApplication.shared.isIdleTimerDisabled = disabled
+        #endif
     }
 
     private var background: some View {

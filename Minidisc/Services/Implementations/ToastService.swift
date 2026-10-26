@@ -1,4 +1,7 @@
 import SwiftUI
+#if os(macOS)
+import AppKit
+#endif
 
 enum ToastAction: Equatable, Sendable {
     case navigateToPlaylist(id: String, name: String, coverArtId: String?)
@@ -45,10 +48,18 @@ final class ToastService {
     private(set) var current: Toast?
     private var dismissTask: Task<Void, Never>?
 
+    private static var isVoiceOverRunning: Bool {
+        #if os(macOS)
+        NSWorkspace.shared.isVoiceOverEnabled
+        #else
+        UIAccessibility.isVoiceOverRunning
+        #endif
+    }
+
     func show(_ message: String, subtitle: String? = nil, style: Style = .info, duration: TimeInterval = 3.0, coverArtId: String? = nil, action: ToastAction? = nil) {
         dismissTask?.cancel()
         // VoiceOver users need time to find an action such as Undo before the toast leaves.
-        let dwell = UIAccessibility.isVoiceOverRunning && action != nil ? max(duration, 10) : duration
+        let dwell = Self.isVoiceOverRunning && action != nil ? max(duration, 10) : duration
         current = Toast(message: message, subtitle: subtitle, style: style, duration: dwell, coverArtId: coverArtId, action: action)
         dismissTask = Task { [weak self] in
             try? await Task.sleep(for: .seconds(dwell))

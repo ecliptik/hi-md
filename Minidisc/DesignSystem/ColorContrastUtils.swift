@@ -62,9 +62,7 @@ extension MinidiscColors {
     // MARK: - Platform bridge
 
     private static func sRGBComponents(of color: Color) -> (Double, Double, Double)? {
-        let ui = UIColor(color)
-        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
-        guard ui.getRed(&r, green: &g, blue: &b, alpha: &a) else { return nil }
-        return (Double(r), Double(g), Double(b))
+        guard let c = PlatformColor(color).rgba else { return nil }
+        return (Double(c.red), Double(c.green), Double(c.blue))
     }
 }

@@ -57,12 +57,17 @@ final class AppContainer {
     let streamSettings: StreamSettings
     let lidarrSettings: LidarrSettings
     private var lifecycleTasks: [Task<Void, Never>] = []
+    #if os(iOS)
     private(set) lazy var widgetArtwork = WidgetArtworkWriter(artworkImageCache: artworkImageCache)
     private(set) lazy var downloadActivities = DownloadActivityController(artwork: widgetArtwork)
     private(set) lazy var widgetSnapshotPublisher = WidgetSnapshotPublisher(
         playerState: playerState, serverState: serverState, modelContainer: modelContainer,
         moodPlaylistService: moodPlaylistService, artwork: widgetArtwork
     )
+    #else
+    // The Mac has no widgets or Live Activities, and no App Group to share a snapshot through.
+    private(set) lazy var downloadActivities = DownloadActivityController()
+    #endif
     let linkRouter = LinkRouter()
     #if canImport(WatchConnectivity) && !targetEnvironment(macCatalyst)
     private(set) lazy var watchBridge = PhoneWatchBridge(container: self)
@@ -310,7 +315,9 @@ final class AppContainer {
         WidgetCommandRelay.shared.handler = { [weak self] command in
             try await self?.handleWidgetCommand(command)
         }
+        #if os(iOS)
         widgetSnapshotPublisher.start()
+        #endif
         offlineFavoritesSync.pinnedItems = { [modelContainer] serverID in
             let pins = FetchDescriptor<PinnedItem>(predicate: #Predicate { $0.serverId == serverID },
                                                    sortBy: [SortDescriptor(\.sortOrder)])

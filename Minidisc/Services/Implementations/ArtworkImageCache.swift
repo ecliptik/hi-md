@@ -1,7 +1,11 @@
 import Foundation
 import ImageIO
 import OSLog
+#if canImport(UIKit)
 import UIKit
+#else
+import AppKit
+#endif
 
 // MARK: - ArtworkTier
 
@@ -970,6 +974,6 @@ final class ArtworkImageCache {
               let cgImage = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else {
             return PlatformImage(data: data)
         }
-        return UIImage(cgImage: cgImage)
+        return PlatformImage(cgImage: cgImage)
     }
 }

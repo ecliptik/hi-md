@@ -81,9 +81,14 @@ nonisolated struct AudioEngineFailure: Sendable, Equatable {
     /// This invalidates the player objects, not the media URL. Network retries on the
     /// same objects cannot recover, even when a different track is selected.
     var isMediaServicesReset: Bool {
+        #if os(iOS)
         codes.contains {
             $0.domain == .avFoundation && $0.value == AVError.Code.mediaServicesWereReset.rawValue
         }
+        #else
+        // Only iOS resets media services; the Mac never reports this error.
+        false
+        #endif
     }
 
     var diagnosticDescription: String {

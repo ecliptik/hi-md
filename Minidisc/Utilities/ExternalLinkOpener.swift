@@ -1,7 +1,12 @@
+#if canImport(UIKit)
 import SafariServices
 import UIKit
+#else
+import AppKit
+#endif
 
 enum ExternalLinkOpener {
+    #if canImport(UIKit)
     @MainActor
     static func open(_ url: URL) {
         guard let presenter = topmostViewController() else { return }
@@ -34,4 +39,11 @@ enum ExternalLinkOpener {
         }
         return vc
     }
+    #else
+    /// Mac apps open web links in the default browser.
+    @MainActor
+    static func open(_ url: URL) {
+        NSWorkspace.shared.open(url)
+    }
+    #endif
 }

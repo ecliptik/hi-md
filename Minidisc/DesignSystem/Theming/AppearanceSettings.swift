@@ -1,6 +1,10 @@
 import Observation
 import SwiftUI
+#if canImport(UIKit)
 import UIKit
+#else
+import AppKit
+#endif
 
 /// The accent colours offered in Settings > Appearance. Gold comes from the 💽 icon.
 nonisolated enum AccentChoice: String, CaseIterable, Identifiable, Sendable {
@@ -42,20 +46,26 @@ nonisolated enum AccentChoice: String, CaseIterable, Identifiable, Sendable {
         // Gold keeps the asset catalog colour the brand was tuned with.
         if self == .gold { return Color(.minidiscBrandGold) }
         let (light, dark) = hex
-        return Color(uiColor: Self.dynamicColor(light: light, dark: dark))
+        return Color(platformColor: Self.dynamicColor(light: light, dark: dark))
     }
 
     /// For filled buttons with white text: the deeper light-mode shade in both appearances,
     /// since the bright dark-mode shade is too light behind white.
     @MainActor var fillColor: Color {
         if self == .gold { return Color(.minidiscBrandGold).resolvedLight }
-        return Color(uiColor: UIColor(rgb: hex.light))
+        return Color(platformColor: PlatformColor(rgb: hex.light))
     }
 
     /// Nonisolated so the provider closure is too: SwiftUI resolves colours on its render
     /// thread, and a main-actor closure would trap there.
-    private static func dynamicColor(light: UInt32, dark: UInt32) -> UIColor {
+    private static func dynamicColor(light: UInt32, dark: UInt32) -> PlatformColor {
+        #if canImport(UIKit)
         UIColor { traits in UIColor(rgb: traits.userInterfaceStyle == .dark ? dark : light) }
+        #else
+        NSColor(name: nil) { appearance in
+            NSColor(rgb: appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua ? dark : light)
+        }
+        #endif
     }
 }
 
@@ -120,7 +130,7 @@ private extension Color {
     }
 }
 
-private nonisolated extension UIColor {
+private nonisolated extension PlatformColor {
     convenience init(rgb: UInt32) {
         self.init(red: CGFloat((rgb >> 16) & 0xFF) / 255, green: CGFloat((rgb >> 8) & 0xFF) / 255,
                   blue: CGFloat(rgb & 0xFF) / 255, alpha: 1)

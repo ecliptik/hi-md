@@ -1,11 +1,14 @@
 import Foundation
 import OSLog
+#if canImport(UIKit)
 import UIKit
+#endif
 
 /// Requests a limited background grace period. Operations must still tolerate suspension
 /// and persist progress before the assertion expires.
 nonisolated enum BackgroundActivity {
 
+    #if canImport(UIKit)
     @MainActor
     private final class Assertion {
         private var identifier: UIBackgroundTaskIdentifier = .invalid
@@ -44,4 +47,13 @@ nonisolated enum BackgroundActivity {
             }
         }
     }
+    #else
+    /// Mac apps aren't suspended in the background; an activity only keeps App Nap from
+    /// throttling the work while it runs.
+    static func run<T: Sendable>(_ name: String, operation: @Sendable () async -> T) async -> T {
+        let activity = ProcessInfo.processInfo.beginActivity(options: .userInitiatedAllowingIdleSystemSleep, reason: name)
+        defer { ProcessInfo.processInfo.endActivity(activity) }
+        return await operation()
+    }
+    #endif
 }

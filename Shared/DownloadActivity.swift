@@ -1,5 +1,5 @@
-// Live Activities are iOS-only; Mac Catalyst builds leave the download activity out.
-#if !targetEnvironment(macCatalyst)
+// Live Activities are iOS-only; Mac builds leave the download activity out.
+#if os(iOS) && !targetEnvironment(macCatalyst)
 import ActivityKit
 import AppIntents
 import Foundation

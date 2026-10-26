@@ -1,4 +1,4 @@
-#if canImport(NowPlaying)
+#if os(iOS) && canImport(NowPlaying)
 import AppIntents
 import Foundation
 import NowPlaying

@@ -1,8 +1,11 @@
 import Foundation
+#if canImport(UIKit)
 import UIKit
+#endif
 
 /// Use light for navigation, medium for playback, heavy for destructive actions,
 /// selection for pickers, and the notification variants for operation outcomes.
+/// The Mac has no haptics, so there every case does nothing.
 @MainActor
 enum HapticFeedback {
     case light
@@ -14,6 +17,7 @@ enum HapticFeedback {
     case error
 
     func trigger() {
+        #if canImport(UIKit)
         switch self {
         case .light:
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
@@ -30,5 +34,6 @@ enum HapticFeedback {
         case .error:
             UINotificationFeedbackGenerator().notificationOccurred(.error)
         }
+        #endif
     }
 }

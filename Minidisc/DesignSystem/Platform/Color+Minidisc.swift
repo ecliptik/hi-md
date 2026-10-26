@@ -2,7 +2,11 @@ import SwiftUI
 
 extension Color {
     nonisolated static var minidiscSystemBackground: Color {
+        #if os(macOS)
+        Color(.windowBackgroundColor)
+        #else
         Color(.systemBackground)
+        #endif
     }
 
     nonisolated static let minidiscAccentText = Color.white

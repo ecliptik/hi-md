@@ -1,7 +1,11 @@
 import Foundation
 import CryptoKit
 import OSLog
+#if canImport(UIKit)
 import UIKit
+#else
+import AppKit
+#endif
 
 // MARK: - Fetcher protocol (testability seam)
 

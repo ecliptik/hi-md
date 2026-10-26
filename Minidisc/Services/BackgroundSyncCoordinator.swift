@@ -1,4 +1,6 @@
+#if os(iOS)
 import BackgroundTasks
+#endif
 import Foundation
 import OSLog
 import Synchronization
@@ -193,6 +195,8 @@ actor BackgroundSyncCoordinator {
     }
 }
 
+// BGTaskScheduler is iOS-only; the Mac app runs the coordinator only at launch.
+#if os(iOS)
 /// Ensures a `BGTask` is completed exactly once even if normal completion races
 /// with the expiration handler.
 nonisolated final class BackgroundTaskCompletion: @unchecked Sendable {
@@ -233,3 +237,4 @@ nonisolated final class BackgroundTaskCompletion: @unchecked Sendable {
         return true
     }
 }
+#endif

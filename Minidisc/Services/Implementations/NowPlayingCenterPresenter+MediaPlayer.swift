@@ -1,11 +1,15 @@
-// Mac Catalyst has no NowPlaying framework, so it keeps the MediaPlayer-based presenter the
-// app used before iOS 27. It has the same interface as the NowPlaying version.
-#if !canImport(NowPlaying)
+// The Mac keeps the MediaPlayer-based presenter the app used before iOS 27:
+// MPRemoteCommandCenter and MPNowPlayingInfoCenter drive the media keys and Now Playing there.
+// It has the same interface as the NowPlaying version.
+#if !(os(iOS) && canImport(NowPlaying))
 import Foundation
 import MediaPlayer
 import OSLog
-
+#if canImport(UIKit)
 import UIKit
+#else
+import AppKit
+#endif
 
 /// Keeps MediaPlayer objects on MainActor; only snapshots and artwork bytes cross actors.
 @MainActor
