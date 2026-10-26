@@ -123,7 +123,7 @@ final class WinampMainWindowController: NSObject, NSWindowDelegate, WinampMainVi
     private var scale: CGFloat { host?.scale ?? 1 }
 
     private func applyWindowOptions() {
-        window.level = preferences.isAlwaysOnTop ? .floating : .normal
+        window.level = host?.windowLevel ?? .normal
     }
 
     /// Windowshade: the 275×14 bar with the time, position and small transport.

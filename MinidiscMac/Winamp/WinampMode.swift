@@ -5,6 +5,8 @@ import SwiftUI
 /// What every Winamp window asks of Winamp mode: shared settings, docking and the other windows.
 protocol WinampWindowHost: AnyObject {
     var preferences: WinampPreferences { get }
+    /// The level every Winamp window uses now (see `WinampMode.windowLevel`).
+    var windowLevel: NSWindow.Level { get }
     /// The zoom level, 1 to 4: points per skin pixel.
     var scale: CGFloat { get }
     var isUsingDefaultSkin: Bool { get }
@@ -125,6 +127,7 @@ final class WinampMode: WinampWindowHost {
         guard let container else { return }
         let browser = folderBrowser ?? WinampFolderBrowserWindow(container: container)
         folderBrowser = browser
+        browser.window.level = windowLevel
         browser.show()
     }
 
@@ -173,23 +176,34 @@ final class WinampMode: WinampWindowHost {
 
     // MARK: Stacking
 
-    /// Winamp's windows behave as one floating group, as the original did as its own app: clicking
-    /// one brings all of them forward, and while Minidisc is active they stay above its own
-    /// windows instead of disappearing behind the library window. Other apps still cover them;
-    /// Always on Top raises them above everything.
+    /// Winamp's windows behave as one floating group, as the original did as its own app. While
+    /// Minidisc is active they sit one level above ordinary windows, so the library window can't
+    /// cover them and nothing has to reorder after a click; when another app is active they drop
+    /// to the normal level so it can cover them. Always on Top floats them above everything.
+    var windowLevel: NSWindow.Level {
+        if preferences.isAlwaysOnTop { return .floating }
+        return NSApp.isActive ? Self.aboveAppWindows : .normal
+    }
+
+    private static let aboveAppWindows = NSWindow.Level(rawValue: NSWindow.Level.normal.rawValue + 1)
+
     private func observeStacking() {
         guard stackingObservers.isEmpty else { return }
         let center = NotificationCenter.default
         stackingObservers = [
+            // Clicking one Winamp window brings the others forward with it.
             center.addObserver(forName: NSWindow.didBecomeKeyNotification, object: nil, queue: .main) { [weak self] note in
                 let window = note.object as? NSWindow
                 MainActor.assumeIsolated { self?.windowDidBecomeKey(window) }
             },
-            center.addObserver(forName: NSWindow.didBecomeMainNotification, object: nil, queue: .main) { [weak self] note in
-                let window = note.object as? NSWindow
-                MainActor.assumeIsolated { self?.windowDidBecomeMain(window) }
+            center.addObserver(forName: NSApplication.didBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated { self?.applyLevel() }
+            },
+            center.addObserver(forName: NSApplication.didResignActiveNotification, object: nil, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated { self?.applyLevel() }
             },
         ]
+        applyLevel()
     }
 
     private func stopObservingStacking() {
@@ -201,13 +215,6 @@ final class WinampMode: WinampWindowHost {
     private func windowDidBecomeKey(_ window: NSWindow?) {
         guard let window = window as? WinampWindow else { return }
         raiseWinampWindows(keepingFront: window)
-    }
-
-    /// A Minidisc window came forward: Winamp's windows go back above it, without taking focus.
-    /// Panels, sheets and the open dialog are left alone so Winamp never covers them.
-    private func windowDidBecomeMain(_ window: NSWindow?) {
-        guard let window, !(window is WinampWindow), !(window is NSPanel), window.sheetParent == nil else { return }
-        raiseWinampWindows(keepingFront: nil)
     }
 
     private func raiseWinampWindows(keepingFront front: NSWindow?) {
@@ -327,8 +334,9 @@ final class WinampMode: WinampWindowHost {
     }
 
     private func applyLevel() {
-        let level: NSWindow.Level = preferences.isAlwaysOnTop ? .floating : .normal
-        for window in managedWindows { window.window.level = level }
+        let level = windowLevel
+        for window in managedWindows where window.window.level != level { window.window.level = level }
+        if let browser = folderBrowser?.window, browser.level != level { browser.level = level }
     }
 
     func toggleAlwaysOnTop() {
