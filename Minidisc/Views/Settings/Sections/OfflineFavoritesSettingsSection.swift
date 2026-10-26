@@ -82,27 +82,38 @@ struct OfflineFavoritesSettingsSection: View {
     }
 }
 
-/// The small "Auto-Caching 13%" capsule shown above the mini player while the sync runs.
+/// A small progress ring in Home's toolbar while auto-caching saves songs. It shows only while
+/// there is something to download, and opens Settings, where Auto-Caching lives.
 struct AutoCachingIndicator: View {
     let sync: OfflineFavoritesSync
+    let action: () -> Void
+
+    var isActive: Bool { sync.isSyncing && sync.total > 0 && sync.completed < sync.total }
 
     var body: some View {
-        if sync.isSyncing, sync.total > 0, sync.completed < sync.total {
+        if isActive {
             let fraction = Double(sync.completed) / Double(sync.total)
-            HStack(spacing: MinidiscSpacing.s) {
-                ProgressView().controlSize(.small)
-                Text("Auto-Caching")
-                    .font(.footnote.weight(.semibold))
-                Text(fraction.formatted(.percent.precision(.fractionLength(0))))
-                    .font(.footnote.monospacedDigit())
-                    .foregroundStyle(.secondary)
+            Button(action: action) {
+                ZStack {
+                    Circle().stroke(.secondary.opacity(0.35), lineWidth: 2.5)
+                    Circle()
+                        .trim(from: 0, to: max(fraction, 0.04))
+                        .stroke(Color.minidiscAccent, style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
+                        .rotationEffect(.degrees(-90))
+                        .animation(.easeOut(duration: 0.3), value: fraction)
+                    Image(systemName: "arrow.down")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundStyle(.secondary)
+                }
+                .frame(width: 20, height: 20)
+                .frame(minWidth: 44, minHeight: 44)
+                .contentShape(Rectangle())
             }
-            .padding(.horizontal, MinidiscSpacing.l)
-            .padding(.vertical, MinidiscSpacing.s)
-            .glassEffect(.regular, in: Capsule())
-            .accessibilityElement(children: .combine)
-            .allowsHitTesting(false)
-            .transition(.opacity.combined(with: .move(edge: .bottom)))
+            .buttonStyle(.plain)
+            .accessibilityLabel("Auto-Caching")
+            .accessibilityValue(Text(fraction.formatted(.percent.precision(.fractionLength(0)))))
+            .accessibilityHint("Opens Settings")
+            .transition(.opacity)
         }
     }
 }

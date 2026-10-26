@@ -140,6 +140,12 @@ struct OfflineFavoritesTests {
         #expect(sync.completed == 1)
         #expect(await store.localURL(songID: song.id, serverID: id) != nil)
         #expect(await downloads.downloadedSongIds(serverId: id).isEmpty)
+        // A second run finds everything saved: nothing counts as progress, so no indicator shows.
+        sync.revision += 1
+        await sync.synchronize()
+        #expect(sync.error == nil)
+        #expect(sync.total == 0)
+        #expect(sync.completed == 0)
         settings.keepFavoritesOffline = false
         await sync.synchronize()
         #expect(try await store.usage().count == 0)

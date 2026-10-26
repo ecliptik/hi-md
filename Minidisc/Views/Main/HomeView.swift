@@ -24,6 +24,11 @@ struct HomeView: View {
         .navigationTitle("Home")
         .toolbarTitleDisplayMode(.inlineLarge)
         .toolbar {
+            if let sync = container?.offlineFavoritesSync {
+                ToolbarItem(placement: .primaryAction) {
+                    AutoCachingIndicator(sync: sync) { showSettings = true }
+                }
+            }
             ToolbarItem(placement: .primaryAction) {
                 Button("Settings", systemImage: "gearshape.fill") { showSettings = true }
                     .tint(.primary)

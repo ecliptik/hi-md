@@ -9,7 +9,9 @@ final class OfflineFavoritesSync {
     struct Request: Equatable {
         let version: ServerConnection.Version?
         let account: ServerSnapshot?
-        let network: NetworkPathEvent
+        /// What the path is (Wi-Fi, cellular, constrained), not each path event: a re-evaluation
+        /// of the same network, such as a VPN tunnel's, must not restart the run.
+        let network: NetworkPathDescriptor
         let isOnline: Bool
         let observedNetwork: Bool
         let enabled: Bool
@@ -46,12 +48,15 @@ final class OfflineFavoritesSync {
     var pinnedItems: @MainActor (UUID) -> [(kind: String, id: String)] = { _ in [] }
     /// How many recently played albums auto-caching keeps.
     static let recentAlbumLimit = 12
+    /// Songs saved, and albums looked up, at the same time.
+    static let parallelTransfers = 3
+    static let parallelLookups = 4
     private var runID = UUID()
 
     var request: Request {
         Request(version: server.state.activeConnectionVersion,
                 account: server.state.activeServer,
-                network: server.state.networkPathEvent,
+                network: server.state.networkPathEvent.descriptor,
                 isOnline: server.state.isOnline,
                 observedNetwork: server.state.hasObservedNetworkPath,
                 enabled: settings.keepsAnythingOffline,
@@ -130,75 +135,126 @@ final class OfflineFavoritesSync {
         let client = connection.makeSwiftSonicClient()
         let favorites = expected.keepFavorites ? try await fetchFavorites(connection) : nil
         try check(expected)
-        var albums: [AlbumID3] = []
-        for album in favorites?.album ?? [] {
-            albums.append(try await fetchAlbum(connection, album.id))
-            try check(expected)
-        }
+        var albums = try await lookUpAlbums((favorites?.album ?? []).map(\.id), connection: connection,
+                                            expected: expected, required: true)
         var albumIDs = Set(albums.map(\.id))
         // Recently played and pinned items are best effort: one that was deleted on the server
         // is skipped rather than stopping the whole sync.
         if expected.keepRecentlyPlayed {
-            for id in await recentAlbumIDs(serverID).prefix(Self.recentAlbumLimit) where albumIDs.insert(id).inserted {
-                if let album = try? await fetchAlbum(connection, id) { albums.append(album) }
-                try check(expected)
-            }
+            let recent = await recentAlbumIDs(serverID).prefix(Self.recentAlbumLimit).filter { albumIDs.insert($0).inserted }
+            albums += try await lookUpAlbums(recent, connection: connection, expected: expected, required: false)
         }
         var extraSongs: [Song] = []
         if expected.keepPinned {
+            var pinnedAlbums: [String] = []
             for pin in pinnedItems(serverID) {
                 if pin.kind == "album", albumIDs.insert(pin.id).inserted {
-                    if let album = try? await fetchAlbum(connection, pin.id) { albums.append(album) }
+                    pinnedAlbums.append(pin.id)
                 } else if pin.kind == "playlist" {
                     extraSongs += (try? await fetchPlaylist(connection, pin.id))?.entry ?? []
+                    try check(expected)
                 }
-                try check(expected)
             }
+            albums += try await lookUpAlbums(pinnedAlbums, connection: connection, expected: expected, required: false)
         }
         // Only a complete, successful catalogue may remove previously saved favorites.
         let songs = try await store.reconcile(favorites: favorites, albums: albums, extraSongs: extraSongs, serverID: serverID)
         try check(expected)
-        total = songs.count
+        // Only songs that still need saving count as progress, so a run with nothing to fetch
+        // shows none.
+        var pending: [Song] = []
+        for song in songs where await store.localURL(songID: song.id, serverID: serverID) == nil {
+            pending.append(song)
+        }
+        try check(expected)
+        total = pending.count
+        // A few songs at a time: one request after another left the link idle between songs.
+        var start = 0
+        while start < pending.count {
+            let batch = Array(pending[start..<min(start + Self.parallelTransfers, pending.count)])
+            start += batch.count
+            try await withThrowingTaskGroup(of: Void.self) { group in
+                for song in batch {
+                    group.addTask { try await self.save(song, client: client, connection: connection, expected: expected) }
+                }
+                try await group.waitForAll()
+            }
+        }
         var covers = Set<String>()
         for song in songs {
             try check(expected)
-            do {
-                if await store.localURL(songID: song.id, serverID: serverID) == nil {
-                    let manual = await downloads.downloadedURL(forSongId: song.id, serverId: serverID)
-                    let cached = manual == nil ? await cache.cachedURL(forSongId: song.id, serverId: serverID) : nil
-                    if let local = manual ?? cached {
-                        try check(expected)
-                        try await store.store(fileAt: local, songID: song.id, serverID: serverID)
-                    } else {
-                        let stream = expected.streamPolicy.request(
-                            for: StreamSourceTraits(suffix: song.suffix, bitRate: song.bitRate, channelCount: song.channelCount)
-                        )
-                        let format = expected.format == .matchStream ? stream.format : expected.format.subsonicFormat
-                        let bitrate = expected.format == .matchStream ? stream.maxBitRate : expected.format.subsonicMaxBitRate
-                        guard let url = client.streamURL(id: song.id, maxBitRate: bitrate, format: format) else {
-                            throw UserFacingError.contentRemoved
-                        }
-                        let request = PlayerService.cacheDownloadRequest(
-                            url: url, headers: connection.authorizationHeaders(for: url), allowCellular: expected.allowsCellular,
-                            serviceType: .background
-                        )
-                        let file = try await transfer.download(request, songID: song.id)
-                        defer { try? FileManager.default.removeItem(at: file) }
-                        try check(expected)
-                        try await store.store(fileAt: file, songID: song.id, serverID: serverID)
+            if let cover = song.coverArt, covers.insert(cover).inserted {
+                _ = await artwork?.load(coverArtId: cover)
+            }
+        }
+    }
+
+    /// Looks up albums a few at a time. A required album that fails stops the sync; an optional
+    /// one (recently played, pinned) is skipped.
+    private func lookUpAlbums(_ ids: [String], connection: ServerConnection, expected: Request,
+                              required: Bool) async throws -> [AlbumID3] {
+        var albums: [AlbumID3] = []
+        var start = 0
+        while start < ids.count {
+            let batch = Array(ids[start..<min(start + Self.parallelLookups, ids.count)])
+            start += batch.count
+            let fetch = fetchAlbum
+            let found = try await withThrowingTaskGroup(of: (Int, AlbumID3?).self) { group in
+                for (index, id) in batch.enumerated() {
+                    group.addTask {
+                        if required { return (index, try await fetch(connection, id)) }
+                        return (index, try? await fetch(connection, id))
                     }
                 }
-                try check(expected)
-                completed += 1
-                if let cover = song.coverArt, covers.insert(cover).inserted {
-                    _ = await artwork?.load(coverArtId: cover)
-                }
-            } catch {
-                try check(expected)
-                self.error = UserFacingError.from(error)
-                // Stop on network/storage failures; a later reconnect or retry resumes saved work.
-                if self.error != .contentRemoved { throw error }
+                var results: [(Int, AlbumID3?)] = []
+                for try await result in group { results.append(result) }
+                return results.sorted { $0.0 < $1.0 }.compactMap(\.1)
             }
+            albums += found
+            try check(expected)
+        }
+        return albums
+    }
+
+    /// Saves one song from Downloads, the stream cache or the server. A song removed from the
+    /// server is skipped; other failures stop the run, and a later run resumes saved work.
+    private func save(_ song: Song, client: SwiftSonicClient, connection: ServerConnection,
+                      expected: Request) async throws {
+        let serverID = connection.version.serverID
+        try check(expected)
+        do {
+            if await store.localURL(songID: song.id, serverID: serverID) == nil {
+                let manual = await downloads.downloadedURL(forSongId: song.id, serverId: serverID)
+                let cached = manual == nil ? await cache.cachedURL(forSongId: song.id, serverId: serverID) : nil
+                if let local = manual ?? cached {
+                    try check(expected)
+                    try await store.store(fileAt: local, songID: song.id, serverID: serverID)
+                } else {
+                    let stream = expected.streamPolicy.request(
+                        for: StreamSourceTraits(suffix: song.suffix, bitRate: song.bitRate, channelCount: song.channelCount)
+                    )
+                    let format = expected.format == .matchStream ? stream.format : expected.format.subsonicFormat
+                    let bitrate = expected.format == .matchStream ? stream.maxBitRate : expected.format.subsonicMaxBitRate
+                    guard let url = client.streamURL(id: song.id, maxBitRate: bitrate, format: format) else {
+                        throw UserFacingError.contentRemoved
+                    }
+                    let request = PlayerService.cacheDownloadRequest(
+                        url: url, headers: connection.authorizationHeaders(for: url), allowCellular: expected.allowsCellular,
+                        serviceType: .background
+                    )
+                    let file = try await transfer.download(request, songID: song.id)
+                    defer { try? FileManager.default.removeItem(at: file) }
+                    try check(expected)
+                    try await store.store(fileAt: file, songID: song.id, serverID: serverID)
+                }
+            }
+            try check(expected)
+            completed += 1
+        } catch {
+            try check(expected)
+            self.error = UserFacingError.from(error)
+            // Stop on network/storage failures; a later reconnect or retry resumes saved work.
+            if self.error != .contentRemoved { throw error }
         }
     }
 
