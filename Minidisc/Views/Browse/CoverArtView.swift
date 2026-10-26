@@ -1,7 +1,7 @@
 import SwiftUI
 
-// Reading ArtworkImageCache from a view body observes its whole dictionary and
-// refreshes every cover when any entry changes. Resolve one id from a task instead.
+// ArtworkImageCache's storage is not observed, so a read in a view body is a snapshot
+// that never updates when the cover arrives. Resolve one id from a task instead.
 /// Resolves cover art through the shared cache, then falls back to AsyncImage.
 /// Sizes of at least 480 points use the hero tier unless `tier` overrides it.
 struct CoverArtView: View {
@@ -97,7 +97,7 @@ private struct CoverArtViewContent: View {
             let t = resolvedTier
             let online = container?.serverState.isOnline ?? true
 
-            // Task reads do not create the global observation dependency avoided above.
+            // A RAM hit applies at once, without waiting on the load path.
             if let ram = artworkCache.cachedImage(for: id, tier: t) {
                 apply(ram, for: id)
                 return

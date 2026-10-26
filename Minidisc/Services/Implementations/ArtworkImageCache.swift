@@ -153,8 +153,11 @@ final class ArtworkImageCache {
     /// written to the persisted cover store. Set by AppContainer at launch and by the Settings toggle.
     var persistCoversEnabled = true
 
-    private var cache: [String: PlatformImage] = [:]
-    private var accessOrder: [String] = []
+    // The cache's storage is not view state. Observing it let a synchronous read in a body (the
+    // initial cover of a pushed playlist, say) re-run that body whenever any other cover finished
+    // loading, rebuilding whole track lists mid-scroll. Views load through `load` in a task instead.
+    @ObservationIgnored private var cache: [String: PlatformImage] = [:]
+    @ObservationIgnored private var accessOrder: [String] = []
     private let maxEntries = 110
 
     private let coverArtURLProvider: CoverArtURLProvider
@@ -171,23 +174,23 @@ final class ArtworkImageCache {
     /// Per-cover `Last-Modified` + last-checked, so a cached cover is re-verified on a slow cadence.
     private let revalidationStore: CoverRevalidationStore
     /// Shares one fetch and decode per tiered cache key.
-    private var inFlight: [String: InFlightLoad] = [:]
-    private var revalidating: [String: RevalidationEntry] = [:]
+    @ObservationIgnored private var inFlight: [String: InFlightLoad] = [:]
+    @ObservationIgnored private var revalidating: [String: RevalidationEntry] = [:]
     /// Invalidates every older operation on a whole-cache clear.
-    private var cacheEpoch: UInt64 = 0
+    @ObservationIgnored private var cacheEpoch: UInt64 = 0
     /// Invalidates older loads and revalidations for one logical cover across both tiers.
-    private var coverGenerations: [String: UInt64] = [:]
-    private var completedLoadCount = 0
-    private var completedRevalidationCount = 0
+    @ObservationIgnored private var coverGenerations: [String: UInt64] = [:]
+    @ObservationIgnored private var completedLoadCount = 0
+    @ObservationIgnored private var completedRevalidationCount = 0
     /// Per-cover disk mutation barrier. Reads, removes and persists are serialized, while network
     /// fetches stay outside the critical section. Generation checks connect those short critical
     /// sections into a transaction, so cancellation remains prompt and stale bytes cannot be
     /// persisted after a newer invalidation.
-    private var diskAccessOwners: Set<String> = []
-    private var diskAccessWaiters: [String: [DiskAccessWaiter]] = [:]
+    @ObservationIgnored private var diskAccessOwners: Set<String> = []
+    @ObservationIgnored private var diskAccessWaiters: [String: [DiskAccessWaiter]] = [:]
     /// Ids whose revalidation failed this run (offline / error). Skipped until relaunch so an
     /// offline session doesn't fire a HEAD per cover on every scroll.
-    private var revalidationDeferred: Set<String> = []
+    @ObservationIgnored private var revalidationDeferred: Set<String> = []
 
     convenience init(
         downloadService: any DownloadServiceProtocol,
