@@ -20,7 +20,7 @@ nonisolated protocol MediaResolverProtocol: AnyObject, Sendable {
     func hasLocalCopy(songId: String, serverId: UUID, atLeast quality: CachedAudioQuality) async -> Bool
 }
 
-extension MediaResolverProtocol {
+nonisolated extension MediaResolverProtocol {
     func hasLocalCopy(songId: String, serverId: UUID, atLeast quality: CachedAudioQuality) async -> Bool {
         await localSource(songId: songId, serverId: serverId) != nil
     }

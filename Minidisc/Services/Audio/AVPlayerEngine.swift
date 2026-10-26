@@ -533,6 +533,16 @@ nonisolated final class AVPlayerEngine: AudioEngine, @unchecked Sendable {
         return currentItem == nil
     }
 
+    var bufferedDuration: TimeInterval {
+        lock.lock()
+        defer { lock.unlock() }
+        guard let ranges = currentItem?.loadedTimeRanges else { return 0 }
+        return ranges.reduce(0) { total, value in
+            let seconds = CMTimeGetSeconds(value.timeRangeValue.duration)
+            return seconds.isFinite ? total + max(0, seconds) : total
+        }
+    }
+
     // MARK: - Transition machinery (all called with the lock held)
 
     /// A boundary observer starts the blend on the media timeline. The low-frequency periodic

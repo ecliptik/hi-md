@@ -19,6 +19,7 @@ private nonisolated final class RecoveryTestEngine: AudioEngine, Sendable {
         var position: Double = 0
         var failNextSeek = false
         var sourceURL: URL?
+        var buffered: Double = 0
     }
     private let storage = Mutex(Storage())
     var delegate: AudioEngineDelegate? {
@@ -38,6 +39,7 @@ private nonisolated final class RecoveryTestEngine: AudioEngine, Sendable {
             $0.active = true
             $0.playingSince = nil
             $0.position = 0
+            $0.buffered = 0
         }
         let token = token
         delegate?.audioEngineDidChangeState(.paused, playbackToken: token)
@@ -45,6 +47,9 @@ private nonisolated final class RecoveryTestEngine: AudioEngine, Sendable {
         return token
     }
     func startAdvancing() { storage.withLock { if !$0.poisoned { $0.playingSince = Date() } } }
+    /// Data arriving while playback waits.
+    func receiveData(seconds: Double) { storage.withLock { $0.buffered += seconds } }
+    var bufferedDuration: TimeInterval { storage.withLock { $0.buffered } }
     func pause() { storage.withLock { $0.playingSince = nil } }
     func resume() {}
     func stop() { storage.withLock { $0.stops += 1; $0.active = false; $0.playingSince = nil } }
@@ -198,7 +203,9 @@ private struct RecoveryHarness {
         configureServer: Bool = true,
         audioStreamCache: (any AudioStreamCacheProtocol)? = nil,
         cacheSession: URLSession? = nil,
-        streamCacheFormat: CacheFormat = .flacOriginal
+        streamCacheFormat: CacheFormat = .flacOriginal,
+        stallGrace: Duration = .milliseconds(100),
+        dataFlowingGrace: Duration = .milliseconds(600)
     ) throws {
         let container = try ModelContainer.minidisc(inMemory: true)
         server.state.activeServer = ServerSnapshot(from: ServerConfig(
@@ -239,9 +246,10 @@ private struct RecoveryHarness {
             playbackDiagnostics: diagnostics,
             engine: engine,
             networkRecoveryTiming: .init(
-                startupGrace: startupGrace, stallGrace: .milliseconds(100),
+                startupGrace: startupGrace, stallGrace: stallGrace,
                 retryDelay: .milliseconds(40), validationDelay: .milliseconds(200),
-                downloadRetryDelay: .milliseconds(20)
+                downloadRetryDelay: .milliseconds(20),
+                dataFlowingGrace: dataFlowingGrace, dataFlowRecheck: .milliseconds(50)
             ),
             audioSession: audioSession,
             audioRecoveryTiming: .init(
@@ -894,11 +902,14 @@ private nonisolated final class AudioDownloadStubProtocol: URLProtocol, @uncheck
     private struct State: Sendable {
         var failuresRemaining = 0
         var requests: [URLRequest] = []
+        var responseDelay: Duration = .zero
     }
     private static let state = Mutex(State())
     static let audio = Data("ID3 streamed audio fixture".utf8)
 
-    static func reset(failures: Int = 0) { state.withLock { $0 = State(failuresRemaining: failures) } }
+    static func reset(failures: Int = 0, responseDelay: Duration = .zero) {
+        state.withLock { $0 = State(failuresRemaining: failures, responseDelay: responseDelay) }
+    }
     static var requests: [URLRequest] { state.withLock { $0.requests } }
 
     static func session() -> URLSession {
@@ -911,27 +922,37 @@ private nonisolated final class AudioDownloadStubProtocol: URLProtocol, @uncheck
     override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
     override func stopLoading() {}
     override func startLoading() {
-        let fails = Self.state.withLock { state -> Bool in
+        let (fails, delay) = Self.state.withLock { state -> (Bool, Duration) in
             state.requests.append(request)
-            guard state.failuresRemaining > 0 else { return false }
+            guard state.failuresRemaining > 0 else { return (false, state.responseDelay) }
             state.failuresRemaining -= 1
-            return true
+            return (true, .zero)
         }
         if fails {
             client?.urlProtocol(self, didFailWithError: URLError(.networkConnectionLost))
             return
         }
-        let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: "HTTP/1.1",
-                                       headerFields: ["Content-Type": "audio/mpeg", "Content-Length": "\(Self.audio.count)"])!
-        client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
-        client?.urlProtocol(self, didLoad: Self.audio)
-        client?.urlProtocolDidFinishLoading(self)
+        let respond = { [self] in
+            let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: "HTTP/1.1",
+                                           headerFields: ["Content-Type": "audio/mpeg", "Content-Length": "\(Self.audio.count)"])!
+            client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+            client?.urlProtocol(self, didLoad: Self.audio)
+            client?.urlProtocolDidFinishLoading(self)
+        }
+        if delay > .zero {
+            let milliseconds = Int(delay.components.seconds * 1_000 + delay.components.attoseconds / 1_000_000_000_000_000)
+            DispatchQueue.global().asyncAfter(deadline: .now() + .milliseconds(milliseconds), execute: respond)
+        } else {
+            respond()
+        }
     }
 }
 
 @MainActor
 private final class RecordingAudioStreamCache: AudioStreamCacheProtocol {
     private(set) var stored: [(songId: String, quality: CachedAudioQuality)] = []
+    /// Runs after a copy is stored, before the player hears about it.
+    var onStore: (@MainActor () async -> Void)?
     var usedBytes: Int64 { 0 }
     var trackCount: Int { stored.count }
     var maxBytes: Int64 { AudioStreamCache.defaultMaxBytes }
@@ -942,6 +963,7 @@ private final class RecordingAudioStreamCache: AudioStreamCacheProtocol {
     func store(fileAt sourceURL: URL, forSongId songId: String, serverId: UUID, mimeType: String,
                quality: CachedAudioQuality) async throws -> URL {
         stored.append((songId, quality))
+        await onStore?()
         return sourceURL
     }
     func setMaxBytes(_ value: Int64) async {}
@@ -1008,6 +1030,98 @@ struct CurrentSongDownloadTests {
         try await h.play()
         try await h.waitUntil { cache.trackCount == 1 }
         #expect(AudioDownloadStubProtocol.requests.count == 3)
+        await h.player.stop()
+    }
+}
+
+// MARK: - Patient stall recovery
+
+@Suite("Stall recovery while data arrives", .serialized, .timeLimit(.minutes(1)))
+@MainActor
+struct PatientStallRecoveryTests {
+    /// Starts song "a" and lets it play into the middle of the track.
+    private func playing(_ h: RecoveryHarness) async throws {
+        try await h.play()
+        try await h.waitUntil { h.report.contains("engine state=buffering") }
+        _ = await h.engine.seek(to: 60)
+        h.state.position = 60
+        h.engine.startAdvancing()
+        await h.player.handleEngineState(.playing, playbackToken: h.engine.token)
+        // The startup watch confirms the item by its moving playhead before the stall begins.
+        try await h.waitUntil { h.report.contains("progress-validated") }
+    }
+
+    @Test func aStallIsNotRebuiltWhileDataKeepsArrivingAndSkipsTheServerCheck() async throws {
+        let h = try RecoveryHarness(startupGrace: .milliseconds(50), stallGrace: .milliseconds(100),
+                                    dataFlowingGrace: .milliseconds(900))
+        try await playing(h)
+        await h.player.handleEngineState(.buffering, playbackToken: h.engine.token)
+        // Data trickles in long past the 100 ms stall grace: the buffered item must be kept.
+        for _ in 0..<15 {
+            h.engine.receiveData(seconds: 1)
+            try await Task.sleep(for: .milliseconds(40))
+        }
+        #expect(h.engine.playCount == 1)
+        #expect(!h.report.contains("item-rebuilt"))
+        // Data stops arriving; the next check rebuilds the item without asking the server.
+        try await h.waitUntil { h.engine.playCount == 2 }
+        #expect(await h.resolver.availabilityCalls == 0)
+        #expect(h.state.position >= 60)
+        await h.player.stop()
+    }
+
+    @Test func aStallWithNothingArrivingIsRebuiltAfterTheShortGrace() async throws {
+        let h = try RecoveryHarness(startupGrace: .milliseconds(50), stallGrace: .milliseconds(100),
+                                    dataFlowingGrace: .seconds(10))
+        try await playing(h)
+        let stalled = ContinuousClock.now
+        await h.player.handleEngineState(.buffering, playbackToken: h.engine.token)
+        try await h.waitUntil { h.engine.playCount == 2 }
+        #expect(stalled.duration(to: .now) < .seconds(2))
+        #expect(await h.resolver.availabilityCalls == 0)
+        await h.player.stop()
+    }
+
+    @Test func aStallWithACompleteCopySwitchesAtOnce() async throws {
+        let h = try RecoveryHarness(startupGrace: .milliseconds(50), stallGrace: .seconds(20))
+        try await playing(h)
+        // The first stall arms the long stream grace; the copy then completes.
+        await h.player.handleEngineState(.buffering, playbackToken: h.engine.token)
+        await h.resolver.useCachedSource()
+        let stalled = ContinuousClock.now
+        await h.player.handleEngineState(.buffering, playbackToken: h.engine.token)
+        try await h.waitUntil { h.engine.playCount == 2 }
+        #expect(stalled.duration(to: .now) < .seconds(2))
+        #expect(h.engine.sourceURL?.lastPathComponent == "recovery-test-cache.m4a")
+        #expect(await h.resolver.availabilityCalls == 0)
+        #expect(h.state.position >= 60)
+        await h.player.stop()
+    }
+
+    @Test func aDownloadFinishingDuringAStallTakesOverAtOnce() async throws {
+        AudioDownloadStubProtocol.reset(responseDelay: .milliseconds(900))
+        let cache = RecordingAudioStreamCache()
+        let h = try RecoveryHarness(startupGrace: .milliseconds(50), audioStreamCache: cache,
+                                    cacheSession: AudioDownloadStubProtocol.session(),
+                                    streamCacheFormat: .matchStream, stallGrace: .seconds(20))
+        cache.onStore = { await h.resolver.useCachedSource() }
+        try await playing(h)
+        await h.player.handleEngineState(.buffering, playbackToken: h.engine.token)
+        #expect(h.engine.playCount == 1)
+        try await h.waitUntil { cache.trackCount == 1 }
+        try await h.waitUntil { h.engine.playCount == 2 }
+        #expect(h.engine.sourceURL?.lastPathComponent == "recovery-test-cache.m4a")
+        #expect(await h.resolver.availabilityCalls == 0)
+        await h.player.stop()
+    }
+
+    @Test func anItemFailureStillAsksTheServerWhetherTheSongExists() async throws {
+        let h = try RecoveryHarness(startupGrace: .milliseconds(50))
+        await h.resolver.configure(missing: ["a"])
+        try await playing(h)
+        await h.player.handleEngineError(.init(error: URLError(.badServerResponse)), playbackToken: h.engine.token)
+        try await h.waitUntil { h.state.currentTrack?.id == "b" }
+        #expect(await h.resolver.availabilityCalls == 1)
         await h.player.stop()
     }
 }

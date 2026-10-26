@@ -381,6 +381,28 @@ struct UnexpectedPlaybackStallRecoveryTests {
     }
 }
 
+@Suite("Stall recovery while data arrives — policy")
+struct StallRecoveryDecisionTests {
+    @Test("a stall with data arriving waits up to the data-flowing grace")
+    func waitsWhileDataArrives() {
+        #expect(PlayerService.stallRecoveryDecision(bufferedGrowth: 2, stalledFor: .seconds(5), dataFlowingGrace: .seconds(15)) == .keepWaiting)
+        #expect(PlayerService.stallRecoveryDecision(bufferedGrowth: 2, stalledFor: .seconds(15), dataFlowingGrace: .seconds(15)) == .rebuild)
+    }
+
+    @Test("a stall with nothing arriving is rebuilt")
+    func rebuildsWhenNothingArrives() {
+        #expect(PlayerService.stallRecoveryDecision(bufferedGrowth: 0, stalledFor: .seconds(5), dataFlowingGrace: .seconds(15)) == .rebuild)
+        #expect(PlayerService.stallRecoveryDecision(bufferedGrowth: 0.1, stalledFor: .seconds(5), dataFlowingGrace: .seconds(15)) == .rebuild)
+    }
+
+    @Test("the defaults allow about 15 s of trickling data")
+    func defaults() {
+        let timing = PlaybackNetworkRecoveryTiming()
+        #expect(timing.dataFlowingGrace == .seconds(15))
+        #expect(timing.stallGrace < timing.dataFlowingGrace)
+    }
+}
+
 @Suite("Personal audio route recovery")
 struct PersonalAudioRouteRecoveryTests {
     @Test("an ambiguous previous route never manufactures a pause")

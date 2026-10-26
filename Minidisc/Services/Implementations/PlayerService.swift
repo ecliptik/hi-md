@@ -62,6 +62,15 @@ nonisolated struct PlaybackNetworkRecoveryTiming: Sendable {
     var validationDelay: Duration = .seconds(2)
     /// First wait before the playing song's full download is retried; it doubles each attempt.
     var downloadRetryDelay: Duration = .seconds(2)
+    /// How long a stall may last while data keeps arriving before the item is rebuilt anyway.
+    var dataFlowingGrace: Duration = .seconds(15)
+    /// How often a stall with data arriving is checked again.
+    var dataFlowRecheck: Duration = .seconds(2)
+}
+
+nonisolated enum StallRecoveryDecision: Equatable, Sendable {
+    case keepWaiting
+    case rebuild
 }
 
 /// Bounds automatic stream rebuilds without permanently wedging recovery after one early failure.
@@ -212,6 +221,11 @@ actor PlayerService: PlayerServiceProtocol {
     private var networkRecoveryValidationGeneration: UInt64 = 0
     private var networkRecoveryTask: Task<Void, Never>?
     private var networkRecoveryTaskGeneration: UInt64 = 0
+    /// True while the armed probe is still sleeping, before it starts any rebuild work.
+    private var networkRecoveryProbeIsWaiting = false
+    /// The playback generation whose song has rendered audio. A later buffering stall of that song
+    /// is a connection problem; a song that never started may have been deleted on the server.
+    private var audioStartedPlaybackGeneration: UInt64?
     /// Automatic retries are bounded per track/path. Manual Play resets the budget and remains
     /// available even after all background attempts were consumed.
     private var networkRecoveryAttemptBudget = PlaybackNetworkRecoveryAttemptBudget()
@@ -2619,7 +2633,7 @@ actor PlayerService: PlayerServiceProtocol {
         guard action == .armAutomaticRecovery else { return }
         switch snapshot.playbackState {
         case .error:
-            await armNetworkRecoveryProbe(trackID: track.id, delay: .seconds(1), requireStall: false)
+            await armNetworkRecoveryProbe(trackID: track.id, delay: .seconds(1), requireStall: false, afterItemFailure: true)
         case .playing:
             // The engine may have emitted `.paused` while the path was offline. NWPath returning
             // online does not guarantee another KVO callback, so explicitly reassert the still-live
@@ -2653,6 +2667,7 @@ actor PlayerService: PlayerServiceProtocol {
         networkRecoveryTask?.cancel()
         networkRecoveryTask = nil
         networkRecoveryTaskGeneration &+= 1
+        networkRecoveryProbeIsWaiting = false
     }
 
     private func cancelNetworkRecoveryValidation() {
@@ -2779,10 +2794,15 @@ actor PlayerService: PlayerServiceProtocol {
         await armNetworkRecoveryProbe(trackID: trackID, delay: .milliseconds(250), requireStall: false)
     }
 
+    /// `afterItemFailure` marks a probe for a failed item: only then, or when the song never
+    /// started, is the server asked whether the song still exists. `stallStartedAt` carries the
+    /// original stall time across rechecks while data is still arriving.
     private func armNetworkRecoveryProbe(
         trackID: String,
         delay: Duration,
-        requireStall: Bool
+        requireStall: Bool,
+        afterItemFailure: Bool = false,
+        stallStartedAt: ContinuousClock.Instant? = nil
     ) async {
         // Keep one deadline per stalled item. KVO emits several paused/buffering callbacks
         // during a load: they must neither shorten the startup grace nor cancel a rebuild
@@ -2793,10 +2813,13 @@ actor PlayerService: PlayerServiceProtocol {
         let expectedPlaybackGeneration = playbackGeneration
         let expectedTransportGeneration = transportIntentGeneration
         let baselineProgress = engine.progress
+        let baselineBuffered = engine.bufferedDuration
+        let stallStartedAt = stallStartedAt ?? .now
         let remainingStartupGrace = activeEnginePlayback == nil ? Duration.zero
             : networkRecoveryTiming.startupGrace - activeEngineStartedAt.duration(to: .now)
         let probeDelay = max(delay, remainingStartupGrace)
 
+        networkRecoveryProbeIsWaiting = true
         networkRecoveryTask = Task { [weak self] in
             do {
                 try await Task.sleep(for: probeDelay)
@@ -2811,9 +2834,23 @@ actor PlayerService: PlayerServiceProtocol {
                 expectedTransportGeneration: expectedTransportGeneration,
                 requestGeneration: requestGeneration,
                 baselineProgress: baselineProgress,
-                requireStall: requireStall
+                baselineBuffered: baselineBuffered,
+                stallStartedAt: stallStartedAt,
+                requireStall: requireStall,
+                afterItemFailure: afterItemFailure
             )
         }
+    }
+
+    /// While AVPlayer waits but its loaded range keeps growing, data is still arriving: the
+    /// buffered item recovers by itself, and a rebuild would throw that data away. A stall with
+    /// nothing arriving is rebuilt after the shorter stall grace that armed the probe.
+    nonisolated static func stallRecoveryDecision(
+        bufferedGrowth: TimeInterval,
+        stalledFor: Duration,
+        dataFlowingGrace: Duration
+    ) -> StallRecoveryDecision {
+        bufferedGrowth > 0.25 && stalledFor < dataFlowingGrace ? .keepWaiting : .rebuild
     }
 
     private func performNetworkRecoveryProbe(
@@ -2823,13 +2860,17 @@ actor PlayerService: PlayerServiceProtocol {
         expectedTransportGeneration: UInt64,
         requestGeneration: UInt64,
         baselineProgress: TimeInterval,
-        requireStall: Bool
+        baselineBuffered: TimeInterval,
+        stallStartedAt: ContinuousClock.Instant,
+        requireStall: Bool,
+        afterItemFailure: Bool
     ) async {
         defer {
             if requestGeneration == networkRecoveryTaskGeneration {
                 networkRecoveryTask = nil
             }
         }
+        if requestGeneration == networkRecoveryTaskGeneration { networkRecoveryProbeIsWaiting = false }
         guard !Task.isCancelled,
               requestGeneration == networkRecoveryTaskGeneration,
               pathGeneration == latestNetworkPathEvent.generation,
@@ -2890,15 +2931,39 @@ actor PlayerService: PlayerServiceProtocol {
         // A copy may have completed after this stream started. It can take over without
         // waiting for a server probe, including when the cellular path has gone offline.
         guard localSource != nil || latestNetworkPathEvent.isOnline else { return }
+        if requireStall, localSource == nil,
+           Self.stallRecoveryDecision(
+               bufferedGrowth: engine.bufferedDuration - baselineBuffered,
+               stalledFor: stallStartedAt.duration(to: .now),
+               dataFlowingGrace: networkRecoveryTiming.dataFlowingGrace
+           ) == .keepWaiting {
+            Logger.player.info(
+                "[NETWORK-RECOVERY] data still arriving — keeping the buffered item track='\(trackID, privacy: .public)'"
+            )
+            networkRecoveryTask = nil
+            networkRecoveryTaskGeneration &+= 1
+            await armNetworkRecoveryProbe(
+                trackID: trackID, delay: networkRecoveryTiming.dataFlowRecheck,
+                requireStall: true, stallStartedAt: stallStartedAt
+            )
+            return
+        }
+        // A plain buffering stall of a song that has already played is a connection problem, not a
+        // deleted song: skip the server lookup (up to 8 s) and rebuild straight away.
+        let checksServer = localSource == nil
+            && (afterItemFailure || audioStartedPlaybackGeneration != expectedPlaybackGeneration)
         let availability = if localSource != nil { MediaAvailability.available }
-            else { await mediaResolver.availability(songId: trackID, serverId: serverID) }
+            else if checksServer { await mediaResolver.availability(songId: trackID, serverId: serverID) }
+            else { MediaAvailability.unknown }
         guard !Task.isCancelled,
               requestGeneration == networkRecoveryTaskGeneration,
               pathGeneration == latestNetworkPathEvent.generation,
               expectedPlaybackGeneration == playbackGeneration,
               expectedTransportGeneration == transportIntentGeneration,
               networkReloadRequiredTrackID == trackID else { return }
-        playbackDiagnostics.record(.mediaAvailabilityChecked(availability, playbackGeneration: expectedPlaybackGeneration))
+        if localSource != nil || checksServer {
+            playbackDiagnostics.record(.mediaAvailabilityChecked(availability, playbackGeneration: expectedPlaybackGeneration))
+        }
 
         // The server lookup itself may take time. Do not replace audio that recovered meanwhile.
         if activeEngineState == .playing, engine.progress > currentProgress + 0.1 {
@@ -2970,7 +3035,10 @@ actor PlayerService: PlayerServiceProtocol {
             )
             networkRecoveryTask = nil
             networkRecoveryTaskGeneration &+= 1
-            await armNetworkRecoveryProbe(trackID: trackID, delay: networkRecoveryTiming.retryDelay, requireStall: false)
+            await armNetworkRecoveryProbe(
+                trackID: trackID, delay: networkRecoveryTiming.retryDelay,
+                requireStall: false, afterItemFailure: afterItemFailure
+            )
             return
         }
         guard !Task.isCancelled,
@@ -3771,6 +3839,7 @@ actor PlayerService: PlayerServiceProtocol {
         guard isCurrentEngineEvent(playbackToken) else { return }
         switch newState {
         case .playing:
+            audioStartedPlaybackGeneration = playbackGeneration
             if let info = pendingRestoreInfo {
                 pendingRestoreInfo = nil
                 // Seek while the engine is running. AVPlayer may still accept the request while its
@@ -3925,11 +3994,25 @@ actor PlayerService: PlayerServiceProtocol {
             cancelNetworkRecoveryValidation()
         }
         networkRecoveryValidationToken = playbackToken
+        // A complete local copy takes over at once: no grace, no server check. A probe still
+        // sleeping out a stream's grace is replaced; one already rebuilding is left to finish.
+        if localSource != nil, networkRecoveryProbeIsWaiting {
+            cancelNetworkRecoveryProbe()
+        }
         await armNetworkRecoveryProbe(
             trackID: trackID,
             delay: localSource == nil ? networkRecoveryTiming.stallGrace : .zero,
             requireStall: true
         )
+    }
+
+    /// The playing song's download finished while AVPlayer was waiting for the stream: switch to
+    /// the complete copy now rather than after the stall grace.
+    private func switchToCompleteCopyIfStalled() async {
+        guard let playback = activeEnginePlayback,
+              activeEngineState == .buffering || activeEngineState == .paused,
+              currentSourceIsRemoteStream else { return }
+        await armRecoveryForUnexpectedEngineStall(playbackToken: playback.token)
     }
 
     func handleEngineError(
@@ -3975,7 +4058,8 @@ actor PlayerService: PlayerServiceProtocol {
             await armNetworkRecoveryProbe(
                 trackID: trackID,
                 delay: networkRecoveryTiming.retryDelay,
-                requireStall: false
+                requireStall: false,
+                afterItemFailure: true
             )
         } else {
             await MainActor.run { state.playbackState = .error(.timeout) }
@@ -4092,6 +4176,7 @@ actor PlayerService: PlayerServiceProtocol {
         guard generation == playbackGeneration else { return }
         if stored { currentSongDownload?.isComplete = true }
         await publishCurrentSongNeedsNetwork(false)
+        if stored { await switchToCompleteCopyIfStalled() }
     }
 
     /// Restarts the full download after a network change cancelled it, outside the transition window.
