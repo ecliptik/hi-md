@@ -45,14 +45,12 @@ struct MinidiscMacApp: App {
 
         // MARK: Menu bar player
 
-        MenuBarExtra(isInserted: $showsMenuBarPlayer) {
+        MenuBarExtra("Minidisc", systemImage: "opticaldisc", isInserted: menuBarPlayerInserted) {
             if let container = activeContainer {
                 MacMenuBarPlayer(container: container, interface: interface)
                     .environment(\.appContainer, container)
                     .environment(container.artworkImageCache)
             }
-        } label: {
-            Label("Minidisc", systemImage: activeContainer?.playerState.wantsPlayback == true ? "opticaldisc.fill" : "opticaldisc")
         }
         .menuBarExtraStyle(.window)
     }
@@ -62,6 +60,12 @@ struct MinidiscMacApp: App {
     }
 
     private var activeContainer: AppContainer? { appDelegate.launcher.container }
+
+    /// Follows the setting, but ignores the system taking the item out of the menu bar: writing
+    /// that back to the setting made SwiftUI re-insert the item and rebuild the menus in a loop.
+    private var menuBarPlayerInserted: Binding<Bool> {
+        Binding(get: { showsMenuBarPlayer }, set: { _ in })
+    }
 }
 
 private struct MacLaunchContent: View {
