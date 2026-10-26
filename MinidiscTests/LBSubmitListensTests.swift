@@ -206,6 +206,7 @@ struct LBSubmissionGatingTests {
         let defaultsSuiteName = "test.submit.\(UUID().uuidString)"
         let tmpURL = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString + ".json")
         let service = ListenBrainzService(
+            submitsListens: true,
             client: ListenBrainzClient(transport: transport),
             keychain: keychain,
             userDefaults: UserDefaults(suiteName: defaultsSuiteName)!,
@@ -253,6 +254,24 @@ struct LBSubmissionGatingTests {
         let requests = transport.requests
         #expect(requests.count == 2)
         #expect(requests.last?.url?.path.hasSuffix("/1/submit-listens") == true)
+    }
+
+    @Test("by default the app submits nothing, even with scrobbling configured")
+    func defaultServiceLeavesListensToTheServer() async throws {
+        let transport = RecordingTransport(status: 200, body: validTokenBody)
+        let service = ListenBrainzService(
+            client: ListenBrainzClient(transport: transport),
+            keychain: SubmitMockKeychain(),
+            userDefaults: UserDefaults(suiteName: "test.submit.\(UUID().uuidString)")!,
+            queueFileURL: URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString + ".json")
+        )
+        #expect(!service.submitsListens)
+        try await service.validateAndSaveScrobblingToken("tok", rootURL: defaultRoot)
+        let afterValidation = transport.requests.count
+        await service.notifyTrackStarted(song: makeSong())
+        await service.notifyScrobbleThreshold(song: makeSong(), startDate: Date())
+        await service.flushOfflineQueue()
+        #expect(transport.requests.count == afterValidation)
     }
 
     @Test("a valid token without a username can be disabled and re-enabled")

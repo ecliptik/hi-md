@@ -93,6 +93,7 @@ struct ScrobblingKeychainFailureTests {
         let sharedKeychain = FlakyKeychain()
         let suite = "test.scrobble.\(UUID())"
         let first = ListenBrainzService(
+            submitsListens: true,
             client: ListenBrainzClient(transport: FailingAfterValidation(validToken)),
             keychain: sharedKeychain, userDefaults: UserDefaults(suiteName: suite)!, queueFileURL: queueURL
         )
@@ -104,6 +105,7 @@ struct ScrobblingKeychainFailureTests {
         // Relaunch while the Keychain cannot be read.
         sharedKeychain.failReads = true
         let relaunched = ListenBrainzService(
+            submitsListens: true,
             client: ListenBrainzClient(transport: FailingAfterValidation(nil)),
             keychain: sharedKeychain, userDefaults: UserDefaults(suiteName: suite)!, queueFileURL: queueURL
         )
