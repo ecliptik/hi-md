@@ -25,6 +25,12 @@ struct MinidiscMacApp: App {
                 .containerLifecycle(activeContainer)
                 .winampMode(activeContainer) // Winamp mode: MinidiscMac/Winamp
         }
+        // The View menu's standard sidebar and toolbar groups. Lyrics, Playing Next and Winamp Mode
+        // are placed relative to them, and SwiftUI drops a group whose anchor isn't in the menu.
+        .commands {
+            SidebarCommands()
+            ToolbarCommands()
+        }
         .commands { MacCommands(container: activeContainer, interface: interface) }
         .commands { WinampCommands() } // Winamp mode: View > Winamp Mode (⌘⇧W)
         .onChange(of: scenePhase) { _, newPhase in
