@@ -279,7 +279,31 @@ actor DownloadService: DownloadServiceProtocol {
         progressContinuation?.yield(values)
     }
 
+    /// Creates `directory` and keeps it out of iCloud and device backups. Downloads and server covers
+    /// can be fetched again; user-chosen playlist covers can't, so `playlistcovers/` stays backed up.
+    private func createDirectoryExcludedFromBackup(_ directory: URL) throws {
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        // Checked on every call: a cache wipe can delete and recreate the folder without the flag.
+        guard (try? directory.resourceValues(forKeys: [.isExcludedFromBackupKey]))?.isExcludedFromBackup != true else { return }
+        var values = URLResourceValues()
+        values.isExcludedFromBackup = true
+        var url = directory
+        try url.setResourceValues(values)
+    }
+
+    /// Folders created by earlier builds are still in backups; this runs at every launch.
+    func excludeDownloadsFromBackup() {
+        for directory in [downloadsDirectory, coverArtsDirectory] {
+            do {
+                try createDirectoryExcludedFromBackup(directory)
+            } catch {
+                Logger.download.error("Failed to exclude '\(directory.lastPathComponent, privacy: .public)' from backups: \(error.logSafe, privacy: .public)")
+            }
+        }
+    }
+
     func restorePendingDownloads() async {
+        excludeDownloadsFromBackup()
         do { try await downloadsQueue().resumePending() }
         catch { await toastService.showError(UserFacingError.from(error).displayMessage) }
     }
@@ -401,7 +425,7 @@ actor DownloadService: DownloadServiceProtocol {
         guard let url = Self.coverURL(forId: coverArtId, in: coverArtsDirectory) else { return }
         Logger.download.debug("persistCover id='\(coverArtId, privacy: .public)' path='\(url.path, privacy: .public)' bytes=\(data.count, privacy: .public)")
         do {
-            try FileManager.default.createDirectory(at: coverArtsDirectory, withIntermediateDirectories: true)
+            try createDirectoryExcludedFromBackup(coverArtsDirectory)
             try data.write(to: url, options: .atomic)
         } catch {
             Logger.download.debug("Failed to persist cover '\(coverArtId, privacy: .public)': \(error, privacy: .public)")
@@ -582,6 +606,7 @@ actor DownloadService: DownloadServiceProtocol {
             }
         }
 
+        try createDirectoryExcludedFromBackup(downloadsDirectory)
         try FileManager.default.createDirectory(at: fileURL.deletingLastPathComponent(), withIntermediateDirectories: true)
         if FileManager.default.fileExists(atPath: fileURL.path) {
             try FileManager.default.removeItem(at: fileURL)
@@ -1095,7 +1120,7 @@ actor DownloadService: DownloadServiceProtocol {
         // The server's stand-in for a song without artwork; the app shows its own placeholder.
         guard !ServerPlaceholderArtwork.matches(imageData: data) else { throw URLError(.resourceUnavailable) }
 
-        try FileManager.default.createDirectory(at: coverArtsDirectory, withIntermediateDirectories: true)
+        try createDirectoryExcludedFromBackup(coverArtsDirectory)
         try data.write(to: fileURL, options: .atomic)
         Logger.download.info("Cover art '\(id, privacy: .public)' downloaded (\(data.count) bytes)")
     }
