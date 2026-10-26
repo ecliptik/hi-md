@@ -31,6 +31,23 @@ struct AIRecommendationTests {
         #expect(musicBrainz.absoluteString.contains("type=release"))
     }
 
+    @Test func musicBrainzLinkOpensTheReleaseGroupOnceVerified() throws {
+        var verified = sample
+        verified.releaseGroupID = "b7ffd2af-418f-4be2-bdd1-22f8b48613da"
+        let url = try #require(AIRecommendationLinks.musicBrainz(verified))
+        #expect(url.absoluteString == "https://musicbrainz.org/release-group/b7ffd2af-418f-4be2-bdd1-22f8b48613da")
+    }
+
+    @Test func picksParseFromChattyAnswers() throws {
+        let picks = try AIRecommendationParser.parsePicks(#"Here: {"picks": [{"id": "c3", "reason": "r"}, {"id": "c1"}]}"#)
+        #expect(picks == [AIRecommendationPick(id: "c3", reason: "r"), AIRecommendationPick(id: "c1", reason: "")])
+        #expect(throws: AIRecommendationError.badResponse) { try AIRecommendationParser.parsePicks("No.") }
+    }
+
+    @Test func ampersandMatchesAnd() {
+        #expect(AIRecommendationMatcher.key("Slanted & Enchanted") == AIRecommendationMatcher.key("Slanted and Enchanted"))
+    }
+
     @Test func profilePromptListsOnlyWhatIsKnown() {
         var profile = AIListeningProfile()
         #expect(profile.isEmpty)
