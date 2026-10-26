@@ -51,7 +51,7 @@ struct MacPlaylistTile: View {
     }
 }
 
-/// Songs in a sideways shelf of short columns, like the Music app's Top Songs. Double-click or
+/// Songs in a sideways shelf of short columns, like the Music app's Top Songs. A click or
 /// Return plays from that song through the whole list; the context menu is every song list's.
 struct MacSongShelf: View {
     let title: String
@@ -134,9 +134,11 @@ struct MacSongShelfRow: View {
             .focusable()
             .focused($isFocused)
             .focusEffectDisabled()
-            .onTapGesture(count: 2, perform: play)
-            // A click selects the row, as in a song list, so Return plays it.
-            .simultaneousGesture(TapGesture().onEnded { isFocused = true })
+            // A click plays, as in Music's song shelves, and selects the row for the keyboard.
+            .onTapGesture {
+                isFocused = true
+                play()
+            }
             .onKeyPress(.return) {
                 play()
                 return .handled

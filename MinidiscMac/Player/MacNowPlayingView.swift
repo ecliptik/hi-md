@@ -23,6 +23,8 @@ struct MacNowPlayingView: View {
     @State private var isLyricsFullScreen = false
     @State private var window = MacWindowHandle()
     @State private var titleBarChange: MacTitleBarChange?
+    /// Room left for the traffic lights, none when they're hidden, as in full screen.
+    @State private var windowButtonsInset: CGFloat = MacTitleBarChange.trafficLightsInset
 
     private var state: PlayerState { playback.state }
 
@@ -76,7 +78,16 @@ struct MacNowPlayingView: View {
         .ignoresSafeArea(.container, edges: .top)
         .background(MacWindowReader(handle: window) { window in
             if titleBarChange == nil { titleBarChange = MacTitleBarChange(applyingTo: window) }
+            windowButtonsInset = MacTitleBarChange.leadingInset(in: window)
         })
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didEnterFullScreenNotification)) { note in
+            guard let nsWindow = window.window, note.object as? NSWindow === nsWindow else { return }
+            windowButtonsInset = MacTitleBarChange.leadingInset(in: nsWindow)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didExitFullScreenNotification)) { note in
+            guard let nsWindow = window.window, note.object as? NSWindow === nsWindow else { return }
+            windowButtonsInset = MacTitleBarChange.leadingInset(in: nsWindow)
+        }
         .onDisappear {
             titleBarChange?.restore()
             titleBarChange = nil
@@ -280,8 +291,8 @@ struct MacNowPlayingView: View {
             .help("MiniPlayer")
         }
         .buttonStyle(.plain)
-        // Beside the traffic lights, which now sit over the backdrop.
-        .padding(.leading, 84)
+        // Beside the traffic lights, which now sit over the backdrop, or at the edge without them.
+        .padding(.leading, windowButtonsInset)
         .padding(.top, 12)
     }
 
@@ -415,6 +426,19 @@ final class MacTitleBarChange {
         hadFullSizeContent = window.styleMask.contains(.fullSizeContentView)
         window.titlebarAppearsTransparent = true
         window.styleMask.insert(.fullSizeContentView)
+    }
+
+    static let trafficLightsInset: CGFloat = 84
+    static let edgeInset: CGFloat = 20
+
+    /// How far the window's own buttons push content from the leading edge: past the traffic
+    /// lights while they show, and to the edge in full screen, where they're hidden.
+    static func leadingInset(in window: NSWindow) -> CGFloat {
+        guard !window.styleMask.contains(.fullScreen),
+              let zoom = window.standardWindowButton(.zoomButton),
+              !zoom.isHiddenOrHasHiddenAncestor, zoom.alphaValue > 0.01
+        else { return edgeInset }
+        return max(trafficLightsInset, zoom.convert(zoom.bounds, to: nil).maxX + 16)
     }
 
     func restore() {
