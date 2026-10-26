@@ -120,6 +120,13 @@ private actor RecoveryTestResolver: MediaResolverProtocol {
     var usesDownloadedSource = false
     var usesCachedSource = false
     func useCachedSource() { usesCachedSource = true }
+    /// The cached copy is a lower-quality transcode than the stream, as after cellular caching.
+    var cachedCopyIsLowerQuality = false
+    func useLowerQualityCachedSource() { usesCachedSource = true; cachedCopyIsLowerQuality = true }
+    func hasLocalCopy(songId: String, serverId: UUID, atLeast quality: CachedAudioQuality) async -> Bool {
+        if usesDownloadedSource { return true }
+        return usesCachedSource && !cachedCopyIsLowerQuality
+    }
     func localSource(songId: String, serverId: UUID) async -> MediaSource? {
         if usesDownloadedSource { return .downloaded(URL(fileURLWithPath: "/tmp/recovery-test-audio.m4a")) }
         if usesCachedSource { return .cached(URL(fileURLWithPath: "/tmp/recovery-test-cache.m4a")) }
@@ -292,7 +299,7 @@ private struct RecoveryHarness {
 struct PlayerRecoveryIntegrationTests {
     @Test(arguments: [false, true])
     func stalledStreamUsesNewlyCompletedCacheWithoutServerProbe(offline: Bool) async throws {
-        let h = try RecoveryHarness(startupGrace: .milliseconds(100))
+        let h = try RecoveryHarness()
         try await h.play()
         try await h.waitUntil { h.report.contains("engine state=buffering") }
         _ = await h.engine.seek(to: 37)
@@ -1125,7 +1132,7 @@ struct PatientStallRecoveryTests {
     }
 
     @Test func aStallIsNotRebuiltWhileDataKeepsArrivingAndSkipsTheServerCheck() async throws {
-        let h = try RecoveryHarness(startupGrace: .milliseconds(50), stallGrace: .milliseconds(100),
+        let h = try RecoveryHarness(startupGrace: .milliseconds(800), stallGrace: .milliseconds(100),
                                     dataFlowingGrace: .milliseconds(900))
         try await playing(h)
         await h.player.handleEngineState(.buffering, playbackToken: h.engine.token)
@@ -1144,7 +1151,7 @@ struct PatientStallRecoveryTests {
     }
 
     @Test func aStallWithNothingArrivingIsRebuiltAfterTheShortGrace() async throws {
-        let h = try RecoveryHarness(startupGrace: .milliseconds(50), stallGrace: .milliseconds(100),
+        let h = try RecoveryHarness(startupGrace: .milliseconds(800), stallGrace: .milliseconds(100),
                                     dataFlowingGrace: .seconds(10))
         try await playing(h)
         let stalled = ContinuousClock.now
@@ -1156,7 +1163,7 @@ struct PatientStallRecoveryTests {
     }
 
     @Test func aStallWithACompleteCopySwitchesAtOnce() async throws {
-        let h = try RecoveryHarness(startupGrace: .milliseconds(50), stallGrace: .seconds(20))
+        let h = try RecoveryHarness(startupGrace: .milliseconds(800), stallGrace: .seconds(20))
         try await playing(h)
         // The first stall arms the long stream grace; the copy then completes.
         await h.player.handleEngineState(.buffering, playbackToken: h.engine.token)
@@ -1171,10 +1178,23 @@ struct PatientStallRecoveryTests {
         await h.player.stop()
     }
 
+    @Test func aLowerQualityCopyWaitsLikeTheStreamBeforeTakingOver() async throws {
+        let h = try RecoveryHarness(startupGrace: .milliseconds(800), stallGrace: .milliseconds(600))
+        try await playing(h)
+        await h.resolver.useLowerQualityCachedSource()
+        await h.player.handleEngineState(.buffering, playbackToken: h.engine.token)
+        try await Task.sleep(for: .milliseconds(250))
+        #expect(h.engine.playCount == 1, "A brief stall must not drop a Wi-Fi original to a cellular transcode")
+        try await h.waitUntil { h.engine.playCount == 2 }
+        #expect(h.engine.sourceURL?.lastPathComponent == "recovery-test-cache.m4a")
+        #expect(await h.resolver.availabilityCalls == 0)
+        await h.player.stop()
+    }
+
     @Test func aDownloadFinishingDuringAStallTakesOverAtOnce() async throws {
         AudioDownloadStubProtocol.reset(responseDelay: .milliseconds(900))
         let cache = RecordingAudioStreamCache()
-        let h = try RecoveryHarness(startupGrace: .milliseconds(50), audioStreamCache: cache,
+        let h = try RecoveryHarness(startupGrace: .milliseconds(800), audioStreamCache: cache,
                                     cacheSession: AudioDownloadStubProtocol.session(),
                                     streamCacheFormat: .matchStream, stallGrace: .seconds(20))
         cache.onStore = { await h.resolver.useCachedSource() }
@@ -1189,7 +1209,7 @@ struct PatientStallRecoveryTests {
     }
 
     @Test func anItemFailureStillAsksTheServerWhetherTheSongExists() async throws {
-        let h = try RecoveryHarness(startupGrace: .milliseconds(50))
+        let h = try RecoveryHarness(startupGrace: .milliseconds(800))
         await h.resolver.configure(missing: ["a"])
         try await playing(h)
         await h.player.handleEngineError(.init(error: URLError(.badServerResponse)), playbackToken: h.engine.token)

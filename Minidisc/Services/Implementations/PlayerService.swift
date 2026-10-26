@@ -1769,7 +1769,7 @@ actor PlayerService: PlayerServiceProtocol {
         guard transportGeneration == transportIntentGeneration, !Task.isCancelled else { return }
         startProgressTimer()
         startPositionSaveTimer()
-        resumeCurrentSongDownloadIfNeeded()
+        await resumeCurrentSongDownloadIfNeeded()
         if currentSongDownload?.playbackGeneration != playbackGeneration {
             // A pause during startup skipped the download; nothing holds pre-caching back.
             await publishCurrentSongNeedsNetwork(false)
@@ -2574,7 +2574,7 @@ actor PlayerService: PlayerServiceProtocol {
         // still tied to the previous interface, and manual Next would otherwise promote it.
         engine.cancelPreload()
         // The cancelled full download was tied to the old interface; start it again on the new one.
-        resumeCurrentSongDownloadIfNeeded()
+        await resumeCurrentSongDownloadIfNeeded()
 
         let generation = playbackGeneration
         let transportGeneration = transportIntentGeneration
@@ -2808,7 +2808,8 @@ actor PlayerService: PlayerServiceProtocol {
         delay: Duration,
         requireStall: Bool,
         afterItemFailure: Bool = false,
-        stallStartedAt: ContinuousClock.Instant? = nil
+        stallStartedAt: ContinuousClock.Instant? = nil,
+        ignoresStartupGrace: Bool = false
     ) async {
         // Keep one deadline per stalled item. KVO emits several paused/buffering callbacks
         // during a load: they must neither shorten the startup grace nor cancel a rebuild
@@ -2823,7 +2824,8 @@ actor PlayerService: PlayerServiceProtocol {
         let stallStartedAt = stallStartedAt ?? .now
         let remainingStartupGrace = activeEnginePlayback == nil ? Duration.zero
             : networkRecoveryTiming.startupGrace - activeEngineStartedAt.duration(to: .now)
-        let probeDelay = max(delay, remainingStartupGrace)
+        // The startup grace gives a slow stream time to open; a complete local copy needs none.
+        let probeDelay = ignoresStartupGrace ? delay : max(delay, remainingStartupGrace)
 
         networkRecoveryProbeIsWaiting = true
         networkRecoveryTask = Task { [weak self] in
@@ -2937,7 +2939,11 @@ actor PlayerService: PlayerServiceProtocol {
         // A copy may have completed after this stream started. It can take over without
         // waiting for a server probe, including when the cellular path has gone offline.
         guard localSource != nil || latestNetworkPathEvent.isOnline else { return }
-        if requireStall, localSource == nil,
+        let localCopyMatchesStream = if localSource != nil {
+            await hasLocalCopyMatchingStream(trackID: trackID, serverID: serverID)
+        } else { false }
+        guard !Task.isCancelled, requestGeneration == networkRecoveryTaskGeneration else { return }
+        if requireStall, !localCopyMatchesStream,
            Self.stallRecoveryDecision(
                bufferedGrowth: engine.bufferedDuration - baselineBuffered,
                stalledFor: stallStartedAt.duration(to: .now),
@@ -3113,7 +3119,7 @@ actor PlayerService: PlayerServiceProtocol {
         startPositionSaveTimer()
         endTransitionCommit()
         ownsTransitionCommit = false
-        resumeCurrentSongDownloadIfNeeded()
+        await resumeCurrentSongDownloadIfNeeded()
         await pushPositionSnapshot(rate: 1.0)
         playbackDiagnostics.record(
             .networkRecovery(
@@ -3339,6 +3345,9 @@ actor PlayerService: PlayerServiceProtocol {
             remaining: duration - progress
         )
         await setNearTrackTransition(isNear)
+        // Every cancellation path (network change, item error, audio-system reset) ends up here
+        // while the song plays, so an interrupted download always gets going again.
+        if !isNear { await resumeCurrentSongDownloadIfNeeded() }
     }
 
     private func setNearTrackTransition(_ isNear: Bool) async {
@@ -3346,7 +3355,7 @@ actor PlayerService: PlayerServiceProtocol {
         isNearTrackTransition = isNear
         await MainActor.run { state.isNearTrackTransition = isNear }
         // Seeking back out of the window lets an interrupted download finish.
-        if !isNear { resumeCurrentSongDownloadIfNeeded() }
+        if !isNear { await resumeCurrentSongDownloadIfNeeded() }
     }
 
     private func stopProgressTimer() {
@@ -4025,16 +4034,29 @@ actor PlayerService: PlayerServiceProtocol {
             cancelNetworkRecoveryValidation()
         }
         networkRecoveryValidationToken = playbackToken
-        // A complete local copy takes over at once: no grace, no server check. A probe still
-        // sleeping out a stream's grace is replaced; one already rebuilding is left to finish.
-        if localSource != nil, networkRecoveryProbeIsWaiting {
+        // A complete copy as good as the stream takes over at once: no grace, no server check. A
+        // probe still sleeping out a stream's grace is replaced; one already rebuilding is left to
+        // finish. A lower-quality copy (a cellular transcode heard on Wi-Fi) waits like the stream
+        // and is used only if the stall persists.
+        let switchesAtOnce = if localSource != nil {
+            await hasLocalCopyMatchingStream(trackID: trackID, serverID: serverID)
+        } else { false }
+        guard isCurrentEngineEvent(playbackToken), audioSystemRecovery == nil else { return }
+        if switchesAtOnce, networkRecoveryProbeIsWaiting {
             cancelNetworkRecoveryProbe()
         }
         await armNetworkRecoveryProbe(
             trackID: trackID,
-            delay: localSource == nil ? networkRecoveryTiming.stallGrace : .zero,
-            requireStall: true
+            delay: switchesAtOnce ? .zero : networkRecoveryTiming.stallGrace,
+            requireStall: true,
+            ignoresStartupGrace: switchesAtOnce
         )
+    }
+
+    /// Whether a complete local copy is at least as good as the stream that is playing.
+    private func hasLocalCopyMatchingStream(trackID: String, serverID: UUID) async -> Bool {
+        guard case .stream(let url, _) = currentSource else { return false }
+        return await mediaResolver.hasLocalCopy(songId: trackID, serverId: serverID, atLeast: CachedAudioQuality(streamURL: url))
     }
 
     /// The playing song's download finished while AVPlayer was waiting for the stream: switch to
@@ -4192,7 +4214,9 @@ actor PlayerService: PlayerServiceProtocol {
                 }
             }
         }
+        // Out of attempts: stop holding pre-caching back, and do not start over on every tick.
         await finishCurrentSongDownload(generation: generation, stored: false)
+        if generation == playbackGeneration { currentSongDownload = nil }
     }
 
     private nonisolated static let currentSongDownloadAttempts = 4
@@ -4210,10 +4234,18 @@ actor PlayerService: PlayerServiceProtocol {
         if stored { await switchToCompleteCopyIfStalled() }
     }
 
-    /// Restarts the full download after a network change cancelled it, outside the transition window.
-    private func resumeCurrentSongDownloadIfNeeded() {
+    /// Restarts a full download that was cancelled before it finished, outside the transition window.
+    private func resumeCurrentSongDownloadIfNeeded() async {
+        guard let download = currentSongDownload, download.playbackGeneration == playbackGeneration,
+              !download.isComplete, cacheDownloadTask == nil else { return }
+        guard currentSourceIsRemoteStream else {
+            // A rebuild moved the song to a complete local copy; nothing is left to download.
+            currentSongDownload = nil
+            await publishCurrentSongNeedsNetwork(false)
+            return
+        }
         guard latestNetworkPathEvent.isOnline, !latestNetworkPathEvent.descriptor.isConstrained,
-              !isNearTrackTransition, currentSourceIsRemoteStream else { return }
+              !isNearTrackTransition else { return }
         startCurrentSongDownload()
     }
 
