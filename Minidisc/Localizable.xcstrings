@@ -1730,6 +1730,58 @@
         }
       }
     },
+    "Choose audio files to add to the playlist." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wähle Audiodateien, die zur Wiedergabeliste hinzugefügt werden sollen."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Επιλέξτε αρχεία ήχου για προσθήκη στη λίστα αναπαραγωγής."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elige archivos de audio para añadirlos a la lista."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choisissez des fichiers audio à ajouter à la liste de lecture."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scegli i file audio da aggiungere alla playlist."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "プレイリストに追加するオーディオファイルを選択してください。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择要添加到播放列表的音频文件。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選擇要加入播放列表的音訊檔案。"
+          }
+        }
+      }
+    },
     "Choose Audio Output" : {
       "localizations" : {
         "de" : {
@@ -1830,6 +1882,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "在原始檔案與節省數據之間做選擇。"
+          }
+        }
+      }
+    },
+    "Choose folders to add. Every audio file in them and their subfolders goes on the playlist." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wähle Ordner zum Hinzufügen. Jede Audiodatei darin und in ihren Unterordnern kommt in die Wiedergabeliste."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Επιλέξτε φακέλους για προσθήκη. Κάθε αρχείο ήχου σε αυτούς και στους υποφακέλους τους μπαίνει στη λίστα αναπαραγωγής."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elige carpetas para añadir. Todos los archivos de audio que contengan, también en sus subcarpetas, irán a la lista."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choisissez des dossiers à ajouter. Chaque fichier audio qu’ils contiennent, sous-dossiers compris, rejoint la liste de lecture."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scegli le cartelle da aggiungere. Ogni file audio al loro interno e nelle sottocartelle va nella playlist."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "追加するフォルダを選択してください。フォルダとそのサブフォルダ内のすべてのオーディオファイルがプレイリストに追加されます。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择要添加的文件夹。其中及其子文件夹中的所有音频文件都会加入播放列表。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選擇要加入的檔案夾。其中及其子檔案夾中的所有音訊檔案都會加入播放列表。"
           }
         }
       }
@@ -2038,6 +2142,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "無法重新產生心情播放清單。請檢查連線和音樂來源，然後再試。"
+          }
+        }
+      }
+    },
+    "Couldn't Add Music" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Musik konnte nicht hinzugefügt werden"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Δεν ήταν δυνατή η προσθήκη μουσικής"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo añadir la música"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible d’ajouter la musique"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile aggiungere la musica"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ミュージックを追加できませんでした"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法添加音乐"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法加入音樂"
           }
         }
       }
@@ -4018,6 +4174,58 @@
         }
       }
     },
+    "Minidisc couldn't read the files or folders you chose." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Minidisc konnte die gewählten Dateien oder Ordner nicht lesen."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Το Minidisc δεν μπόρεσε να διαβάσει τα αρχεία ή τους φακέλους που επιλέξατε."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Minidisc no pudo leer los archivos o carpetas que elegiste."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Minidisc n’a pas pu lire les fichiers ou dossiers choisis."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Minidisc non è riuscito a leggere i file o le cartelle che hai scelto."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択したファイルまたはフォルダをMinidiscが読み取れませんでした。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Minidisc 无法读取你选择的文件或文件夹。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Minidisc 無法讀取你選擇的檔案或檔案夾。"
+          }
+        }
+      }
+    },
     "Mood playlists" : {
       "localizations" : {
         "de" : {
@@ -4794,6 +5002,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "無法載入外觀"
+          }
+        }
+      }
+    },
+    "There are no audio files there that Minidisc can play." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dort gibt es keine Audiodateien, die Minidisc abspielen kann."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Δεν υπάρχουν εκεί αρχεία ήχου που μπορεί να αναπαραγάγει το Minidisc."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ahí no hay archivos de audio que Minidisc pueda reproducir."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il n’y a là aucun fichier audio que Minidisc peut lire."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non ci sono file audio che Minidisc possa riprodurre."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Minidiscで再生できるオーディオファイルが見つかりませんでした。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "那里没有 Minidisc 可以播放的音频文件。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "那裡沒有 Minidisc 可以播放的音訊檔案。"
           }
         }
       }

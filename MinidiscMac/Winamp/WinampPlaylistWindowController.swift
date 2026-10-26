@@ -524,9 +524,12 @@ final class WinampPlaylistWindowController: NSObject, NSWindowDelegate, WinampSu
         let count = player.queue.count
         switch item {
         case .addURL:
-            host?.playlistFiles?.open(replacing: false)
-        case .addFolder, .addFile:
+            // The server's folders, as a network location.
             host?.showFolderBrowser()
+        case .addFolder:
+            host?.localFiles?.add(folders: true)
+        case .addFile:
+            host?.localFiles?.add(folders: false)
         case .removeAll:
             remove(Set(0..<count))
         case .crop:

@@ -9,6 +9,8 @@ protocol WinampWindowHost: AnyObject {
     var scale: CGFloat { get }
     var isUsingDefaultSkin: Bool { get }
     var playlistFiles: WinampPlaylistFiles? { get }
+    /// ADD > FILE and ADD > DIR: local audio files and folders.
+    var localFiles: WinampLocalFiles? { get }
 
     /// A drag of the window's title bar: the main window brings its docked windows; another
     /// window moves alone, which undocks it.
@@ -62,6 +64,7 @@ final class WinampMode: WinampWindowHost {
     private var playlistWindow: WinampPlaylistWindowController?
     private var folderBrowser: WinampFolderBrowserWindow?
     private(set) var playlistFiles: WinampPlaylistFiles?
+    private(set) var localFiles: WinampLocalFiles?
     private var drag: Drag?
     private var autoEqualizerTrackID: String?
     private var isObservingTracks = false
@@ -85,6 +88,7 @@ final class WinampMode: WinampWindowHost {
         folderBrowser = nil
         self.container = container
         playlistFiles = WinampPlaylistFiles(container: container)
+        localFiles = WinampLocalFiles(container: container)
         if preferences.isOpen { show() }
     }
 
