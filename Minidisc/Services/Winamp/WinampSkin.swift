@@ -214,8 +214,13 @@ nonisolated struct WinampSkin: @unchecked Sendable {
         return skin
     }
 
+    /// Refuses a file over `ZipArchive.maximumArchiveSize` before reading it into memory.
     static func load(contentsOf url: URL, fallback: WinampSkin? = nil) throws -> WinampSkin {
-        try load(data: Data(contentsOf: url), name: url.deletingPathExtension().lastPathComponent, fallback: fallback)
+        if let size = try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize, size > ZipArchive.maximumArchiveSize {
+            throw ZipArchive.ZipError.tooLarge(url.lastPathComponent)
+        }
+        let data = try Data(contentsOf: url, options: .mappedIfSafe)
+        return try load(data: data, name: url.deletingPathExtension().lastPathComponent, fallback: fallback)
     }
 
     /// The original "Minidisc Gold" skin shipped with the app.

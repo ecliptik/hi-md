@@ -70,6 +70,24 @@ struct WinampHardeningTests {
         #expect(skin.visColors == fallback.visColors)
     }
 
+    // MARK: Skin archives
+
+    @Test func archivesOverTheCapAreRefused() throws {
+        let oversized = Data(count: ZipArchive.maximumArchiveSize + 1)
+        #expect(throws: ZipArchive.ZipError.tooLarge("archive")) { try ZipArchive(data: oversized) }
+
+        let url = FileManager.default.temporaryDirectory.appending(path: "oversized-\(UUID().uuidString).wsz")
+        try oversized.write(to: url)
+        defer { try? FileManager.default.removeItem(at: url) }
+        #expect(throws: ZipArchive.ZipError.tooLarge(url.lastPathComponent)) {
+            try WinampSkin.load(contentsOf: url)
+        }
+        // A normal skin is far below the cap.
+        var zip = TestZipWriter()
+        zip.add("readme.txt", Data("hello".utf8))
+        #expect(try ZipArchive(data: zip.archive()).entries.count == 1)
+    }
+
     // MARK: M3U durations
 
     @Test func extInfDurationsMustBeFiniteAndAtMostAWeek() {

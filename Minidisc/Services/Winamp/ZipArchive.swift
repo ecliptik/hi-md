@@ -35,10 +35,15 @@ nonisolated struct ZipArchive: Sendable {
     /// Skins are a few hundred KB; this bounds what a hostile archive can make us allocate.
     static let maximumEntrySize = 32 * 1024 * 1024
 
+    /// Whole archives larger than this are refused before they are copied or read. Classic skins
+    /// are well under 1 MB.
+    static let maximumArchiveSize = 16 * 1024 * 1024
+
     let entries: [Entry]
     private let bytes: [UInt8]
 
     init(data: Data) throws {
+        guard data.count <= Self.maximumArchiveSize else { throw ZipError.tooLarge("archive") }
         bytes = [UInt8](data)
         entries = try Self.readCentralDirectory(bytes)
     }
