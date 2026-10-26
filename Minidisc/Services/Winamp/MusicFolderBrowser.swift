@@ -1,6 +1,68 @@
 import Foundation
 import SwiftSonic
 
+/// One of the server's libraries, from `getMusicFolders`. The Subsonic spec and Navidrome send
+/// the ID as a number and some servers as a string; either is kept as a string.
+nonisolated struct MusicLibraryFolder: Sendable, Hashable, Decodable {
+    let id: String
+    let name: String?
+
+    init(id: String, name: String?) {
+        self.id = id
+        self.name = name
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, name
+    }
+
+    init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        if let number = try? container.decode(Int64.self, forKey: .id) {
+            id = String(number)
+        } else {
+            id = try container.decode(String.self, forKey: .id)
+        }
+        name = try container.decodeIfPresent(String.self, forKey: .name)
+    }
+
+    /// The libraries in a raw `getMusicFolders` response, or nil if it isn't a successful one.
+    static func folders(inResponse data: Data) -> [MusicLibraryFolder]? {
+        struct Envelope: Decodable {
+            let response: Body
+            enum CodingKeys: String, CodingKey { case response = "subsonic-response" }
+        }
+        struct Body: Decodable {
+            let status: String
+            let musicFolders: Folders?
+        }
+        struct Folders: Decodable {
+            let musicFolder: [MusicLibraryFolder]?
+        }
+        guard let envelope = try? JSONDecoder().decode(Envelope.self, from: data),
+              envelope.response.status == "ok" else { return nil }
+        return envelope.response.musicFolders?.musicFolder ?? []
+    }
+}
+
+/// What the folder browser says when a listing fails. A response the app can't read, or an error
+/// the server reported, is described as such rather than as an unreachable server.
+nonisolated enum MusicFolderBrowserError {
+    static func message(for error: any Error) -> String {
+        if let error = error as? SwiftSonicError {
+            switch error {
+            case .decoding:
+                return String(localized: "Your server sent a folder listing Minidisc couldn't read.")
+            case .api(let apiError) where !error.isAuthenticationFailure && apiError.code != .notFound:
+                return String(localized: "Your server couldn't list this folder: \(apiError.message)")
+            default:
+                break
+            }
+        }
+        return UserFacingError.from(error).displayMessage
+    }
+}
+
 /// A place in the server's folder tree.
 nonisolated enum MusicFolderLocation: Sendable, Hashable {
     /// Every music folder (library) on the server.

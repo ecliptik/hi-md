@@ -9224,6 +9224,110 @@
         }
       }
     },
+    "Your server couldn't list this folder: %@" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Server konnte diesen Ordner nicht auflisten: %@"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ο διακομιστής σας δεν μπόρεσε να εμφανίσει αυτόν τον φάκελο: %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tu servidor no pudo mostrar esta carpeta: %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Votre serveur n’a pas pu lister ce dossier : %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il tuo server non è riuscito a elencare questa cartella: %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "サーバがこのフォルダを一覧表示できませんでした：%@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的服务器无法列出此文件夹：%@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的伺服器無法列出此檔案夾：%@"
+          }
+        }
+      }
+    },
+    "Your server sent a folder listing Minidisc couldn't read." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Server hat eine Ordnerliste gesendet, die Minidisc nicht lesen konnte."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ο διακομιστής σας έστειλε μια λίστα φακέλων που το Minidisc δεν μπόρεσε να διαβάσει."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tu servidor envió una lista de carpetas que Minidisc no pudo leer."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Votre serveur a envoyé une liste de dossiers que Minidisc n’a pas pu lire."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il tuo server ha inviato un elenco di cartelle che Minidisc non è riuscito a leggere."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "サーバから送られたフォルダ一覧をMinidiscが読み取れませんでした。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的服务器发送的文件夹列表无法被 Minidisc 读取。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的伺服器傳送的檔案夾列表無法被 Minidisc 讀取。"
+          }
+        }
+      }
+    },
     "—" : {
       "localizations" : {
         "de" : {

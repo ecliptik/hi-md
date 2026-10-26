@@ -1,4 +1,5 @@
 import AppKit
+import OSLog
 import SwiftSonic
 import SwiftUI
 
@@ -90,7 +91,8 @@ final class WinampFolderBrowserModel {
                 self?.selection = []
             } catch {
                 guard !Task.isCancelled else { return }
-                self?.errorMessage = UserFacingError.from(error).displayMessage
+                Logger.ui.error("Winamp: folder listing failed: \(String(describing: error), privacy: .public)")
+                self?.errorMessage = MusicFolderBrowserError.message(for: error)
             }
             self?.isLoading = false
             self?.loadTask = nil

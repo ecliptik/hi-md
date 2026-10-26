@@ -110,7 +110,7 @@ private func makeBrowser(_ transport: FolderTreeTransport) -> MusicFolderBrowser
 private struct CancellingSource: MusicFolderSource {
     let base: any MusicFolderSource
 
-    func musicFolders() async throws -> [MusicFolder] { try await base.musicFolders() }
+    func musicFolders() async throws -> [MusicLibraryFolder] { try await base.musicFolders() }
     func indexes(musicFolderID: String?) async throws -> Indexes { try await base.indexes(musicFolderID: musicFolderID) }
     func directory(id: String) async throws -> MusicDirectory {
         withUnsafeCurrentTask { $0?.cancel() }

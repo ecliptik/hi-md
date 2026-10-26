@@ -4,7 +4,7 @@ import SwiftSonic
 /// The folder endpoints the Winamp "Add" browser reads. They follow the server's real directory
 /// layout rather than ID3 tags.
 nonisolated protocol MusicFolderSource: Sendable {
-    func musicFolders() async throws -> [MusicFolder]
+    func musicFolders() async throws -> [MusicLibraryFolder]
     func indexes(musicFolderID: String?) async throws -> Indexes
     func directory(id: String) async throws -> MusicDirectory
 }
@@ -28,8 +28,18 @@ actor WinampSubsonicSource: MusicFolderSource, M3USongLookup {
         cachedClient = client
     }
 
-    func musicFolders() async throws -> [MusicFolder] {
-        try await client().getMusicFolders()
+    /// The server's libraries. SwiftSonic's `MusicFolder` wants a string ID, but the Subsonic spec
+    /// and Navidrome send a number (`"id": 1`), which fails to decode; the response that failed
+    /// is then read again with `MusicLibraryFolder`, which takes either.
+    func musicFolders() async throws -> [MusicLibraryFolder] {
+        do {
+            return try await client().getMusicFolders().map { MusicLibraryFolder(id: $0.id, name: $0.name) }
+        } catch SwiftSonicError.decoding(let error, let rawData) {
+            guard let folders = MusicLibraryFolder.folders(inResponse: rawData) else {
+                throw SwiftSonicError.decoding(error, rawData: rawData)
+            }
+            return folders
+        }
     }
 
     func indexes(musicFolderID: String?) async throws -> Indexes {
