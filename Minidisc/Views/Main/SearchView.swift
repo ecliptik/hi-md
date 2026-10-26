@@ -157,24 +157,6 @@ struct SearchView: View {
         query.split(whereSeparator: \.isWhitespace).count >= 3 && SmartSearchService.isAvailable
     }
 
-    private var offlineMatches: [LibrarySearchMatch] {
-        guard let local = container?.offlineLibrary.snapshot else { return [] }
-        let matches = local.songs.map(LibrarySearchMatch.song) + local.albums.map(LibrarySearchMatch.album)
-            + local.artists.map(LibrarySearchMatch.artist) + local.playlists.map(LibrarySearchMatch.playlist)
-        return matches.filter { LibrarySearchRanking.score($0, query: searchQuery) > 0 }.sorted {
-            let lhs = LibrarySearchRanking.score($0, query: searchQuery)
-            let rhs = LibrarySearchRanking.score($1, query: searchQuery)
-            return lhs == rhs ? $0.title.localizedStandardCompare($1.title) == .orderedAscending : lhs > rhs
-        }
-    }
-
-    private var selectableSongs: [DisplayableSong] {
-        viewModel?.matches.compactMap { match in
-            if case .song(let song) = match { return song }
-            return nil
-        } ?? []
-    }
-
     private struct SearchRequest: Equatable {
         let serverId: String?
         let query: String
@@ -185,15 +167,17 @@ struct SearchView: View {
     // downloaded-track queries must never invalidate the navigation destinations themselves.
     @ViewBuilder
     private func activeSearchContent(_ vm: SearchViewModel) -> some View {
-        let matches = container?.serverState.isOnline == false ? offlineMatches : vm.matches
+        let matches = container?.serverState.isOnline == false
+            ? container.map { vm.offlineMatches(query: searchQuery, in: $0.offlineLibrary.snapshot) } ?? []
+            : vm.matches
         if !matches.isEmpty {
             SearchResultsContent(matches: matches, scope: $scope,
                                  onAddToPlaylist: playlistAddition.present,
-                                 canSelectSongs: container?.serverState.isOnline == true && !selectableSongs.isEmpty,
-                                 onSelectSongs: { songSelection = SongSelectionRequest(songs: selectableSongs) })
+                                 canSelectSongs: container?.serverState.isOnline == true && !vm.songMatches.isEmpty,
+                                 onSelectSongs: { songSelection = SongSelectionRequest(songs: vm.songMatches) })
         }
         if container?.serverState.isOnline == false {
-            if matches.filter({ scope == .all || $0.scope == scope }).isEmpty {
+            if !matches.contains(where: { scope == .all || $0.scope == scope }) {
                 EmptyStateView(systemImage: "magnifyingglass", title: "No results", subtitle: "Try another category or search term.")
             }
         } else if vm.isSearching || (scope == .playlists && vm.isLoadingPlaylists) {
@@ -216,7 +200,7 @@ struct SearchView: View {
                 scope: scope,
                 onAddToPlaylist: playlistAddition.present
             )
-        } else if container?.serverState.isOnline == true, matches.filter({ scope == .all || $0.scope == scope }).isEmpty,
+        } else if container?.serverState.isOnline == true, !matches.contains(where: { scope == .all || $0.scope == scope }),
                   !vm.isSearching, !vm.isLoadingPlaylists,
                   vm.resultsQuery == searchQuery.trimmingCharacters(in: .whitespaces),
                   vm.searchError == nil, (scope != .playlists || vm.playlistError == nil) {
@@ -351,7 +335,7 @@ struct SearchView: View {
             let favoriteIds = favoriteSongIds
             if !songs.isEmpty {
                 Section("Songs") {
-                    ForEach(Array(songs.enumerated()), id: \.element.id) { index, song in
+                    ForEach(songs.enumerated(), id: \.element.id) { index, song in
                         SongRow(
                             song: song,
                             index: index + 1,

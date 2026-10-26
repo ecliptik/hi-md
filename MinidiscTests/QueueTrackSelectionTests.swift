@@ -60,6 +60,67 @@ struct QueueTrackSelectionTests {
     }
 }
 
+@Suite("Queue upcoming rows")
+@MainActor
+struct QueueUpcomingRowTests {
+    private func rows(_ state: PlayerState, limit: Int = .max) -> [QueueUpcomingRow] {
+        QueueUpcomingRow.upcoming(in: state, occurrences: QueueUpcomingRow.occurrences(in: state.queue), limit: limit)
+    }
+
+    @Test("match the rows and selections the queue list captured before", arguments: [
+        (["a", "b", "c", "d"], 0), (["a", "b", "a", "c", "a"], 1), (["a", "a", "a"], 0), (["a", "b"], 1),
+        (["x", "y", "x", "y", "x"], 2), (["only"], 0),
+    ])
+    func matchLegacyCapture(ids: [String], currentIndex: Int) {
+        let state = makePlayerState(queue: ids.map(makeSong), currentIndex: currentIndex)
+        let legacy = LegacyHotPaths.captureQueue(state)
+        let current = rows(state)
+        #expect(current.map(\.id.songID) == legacy.map(\.id.songID))
+        #expect(current.map(\.id.occurrence) == legacy.map(\.id.occurrence))
+        #expect(current.map(\.id.generation) == legacy.map(\.id.generation))
+        #expect(current.map(\.index) == legacy.map(\.selection.destinationIndex))
+        #expect(current.map { $0.selection(in: state) } == legacy.map(\.selection))
+    }
+
+    @Test("are empty when the current track doesn't match its position, as before")
+    func emptyWithoutAValidCurrentTrack() {
+        let state = makePlayerState(queue: [makeSong("one"), makeSong("two")], currentIndex: 0)
+        state.currentTrack = makeSong("elsewhere")
+        #expect(rows(state).isEmpty)
+        #expect(LegacyHotPaths.captureQueue(state).isEmpty)
+        state.currentTrack = nil
+        #expect(rows(state).isEmpty)
+        state.currentTrack = state.queue[0]
+        state.currentIndex = 5
+        #expect(rows(state).isEmpty)
+        #expect(LegacyHotPaths.captureQueue(state).isEmpty)
+    }
+
+    @Test("show a window of the upcoming songs")
+    func window() {
+        let state = makePlayerState(queue: (0..<10).map { makeSong("s\($0)") }, currentIndex: 2)
+        #expect(rows(state, limit: 3).map(\.index) == [3, 4, 5])
+        #expect(rows(state, limit: 100).map(\.index) == Array(3..<10))
+    }
+
+    @Test("can't act once the queue changes or the row is no longer upcoming")
+    func rejectsStaleRows() throws {
+        let state = makePlayerState(queue: [makeSong("one"), makeSong("two"), makeSong("three")], currentIndex: 0)
+        let row = try #require(rows(state).last)
+        #expect(row.selection(in: state)?.destinationIndex == 2)
+
+        state.currentIndex = 2
+        state.currentTrack = state.queue[2]
+        #expect(row.selection(in: state) == nil)
+
+        state.currentIndex = 0
+        state.currentTrack = state.queue[0]
+        state.queue = state.queue
+        #expect(row.selection(in: state) == nil)
+        #expect(rows(state).last?.selection(in: state)?.destinationIndex == 2)
+    }
+}
+
 @Suite("Track swipe destinations")
 @MainActor
 struct TrackSwipeInteractionTests {

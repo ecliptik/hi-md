@@ -6,23 +6,32 @@ actor PlaybackSessionService {
     private let modelContainer: ModelContainer
     // Lazy so the context is created on the actor's executor, not the MainActor caller of init.
     private lazy var modelContext: ModelContext = ModelContext(modelContainer)
+    private let encoder = JSONEncoder()
+    /// The queue revision the stored session's queue blob was written from. Most saves follow a
+    /// skip or a position change, and a 20,000-song queue takes tens of milliseconds to encode.
+    private var savedQueueRevision: UInt64?
 
     init(modelContainer: ModelContainer) {
         self.modelContainer = modelContainer
     }
 
     func save(playerState: SessionPayload) {
-        let session = fetchOrCreateSession()
+        let existing = fetchSession()
+        let session = existing ?? insertSession()
+        let queueUnchanged = existing != nil && playerState.queueRevision != nil
+            && playerState.queueRevision == savedQueueRevision
         session.update(
             currentIndex: playerState.currentIndex,
             currentPosition: playerState.currentPosition,
-            queue: playerState.queue,
+            queueData: queueUnchanged ? nil : (try? encoder.encode(playerState.queue)) ?? Data(),
             currentTrack: playerState.currentTrack,
             repeatMode: playerState.repeatMode
         )
         do {
             try modelContext.save()
+            savedQueueRevision = playerState.queueRevision
         } catch {
+            savedQueueRevision = nil
             Logger.session.warning("PlaybackSessionService: save failed — \(error)")
         }
         Logger.session.debug("Session saved: track='\(playerState.currentTrack?.title ?? "nil", privacy: .private)', pos=\(playerState.currentPosition, format: .fixed(precision: 1), privacy: .public)s, queue=\(playerState.queue.count, privacy: .public) tracks")
@@ -66,6 +75,7 @@ actor PlaybackSessionService {
     }
 
     func clear() {
+        savedQueueRevision = nil
         guard let session = fetchSession() else { return }
         modelContext.delete(session)
         do {
@@ -79,6 +89,7 @@ actor PlaybackSessionService {
     /// Before cold-start restoration only: the legacy singleton belongs to the
     /// persisted active server. Never migrate another server's session on a switch.
     func migrateNavidromeIDs() throws {
+        savedQueueRevision = nil
         guard let session = fetchSession(), !session.queueData.isEmpty,
               try NavidromeCanonicalID.containsLegacyIDs(in: session.queueData) else { return }
         let migrated = try NavidromeCanonicalID.songData(session.queueData)
@@ -89,8 +100,7 @@ actor PlaybackSessionService {
         try modelContext.save()
     }
 
-    private func fetchOrCreateSession() -> PlaybackSession {
-        if let existing = fetchSession() { return existing }
+    private func insertSession() -> PlaybackSession {
         let new = PlaybackSession()
         modelContext.insert(new)
         return new
@@ -112,6 +122,9 @@ nonisolated struct SessionPayload: Sendable {
     let queue: [DisplayableSong]
     let currentTrack: DisplayableSong?
     let repeatMode: RepeatMode
+    /// `PlayerState.queueRevision` when the queue was read. A save with the revision already stored
+    /// keeps the stored queue instead of encoding it again; nil always encodes.
+    var queueRevision: UInt64? = nil
 }
 
 // MARK: - RestoredSession

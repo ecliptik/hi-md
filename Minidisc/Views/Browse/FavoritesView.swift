@@ -108,7 +108,7 @@ struct FavoritesView: View {
                 .listRowBackground(Color.clear)
                 .padding(.vertical, 4)
 
-                ForEach(Array(songs.enumerated()), id: \.element.favoriteScrollID) { index, song in
+                ForEach(songs.enumerated(), id: \.element.favoriteScrollID) { index, song in
                     SongRow(song: song, index: index + 1, showCoverArt: true, isFavorite: true, onAddToPlaylist: playlistAddition.present)
                         .id(song.favoriteScrollID)
                         .accessibilityIdentifier("favorites.song.\(song.id)")

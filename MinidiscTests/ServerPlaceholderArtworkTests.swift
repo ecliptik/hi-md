@@ -40,7 +40,57 @@ struct ServerPlaceholderArtworkTests {
         #expect(!ServerPlaceholderArtwork.matches(logo))
     }
 
+    @Test func singlePassDetectionAgreesWithTheArrayBasedVersion() throws {
+        var images: [CGImage] = [300, 600, 1000].map { Self.record(side: $0, background: nil) }
+        images += [(0, 0, 0), (255, 255, 255), (128, 128, 128)].map { Self.record(side: 600, background: $0) }
+        images += [Self.star(side: 300), Self.star(side: 1200)]
+        images += [240, 1200].map(PerformanceFixtures.cover)
+        // Near the thresholds: ring hues and label greys either side of the limits, and greys around
+        // the artist stand-in's edge brightness.
+        for ring in [(4, 92, 212), (60, 60, 200), (100, 160, 230), (20, 40, 120), (4, 140, 212), (90, 92, 212)] {
+            images.append(Self.record(side: 480, background: nil, ring: ring))
+        }
+        for grey in stride(from: 200, through: 255, by: 5) {
+            images.append(Self.flat(side: 240, rgb: (grey, grey, grey)))
+            images.append(Self.flat(side: 240, rgb: (grey, grey, max(0, grey - 9))))
+        }
+        images.append(try #require(Self.record(side: 600, background: nil).cropping(to: CGRect(x: 0, y: 0, width: 600, height: 300))))
+        images.append(try #require(UIImage(named: "MinidiscLogo")?.cgImage))
+        var generator = PerformanceFixtures.Generator(state: 11)
+        for _ in 0..<40 { images.append(Self.noise(side: 64 + generator.next(400), generator: &generator)) }
+
+        for image in images {
+            #expect(ServerPlaceholderArtwork.matches(image) == LegacyHotPaths.isServerPlaceholder(image))
+        }
+        #expect(images.contains { ServerPlaceholderArtwork.matches($0) })
+    }
+
+    @Test func decodedArtworkCarriesTheVerdict() async {
+        let record = UIImage(cgImage: Self.record(side: 600, background: (0, 0, 0)))
+        let cover = UIImage(cgImage: PerformanceFixtures.cover(side: 240))
+        #expect(DecodedArtwork(record).isServerPlaceholder)
+        #expect(!DecodedArtwork(cover).isServerPlaceholder)
+        #expect(await DecodedArtwork.isServerPlaceholder(record))
+        #expect(!(await DecodedArtwork.isServerPlaceholder(cover)))
+    }
+
     // MARK: - Drawing
+
+    /// Random blocks of colour, sometimes tinted towards the stand-ins' blue or grey.
+    static func noise(side: Int, generator: inout PerformanceFixtures.Generator) -> CGImage {
+        let ctx = context(side: side), block = max(1, side / 16)
+        let tint = generator.next(3)
+        for y in stride(from: 0, to: side, by: block) {
+            for x in stride(from: 0, to: side, by: block) {
+                let base = (generator.next(256), generator.next(256), generator.next(256))
+                let rgb = tint == 0 ? base : tint == 1 ? (base.0 / 8, base.1 / 3, 160 + base.2 / 4)
+                    : (225 + base.0 / 16, 225 + base.0 / 16, 225 + base.0 / 16)
+                ctx.setFillColor(color(rgb))
+                ctx.fill(CGRect(x: x, y: y, width: block, height: block))
+            }
+        }
+        return ctx.makeImage()!
+    }
 
     private static func context(side: Int) -> CGContext {
         CGContext(data: nil, width: side, height: side, bitsPerComponent: 8, bytesPerRow: 0,

@@ -13,29 +13,38 @@ struct SongSelectionSheet: View {
     @State private var selectedIDs: Set<String> = []
     @State private var query = ""
     @State private var addition: PlaylistAdditionRequest?
+    /// A selection can hold the whole Songs tab, so the list is derived once per request and query
+    /// rather than three times per body (every tap re-runs the body).
+    @State private var collection = DerivedValueCache<UUID, SongSelectionCollection>()
+    @State private var filtered = DerivedValueCache<FilterKey, SongSelectionCollection.Filtered>()
 
-    private var songs: [DisplayableSong] {
-        var seen: Set<String> = []
-        return request.songs.filter { seen.insert($0.id).inserted }
+    private struct FilterKey: Equatable {
+        let request: UUID
+        let query: String
     }
 
-    private var visibleSongs: [DisplayableSong] {
+    private var songs: [DisplayableSong] {
+        collection.value(for: request.id) { SongSelectionCollection(request.songs) }.songs
+    }
+
+    private var visible: SongSelectionCollection.Filtered {
         let query = LibrarySearchRanking.normalized(query)
-        return songs.filter {
-            query.isEmpty || LibrarySearchRanking.normalized("\($0.title) \($0.artist ?? "")").contains(query)
+        return filtered.value(for: FilterKey(request: request.id, query: query)) {
+            collection.value(for: request.id) { SongSelectionCollection(request.songs) }.filtered(by: query)
         }
     }
 
     var body: some View {
+        let visible = visible
+        let visibleSongs = visible.songs
         NavigationStack {
             List {
                 Section {
                     Button {
-                        let visible = Set(visibleSongs.map(\.id))
-                        if selectedIDs.isSuperset(of: visible) { selectedIDs.subtract(visible) }
-                        else { selectedIDs.formUnion(visible) }
+                        if selectedIDs.isSuperset(of: visible.ids) { selectedIDs.subtract(visible.ids) }
+                        else { selectedIDs.formUnion(visible.ids) }
                     } label: {
-                        Text(selectedIDs.isSuperset(of: visibleSongs.map(\.id))
+                        Text(selectedIDs.isSuperset(of: visible.ids)
                              ? LocalizedStringResource("Deselect All") : LocalizedStringResource("Select All"))
                     }
                     .disabled(visibleSongs.isEmpty)
@@ -71,6 +80,33 @@ struct SongSelectionSheet: View {
         .sheet(item: $addition) { request in
             AddToPlaylistSheet(request: request, onAdded: { dismiss() })
         }
+    }
+}
+
+/// The songs a selection sheet offers: the request's songs without repeats, and their filtered views.
+/// Each song's search text is normalised the first time a query needs it, then reused.
+@MainActor
+final class SongSelectionCollection {
+    struct Filtered {
+        let songs: [DisplayableSong]
+        let ids: Set<String>
+    }
+
+    let songs: [DisplayableSong]
+    private var searchText: [String]?
+
+    init(_ songs: [DisplayableSong]) {
+        var seen: Set<String> = []
+        self.songs = songs.filter { seen.insert($0.id).inserted }
+    }
+
+    /// The songs whose title and artist contain `query`, which must already be normalised.
+    func filtered(by query: String) -> Filtered {
+        guard !query.isEmpty else { return Filtered(songs: songs, ids: Set(songs.map(\.id))) }
+        let text = searchText ?? songs.map { LibrarySearchRanking.normalized("\($0.title) \($0.artist ?? "")") }
+        searchText = text
+        let matches = zip(songs, text).filter { $0.1.contains(query) }.map(\.0)
+        return Filtered(songs: matches, ids: Set(matches.map(\.id)))
     }
 }
 

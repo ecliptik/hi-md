@@ -289,6 +289,14 @@ final class AppContainer {
                 guard !Task.isCancelled else { return }
                 await externalArtworkCache.runGarbageCollection()
             },
+            // The one memory-warning observer for the in-memory image caches.
+            Task { [artworkImageCache] in
+                for await _ in NotificationCenter.default.notifications(named: UIApplication.didReceiveMemoryWarningNotification) {
+                    guard !Task.isCancelled else { break }
+                    artworkImageCache.trimForMemoryWarning()
+                    LidarrImageStore.shared.removeAll()
+                }
+            },
         ]
     }
 
