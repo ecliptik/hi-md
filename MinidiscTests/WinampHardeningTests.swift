@@ -1,5 +1,7 @@
 import CoreGraphics
 import Foundation
+import SwiftSonic
+import Synchronization
 import Testing
 @testable import Minidisc
 
@@ -100,5 +102,70 @@ struct WinampHardeningTests {
         #expect(M3UPlaylist.parseDuration("604800") == 604_800)
         #expect(M3UPlaylist.parseDuration("245.4") == 245)
         #expect(M3UPlaylist.parseDuration("0") == 0)
+    }
+
+    // MARK: M3U size and resolver concurrency
+
+    @Test func playlistsAreCappedInSizeAndEntries() {
+        let lines = (0..<6_000).map { "track\($0).mp3" }.joined(separator: "\n")
+        let entries = M3UPlaylist.decode(text: lines)
+        #expect(entries.count == M3UPlaylist.maximumEntries)
+        #expect(entries.last?.location == "track4999.mp3")
+        #expect(M3UPlaylist.decode(Data(lines.utf8)).count == M3UPlaylist.maximumEntries)
+
+        var oversized = Data("#EXTM3U\nsong.mp3\n".utf8)
+        oversized.append(Data(repeating: 0x23, count: M3UPlaylist.maximumFileSize)) // '#' comment bytes
+        #expect(M3UPlaylist.decode(oversized).isEmpty)
+    }
+
+    @Test func resolverRunsAtMostFourLookupsAtOnceAndKeepsOrder() async throws {
+        let lookup = CountingLookup()
+        let entries = (0..<20).map { M3UPlaylist.Entry(location: M3UPlaylist.songURI(id: "song-\($0)")) }
+        let resolutions = try await M3UPlaylistResolver(lookup: lookup).resolve(entries)
+        #expect(resolutions.map(\.song?.id) == (0..<20).map { "song-\($0)" })
+        #expect(resolutions.allSatisfy { $0.match == .songID })
+        #expect(lookup.peak <= M3UPlaylistResolver.maximumConcurrentLookups)
+        #expect(lookup.peak > 1)
+        #expect(lookup.calls == 20)
+    }
+
+    @Test func resolverSharesOneSearchPerTitle() async throws {
+        let lookup = CountingLookup()
+        let entries = (0..<8).map { _ in M3UPlaylist.Entry(location: "Artist/Album/01 Same Title.mp3") }
+        _ = try await M3UPlaylistResolver(lookup: lookup).resolve(entries)
+        #expect(lookup.searches == 1)
+    }
+}
+
+/// Answers every song ID after a short delay and counts how many lookups overlap.
+private nonisolated final class CountingLookup: M3USongLookup, Sendable {
+    private struct Counts {
+        var active = 0
+        var peak = 0
+        var calls = 0
+        var searches = 0
+    }
+
+    private let counts = Mutex(Counts())
+
+    var peak: Int { counts.withLock { $0.peak } }
+    var calls: Int { counts.withLock { $0.calls } }
+    var searches: Int { counts.withLock { $0.searches } }
+
+    func song(id: String) async throws -> Song? {
+        counts.withLock { counts in
+            counts.active += 1
+            counts.calls += 1
+            counts.peak = max(counts.peak, counts.active)
+        }
+        try await Task.sleep(for: .milliseconds(20))
+        counts.withLock { $0.active -= 1 }
+        return Song(id: id, title: "Title \(id)", isDir: false)
+    }
+
+    func searchSongs(_ query: String) async throws -> [Song] {
+        counts.withLock { $0.searches += 1 }
+        try await Task.sleep(for: .milliseconds(20))
+        return []
     }
 }

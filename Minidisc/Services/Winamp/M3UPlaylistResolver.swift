@@ -34,19 +34,54 @@ nonisolated struct M3UPlaylistResolver: Sendable {
         self.lookup = lookup
     }
 
-    /// Resolves in playlist order. Searches are cached per query, so repeated titles cost one request.
+    /// Entries resolved at once, so a long playlist doesn't flood the server.
+    static let maximumConcurrentLookups = 4
+
+    /// Resolves the first `M3UPlaylist.maximumEntries` entries, up to four at a time, and returns
+    /// them in playlist order. Searches are shared per query, so repeated titles cost one request.
     func resolve(_ entries: [M3UPlaylist.Entry]) async throws -> [M3UResolution] {
-        var searchCache: [String: [Song]] = [:]
-        var results: [M3UResolution] = []
-        results.reserveCapacity(entries.count)
-        for entry in entries {
-            try Task.checkCancellation()
-            results.append(try await resolve(entry, searchCache: &searchCache))
+        try Task.checkCancellation()
+        let entries = Array(entries.prefix(M3UPlaylist.maximumEntries))
+        let searches = SearchCache(lookup: lookup)
+        var results = [M3UResolution?](repeating: nil, count: entries.count)
+        try await withThrowingTaskGroup(of: (Int, M3UResolution).self) { group in
+            var next = 0
+            while next < min(Self.maximumConcurrentLookups, entries.count) {
+                let index = next
+                group.addTask { (index, try await resolve(entries[index], searches: searches)) }
+                next += 1
+            }
+            while let (index, resolution) = try await group.next() {
+                results[index] = resolution
+                guard next < entries.count else { continue }
+                let following = next
+                group.addTask { (following, try await resolve(entries[following], searches: searches)) }
+                next += 1
+            }
         }
-        return results
+        return results.compactMap(\.self)
     }
 
-    private func resolve(_ entry: M3UPlaylist.Entry, searchCache: inout [String: [Song]]) async throws -> M3UResolution {
+    /// One search per query, shared by entries resolving at the same time.
+    private actor SearchCache {
+        private let lookup: any M3USongLookup
+        private var searches: [String: Task<[Song], any Error>] = [:]
+
+        init(lookup: any M3USongLookup) {
+            self.lookup = lookup
+        }
+
+        func songs(matching query: String) async throws -> [Song] {
+            if let search = searches[query] { return try await search.value }
+            let lookup = lookup
+            let search = Task { try await lookup.searchSongs(query).filter { $0.isDir != true } }
+            searches[query] = search
+            return try await search.value
+        }
+    }
+
+    private func resolve(_ entry: M3UPlaylist.Entry, searches: SearchCache) async throws -> M3UResolution {
+        try Task.checkCancellation()
         if let id = entry.songID, let song = try await lookup.song(id: id) {
             return M3UResolution(entry: entry, song: song, match: .songID)
         }
@@ -54,13 +89,7 @@ nonisolated struct M3UPlaylistResolver: Sendable {
         guard let query = tags.title.map(Self.searchQuery), !query.isEmpty else {
             return M3UResolution(entry: entry, song: nil, match: .unresolved)
         }
-        let candidates: [Song]
-        if let cached = searchCache[query] {
-            candidates = cached
-        } else {
-            candidates = try await lookup.searchSongs(query).filter { $0.isDir != true }
-            searchCache[query] = candidates
-        }
+        let candidates = try await searches.songs(matching: query)
         if let components = entry.pathComponents,
            let song = Self.pathMatch(components, in: candidates) {
             return M3UResolution(entry: entry, song: song, match: .path)
