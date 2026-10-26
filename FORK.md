@@ -4,8 +4,7 @@ This repository, [ecliptik/Minidisc](https://github.com/ecliptik/Minidisc), is a
 
 ## Branches
 
-- `main`: the iOS app, with its widgets, watch app and Mac Catalyst build.
-- `feat/winamp-phase2`: adds the native Mac app (`MinidiscMac`) and its Winamp mode. It is kept current by merging `main` into it.
+- `main`: everything — the iOS app with its widgets and watch app, and the native Mac app (`MinidiscMac`) with its Winamp mode. Work happens on short-lived branches merged into `main`.
 
 ## Remotes
 
