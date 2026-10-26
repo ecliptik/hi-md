@@ -304,7 +304,9 @@ private struct RecoveryHarness {
 struct PlayerRecoveryIntegrationTests {
     @Test(arguments: [false, true])
     func stalledStreamUsesNewlyCompletedCacheWithoutServerProbe(offline: Bool) async throws {
-        let h = try RecoveryHarness(startupGrace: .milliseconds(100))
+        // Long enough that a busy MainActor can't let a startup probe rebuild from the stream URL
+        // before the cached copy appears; the stall below uses the short stallGrace.
+        let h = try RecoveryHarness(startupGrace: .seconds(2))
         try await h.play()
         try await h.waitUntil { h.report.contains("engine state=buffering") }
         _ = await h.engine.seek(to: 37)
@@ -327,11 +329,11 @@ struct PlayerRecoveryIntegrationTests {
         try await h.waitUntil {
             h.report.components(separatedBy: "item-rebuilt").count > 1
         }
-        #expect(h.engine.sourceURL?.lastPathComponent == "recovery-test-cache.m4a")
-        #expect(await h.resolver.availabilityCalls == 0)
+        #expect(h.engine.sourceURL?.lastPathComponent == "recovery-test-cache.m4a", "\(h.report)")
+        #expect(await h.resolver.availabilityCalls == 0, "\(h.report)")
         #expect(h.state.position == 37)
         #expect(h.state.currentTrack?.id == "a")
-        #expect(h.report.contains("playback source=cache"))
+        #expect(h.report.contains("playback source=cache"), "\(h.report)")
         h.engine.startAdvancing()
         await h.player.handleEngineState(.playing, playbackToken: h.engine.token)
         try await h.waitUntil { h.report.contains("progress-validated") }

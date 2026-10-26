@@ -39,12 +39,12 @@ final class MinidiscUXVerificationTests: XCTestCase {
 
         try await definitions.intents["PlayMinidiscMusicIntent"].makeIntent(music: song, shuffle: false).run()
         app.activate()
-        try require(app.buttons["Pause"].firstMatch, timeout: 10)
+        try requireMiniPlayPause(playing: true, timeout: 10)
         XCTAssertEqual(try miniPlayerTitle().label, firstTitle)
         try await definitions.intents["PauseMinidiscIntent"].makeIntent().run()
-        try require(app.buttons["Lecture"].firstMatch)
+        try requireMiniPlayPause(playing: false)
         try await definitions.intents["ResumeMinidiscIntent"].makeIntent().run()
-        try require(app.buttons["Pause"].firstMatch)
+        try requireMiniPlayPause(playing: true)
         XCTAssertEqual(try miniPlayerTitle().label, firstTitle)
         try await definitions.intents["PauseMinidiscIntent"].makeIntent().run()
         captureHierarchy("shortcuts-cold-start-and-resume")
@@ -1664,6 +1664,22 @@ final class MinidiscUXVerificationTests: XCTestCase {
         captureHierarchy("before-play-playlist")
         headerPlay.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
         captureHierarchy("play-playlist")
+    }
+
+    /// Finds the mini player's button by identifier. An App Intent can relaunch the app in the
+    /// system language, where the paused label reads "Play" instead of "Lecture"; "Pause" is the
+    /// same word in both, so the playing state is checked against it.
+    private func requireMiniPlayPause(playing: Bool, timeout: TimeInterval = 5) throws {
+        let button = app.buttons.matching(identifier: "player.mini.playPause").firstMatch
+        try require(button, timeout: timeout)
+        let state = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: playing ? "label == %@" : "label != %@", "Pause"), object: button
+        )
+        guard XCTWaiter.wait(for: [state], timeout: timeout) == .completed else {
+            captureHierarchy("mini-play-pause-state")
+            throw NSError(domain: "MinidiscUXVerification", code: 9,
+                          userInfo: [NSLocalizedDescriptionKey: "Mini player never showed \(playing ? "playing" : "paused"): \(button.label)"])
+        }
     }
 
     private func miniPlayerTitle() throws -> XCUIElement {
