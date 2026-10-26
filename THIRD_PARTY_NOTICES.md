@@ -69,7 +69,7 @@ SOFTWARE.
 
 ## Online services
 
-The app can talk to these services when you turn the matching feature on. None of their code is included, and each has its own terms: LRCLIB (lyrics), ListenBrainz, MusicBrainz, Bandcamp, Lidarr, AudioMuse-AI, and the Anthropic and OpenAI APIs (album recommendations, with your own key).
+The app can talk to these services when you turn the matching feature on. None of their code is included, and each has its own terms: LRCLIB (lyrics), MusicBrainz, Wikidata and Wikimedia Commons (artist images), ListenBrainz, Bandcamp, Lidarr, AudioMuse-AI, and the Anthropic and OpenAI APIs (album recommendations, with your own key).
 
 ## Artwork and trademarks
 
