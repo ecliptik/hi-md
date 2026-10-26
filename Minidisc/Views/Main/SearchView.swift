@@ -335,7 +335,7 @@ struct SearchView: View {
             let favoriteIds = favoriteSongIds
             if !songs.isEmpty {
                 Section("Songs") {
-                    ForEach(Array(songs.enumerated()), id: \.element.id) { index, song in
+                    ForEach(songs.enumerated(), id: \.element.id) { index, song in
                         SongRow(
                             song: song,
                             index: index + 1,

@@ -1011,7 +1011,7 @@ struct AlbumSongRows: View {
         // Built once per body: the row builder runs for every song.
         let favoriteIds = favoriteSongIds
         let downloadedIds = downloadedSongIds
-        ForEach(Array(songs.enumerated()), id: \.element.id) { index, song in
+        ForEach(songs.enumerated(), id: \.element.id) { index, song in
             let liveDownloaded = downloadedIds.contains(song.id)
             let liveSong = song.withDownloaded(liveDownloaded)
             let isDownloading = downloadingIds.contains(song.id)
