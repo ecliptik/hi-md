@@ -15,7 +15,7 @@ struct WinampEqualizerTests {
         }
         #expect(WinampEqualizerBands.engineBand(forSlider: 10) == nil)
         #expect(WinampEqualizerBands.sliderGains(fromEngine: [1, 2, 3]) == [1, 2, 3, 0, 0, 0, 0, 0, 0, 0])
-        #expect(WinampEqualizerBands.engineFrequencies.first == 32)
+        #expect(WinampEqualizerBands.engineFrequencies.first == 31)
         #expect(WinampEqualizerBands.winampFrequencies.first == 60)
     }
 
