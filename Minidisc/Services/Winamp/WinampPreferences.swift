@@ -40,6 +40,7 @@ final class WinampPreferences {
         /// Shared with the View menu's `@AppStorage` zoom items.
         static let zoom = "minidisc.winamp.zoom"
         static let isAlwaysOnTop = "minidisc.winamp.alwaysOnTop"
+        static let hasQueuedDemo = "minidisc.winamp.demoQueued"
         static let visualizerMode = "minidisc.winamp.visualizerMode"
         static let timeMode = "minidisc.winamp.timeMode"
         static let skinName = "minidisc.winamp.skin.name"
@@ -221,6 +222,12 @@ final class WinampPreferences {
     var isAlwaysOnTop: Bool {
         get { defaults.bool(forKey: Key.isAlwaysOnTop) }
         set { defaults.set(newValue, forKey: Key.isAlwaysOnTop) }
+    }
+
+    /// The demo clip went on the playlist the first time Winamp mode opened.
+    var hasQueuedDemo: Bool {
+        get { defaults.bool(forKey: Key.hasQueuedDemo) }
+        set { defaults.set(newValue, forKey: Key.hasQueuedDemo) }
     }
 
     /// Spectrum unless the listener picked another mode.

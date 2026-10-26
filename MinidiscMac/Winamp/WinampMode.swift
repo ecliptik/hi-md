@@ -166,6 +166,15 @@ final class WinampMode: WinampWindowHost {
         }
         mainWindow?.window.makeKeyAndOrderFront(nil)
         observeTracksForAuto()
+        if !preferences.hasQueuedDemo { queueDemo(container) }
+    }
+
+    /// Like Winamp's demo.mp3: the first time the mode opens, the demo clip goes at the top of the
+    /// playlist, ready to play but not playing.
+    private func queueDemo(_ container: AppContainer) {
+        Task {
+            if await WinampDemo.queueFirst(in: container) { preferences.hasQueuedDemo = true }
+        }
     }
 
     private func hide() {
