@@ -8,12 +8,41 @@ import Synchronization
 // MARK: - Bands and presets
 
 nonisolated enum Equalizer {
-    /// Ten octave-spaced bands, as in most music players.
-    static let frequencies: [Float] = [32, 64, 125, 250, 500, 1000, 2000, 4000, 8000, 16000]
+    /// Ten octave-spaced bands, as in most music players. They match AutoEQ's fixed-band layout
+    /// (31 Hz to 16 kHz at Q 1.41), so its profiles apply band for band. Curves saved when the
+    /// lowest two bands sat at 32 and 64 Hz keep their gains; the 3% shift isn't audible.
+    static let frequencies: [Float] = [31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000]
     static let bandCount = 10
     static let gainRange: ClosedRange<Float> = -12...12
     /// Roughly one octave wide, so neighbouring bands blend smoothly.
     static let q: Float = 1.41
+
+    /// The combined response in dB of peaking filters at `frequency`, as the processor applies them
+    /// (preamp excluded). Used to draw curves and to fit other profiles onto these bands.
+    static func response(at frequency: Float, gains: [Float], sampleRate: Float = 48000) -> Float {
+        zip(frequencies, gains).reduce(0) { total, band in
+            let c = EqualizerProcessor.peakingCoefficients(frequency: band.0, gainDB: band.1, q: q, sampleRate: sampleRate)
+            return total + BiquadResponse.magnitudeDB(b0: c.b0, b1: c.b1, b2: c.b2, a1: c.a1, a2: c.a2,
+                                                      frequency: frequency, sampleRate: sampleRate)
+        }
+    }
+}
+
+/// The magnitude response of one biquad, a0-normalised.
+nonisolated enum BiquadResponse {
+    static func magnitudeDB(b0: Float, b1: Float, b2: Float, a1: Float, a2: Float,
+                            frequency: Float, sampleRate: Float) -> Float {
+        let w = Double(2 * Float.pi * frequency / sampleRate)
+        let (c1, s1, c2, s2) = (cos(w), sin(w), cos(2 * w), sin(2 * w))
+        let numeratorRe = Double(b0) + Double(b1) * c1 + Double(b2) * c2
+        let numeratorIm = -(Double(b1) * s1 + Double(b2) * s2)
+        let denominatorRe = 1 + Double(a1) * c1 + Double(a2) * c2
+        let denominatorIm = -(Double(a1) * s1 + Double(a2) * s2)
+        let numerator = numeratorRe * numeratorRe + numeratorIm * numeratorIm
+        let denominator = denominatorRe * denominatorRe + denominatorIm * denominatorIm
+        guard numerator > 0, denominator > 0 else { return 0 }
+        return Float(10 * log10(numerator / denominator))
+    }
 }
 
 nonisolated enum EqualizerPreset: String, CaseIterable, Identifiable, Sendable {
@@ -42,7 +71,7 @@ nonisolated enum EqualizerPreset: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
-    /// Gains in dB for the ten bands, 32 Hz to 16 kHz.
+    /// Gains in dB for the ten bands, 31 Hz to 16 kHz.
     var gains: [Float] {
         switch self {
         case .flat: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
