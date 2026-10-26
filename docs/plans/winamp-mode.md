@@ -1,6 +1,16 @@
 # Winamp mode (feature request)
 
-Status: idea, not started. Requested by the owner on 2026-10-25 as an easter egg for the Mac version: a mode that looks and works like classic Winamp 2 / XMMS. Tracked on the "Minidisc Winamp mode" board card.
+Status: phases 1 and 2 built on the native Mac app (2026-10-26). Requested by the owner on 2026-10-25 as an easter egg for the Mac version: a mode that looks and works like classic Winamp 2 / XMMS. Tracked on the "Minidisc Winamp mode" board card.
+
+## Progress
+
+- **Phase 1, main window:** done. Skins (`.wsz`), the main window with transport, seek, volume, balance, time, scrolling title, kbps/kHz, spectrum and oscilloscope, the clutter bar, Double Size and Always on Top, and the Eject folder browser.
+- **Phase 2, playlist, equaliser and docking:** done.
+  - Playlist window from `pledit.bmp` and `pledit.txt`, resizable in 25×29 steps, showing the play queue with numbers, titles, durations and "selected/total" time. Double-click plays, drag (or ⌥↑/⌥↓) reorders, Delete removes, and the +ADD / −REM / SEL / MISC / LIST menus work. ADD opens the folder browser (URL adds a playlist file). Edits go through PlayerService's selection-checked move and remove, one song at a time, so the gapless or crossfade transition is re-prepared only when the next song changes; the playing song is never moved or removed.
+  - Equaliser window from `eqmain.bmp`: ON, AUTO (the built-in preset for the playing song's genre), preamp and ten bands bound to `EqualizerSettings`, the spline curve, and Presets with save, delete, and Winamp `.eqf` import and export. Each slider drives the engine band in the same position (32 Hz to 16 kHz); Minidisc Gold is labelled with those frequencies. The app's preamp only cuts, so the preamp slider stops at 0 dB.
+  - M3U: LIST saves the queue as `.m3u8` (`#EXTINF` plus the server path, or "Artist/Album/NN - Title" when the server gives none) and opens `.m3u`/`.m3u8` through `M3UPlaylistResolver`. LIST > Save also creates a server playlist.
+  - Docking: windows snap to each other and to screen edges within 10 points, windows docked to the main window move with it, and windowshade, playlist resizing and Double Size keep the stack docked. Windowshade for the main window, the playlist, and the equaliser when the skin has `eq_ex.bmp`. Positions, visibility, shade and the playlist's size are remembered.
+- **Still open:** the shaded equaliser's volume and balance sliders, the shaded main window's small visualiser, the hidden "nullsoft" way in, and opening `.m3u` files from Finder.
 
 ## The request
 
@@ -47,8 +57,8 @@ Both need checking against the free personal team's limits: Mac signing, and one
 4. **Skins and visualiser.** The `.wsz` loader and the spectrum and oscilloscope.
 5. **Polish.** Docking and snapping, windowshade, double size, always-on-top, keyboard shortcuts, and the hidden way in.
 
-## Open questions
+## Decisions
 
-- Catalyst plus AppKit bundle, or a native macOS target?
-- Should the EQ follow Winamp's frequencies in this mode, or keep the app's 10 bands?
-- Should Winamp mode replace the main Mac window while it's on, or open alongside it?
+- A native macOS target (`MinidiscMac`), not Catalyst.
+- The equaliser keeps the app's ten bands; Winamp's sliders map onto them in order.
+- Winamp mode opens alongside the main Mac window.
