@@ -5,7 +5,7 @@ import SwiftUI
 /// What every Winamp window asks of Winamp mode: shared settings, docking and the other windows.
 protocol WinampWindowHost: AnyObject {
     var preferences: WinampPreferences { get }
-    /// 1, or 2 with Double Size on.
+    /// The zoom level, 1 to 4: points per skin pixel.
     var scale: CGFloat { get }
     var isUsingDefaultSkin: Bool { get }
     var playlistFiles: WinampPlaylistFiles? { get }
@@ -22,7 +22,10 @@ protocol WinampWindowHost: AnyObject {
     func isVisible(_ window: WinampPreferences.Window) -> Bool
     func toggle(_ window: WinampPreferences.Window)
     func close(_ window: WinampPreferences.Window)
+    /// The clutter bar's D: 1× to 2×, or any other zoom back to 1×.
     func toggleDoubleSize()
+    /// Zooms every window to `level` (1 to 4) together, keeping the stack docked and on screen.
+    func setZoom(_ level: Int)
     func toggleAlwaysOnTop()
     func chooseSkin()
     func useDefaultSkin()
@@ -40,7 +43,7 @@ protocol WinampManagedWindow: AnyObject {
     func show(at topLeft: CGPoint)
     func tearDown()
     func setSkin(_ skin: WinampSkin)
-    /// Redraws after something another window controls changed, such as Double Size.
+    /// Redraws after something another window controls changed, such as the zoom.
     func refresh()
 }
 
@@ -111,7 +114,7 @@ final class WinampMode: WinampWindowHost {
 
     var isUsingDefaultSkin: Bool { preferences.skin == .bundled }
 
-    var scale: CGFloat { preferences.isDoubleSize ? 2 : 1 }
+    var scale: CGFloat { CGFloat(preferences.zoom) }
 
     func showFolderBrowser() {
         guard let container else { return }
@@ -264,14 +267,21 @@ final class WinampMode: WinampWindowHost {
         for window in managedWindows { window.refresh() }
     }
 
-    /// Double Size for every window, scaled about the main window's top-left corner so docked
-    /// windows stay docked.
     func toggleDoubleSize() {
+        setZoom(WinampZoom.toggledDoubleSize(from: preferences.zoom))
+    }
+
+    /// Zoom for every window, scaled about the main window's top-left corner so docked windows
+    /// stay docked, then moved back onto the screen if the bigger stack ran off its edge.
+    func setZoom(_ level: Int) {
+        let old = preferences.zoom
+        let new = WinampZoom.clamped(level)
+        guard new != old else { return }
+        preferences.zoom = new
         let visible = managedWindows.filter { $0.window.isVisible }
         guard let anchor = visible.firstIndex(where: { $0.kind == .main }) else { return }
-        let factor: CGFloat = preferences.isDoubleSize ? 0.5 : 2
-        preferences.isDoubleSize.toggle()
-        let frames = WinampDocking.scale(visible.map(\.window.frame), anchor: anchor, by: factor)
+        let frames = WinampDocking.zoom(visible.map(\.window.frame), anchor: anchor, from: old, to: new,
+                                        screens: NSScreen.screens.map(\.visibleFrame))
         for (managed, frame) in zip(visible, frames) {
             managed.window.setFrame(frame, display: true)
             managed.window.invalidateShadow()
@@ -370,9 +380,27 @@ final class WinampMode: WinampWindowHost {
 
 extension EqualizerSettings: WinampEqualizerModel {}
 
+/// The Zoom submenu in the Winamp windows' menus: 1× to 4×, the current level ticked. The View
+/// menu has the same items with ⌘⌥1 to ⌘⌥4.
+func winampZoomMenuItem(host: WinampWindowHost?) -> NSMenuItem {
+    let title = String(localized: "Zoom")
+    let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
+    let menu = NSMenu(title: title)
+    let current = host?.preferences.zoom ?? 1
+    for level in WinampZoom.levels {
+        let option = winampMenuItem(WinampZoom.title(level), isOn: level == current) { [weak host] in host?.setZoom(level) }
+        option.keyEquivalent = String(level)
+        option.keyEquivalentModifierMask = [.command, .option]
+        menu.addItem(option)
+    }
+    item.submenu = menu
+    return item
+}
+
 /// View > Winamp Mode, plus the skin and window items while it's on.
 struct WinampCommands: Commands {
     @AppStorage(WinampPreferences.Key.isOpen) private var isOpen = false
+    @AppStorage(WinampPreferences.Key.zoom) private var zoom = 1
 
     var body: some Commands {
         CommandGroup(after: .toolbar) {
@@ -384,6 +412,15 @@ struct WinampCommands: Commands {
                     .keyboardShortcut("g", modifiers: [.command, .option])
                 Button("Winamp Playlist") { WinampMode.shared.toggle(.playlist) }
                     .keyboardShortcut("e", modifiers: [.command, .option])
+                Menu("Winamp Zoom") {
+                    ForEach(Array(WinampZoom.levels), id: \.self) { level in
+                        Toggle(WinampZoom.title(level), isOn: Binding(
+                            get: { WinampZoom.clamped(zoom) == level },
+                            set: { if $0 { WinampMode.shared.setZoom(level) } }
+                        ))
+                        .keyboardShortcut(KeyEquivalent(Character(String(level))), modifiers: [.command, .option])
+                    }
+                }
                 Button("Open Playlist File…") { WinampMode.shared.playlistFiles?.open(replacing: true) }
                 Button("Save Playlist File…") { WinampMode.shared.playlistFiles?.save() }
                 Button("Load Skin…") { WinampMode.shared.chooseSkin() }

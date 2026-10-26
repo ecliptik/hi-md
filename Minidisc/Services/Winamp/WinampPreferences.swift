@@ -10,13 +10,35 @@ nonisolated enum WinampSkinChoice: Sendable, Hashable {
     case custom(name: String, bookmark: Data, isSecurityScoped: Bool)
 }
 
+/// Winamp mode's zoom levels, in skin pixels per point. Double Size is 2×.
+nonisolated enum WinampZoom {
+    static let levels = 1...4
+
+    static func clamped(_ level: Int) -> Int {
+        min(max(level, levels.lowerBound), levels.upperBound)
+    }
+
+    /// The clutter bar's D: normal size goes to Double Size, and any zoom goes back to 1×.
+    static func toggledDoubleSize(from level: Int) -> Int {
+        level == 1 ? 2 : 1
+    }
+
+    /// "1×" to "4×", the same in every language.
+    static func title(_ level: Int) -> String {
+        "\(level)×"
+    }
+}
+
 /// Winamp mode's window and skin settings, kept in user defaults between launches.
 final class WinampPreferences {
     enum Key {
         /// Shared with the menu's `@AppStorage` toggle.
         static let isOpen = "minidisc.winamp.isOpen"
         static let windowTopLeft = "minidisc.winamp.windowTopLeft"
+        /// Double Size from before zoom levels: still written, so an older build keeps its size.
         static let isDoubleSize = "minidisc.winamp.doubleSize"
+        /// Shared with the View menu's `@AppStorage` zoom items.
+        static let zoom = "minidisc.winamp.zoom"
         static let isAlwaysOnTop = "minidisc.winamp.alwaysOnTop"
         static let visualizerMode = "minidisc.winamp.visualizerMode"
         static let timeMode = "minidisc.winamp.timeMode"
@@ -46,6 +68,10 @@ final class WinampPreferences {
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
+        // Double Size from before zoom levels becomes 2×, so the View menu's items show it.
+        if defaults.object(forKey: Key.zoom) == nil, defaults.bool(forKey: Key.isDoubleSize) {
+            defaults.set(2, forKey: Key.zoom)
+        }
     }
 
     var isOpen: Bool {
@@ -174,10 +200,23 @@ final class WinampPreferences {
         }
     }
 
-    var isDoubleSize: Bool {
-        get { defaults.bool(forKey: Key.isDoubleSize) }
-        set { defaults.set(newValue, forKey: Key.isDoubleSize) }
+    /// Skin pixels per point for every Winamp window: 1× to 4×.
+    var zoom: Int {
+        get {
+            guard let level = defaults.object(forKey: Key.zoom) as? Int else {
+                return defaults.bool(forKey: Key.isDoubleSize) ? 2 : 1
+            }
+            return WinampZoom.clamped(level)
+        }
+        set {
+            let level = WinampZoom.clamped(newValue)
+            defaults.set(level, forKey: Key.zoom)
+            defaults.set(level > 1, forKey: Key.isDoubleSize)
+        }
     }
+
+    /// The clutter bar's D is lit at any zoom above 1×.
+    var isDoubleSize: Bool { zoom > 1 }
 
     var isAlwaysOnTop: Bool {
         get { defaults.bool(forKey: Key.isAlwaysOnTop) }

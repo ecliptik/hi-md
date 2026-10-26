@@ -82,13 +82,82 @@ struct WinampDockingTests {
     }
 
     @Test func doubleSizeScalesTheStackAboutTheMainWindow() {
+        let screen = [CGRect(x: 0, y: 0, width: 2560, height: 1415)]
         let equalizer = CGRect(x: 100, y: 384, width: 275, height: 116)
-        let doubled = WinampDocking.scale([main, equalizer], anchor: 0, by: 2)
+        let doubled = WinampDocking.zoom([main, equalizer], anchor: 0, from: 1, to: 2, screens: screen)
         #expect(doubled[0] == CGRect(x: 100, y: 384, width: 550, height: 232))
         #expect(doubled[1] == CGRect(x: 100, y: 152, width: 550, height: 232))
         #expect(WinampDocking.areDocked(doubled[0], doubled[1]))
-        let back = WinampDocking.scale(doubled, anchor: 0, by: 0.5)
+        let back = WinampDocking.zoom(doubled, anchor: 0, from: 2, to: 1, screens: screen)
         #expect(back == [main, equalizer])
+    }
+
+    @Test func everyZoomLevelKeepsTheStackDockedAndReturnsExactly() {
+        let screen = [CGRect(x: -5000, y: -5000, width: 15000, height: 15000)]
+        let equalizer = CGRect(x: 100, y: 384, width: 275, height: 116)
+        let playlist = CGRect(x: 100, y: 152, width: 275, height: 232)
+        let side = CGRect(x: 375, y: 500, width: 275, height: 116)
+        let start = [main, equalizer, playlist, side]
+        var frames = start
+        var level = 1
+        for next in [4, 3, 2, 3, 1] {
+            frames = WinampDocking.zoom(frames, anchor: 0, from: level, to: next, screens: screen)
+            level = next
+            // Sizes are exact multiples of the skin size, corners on whole points, the main
+            // window's top-left corner fixed and every window still docked.
+            for (frame, original) in zip(frames, start) {
+                #expect(frame.width == original.width * CGFloat(next))
+                #expect(frame.height == original.height * CGFloat(next))
+                #expect(frame.minX == frame.minX.rounded() && frame.maxY == frame.maxY.rounded())
+            }
+            #expect(frames[0].minX == 100 && frames[0].maxY == 616)
+            #expect(WinampDocking.dockedGroup(root: 0, frames: frames) == [1, 2, 3])
+        }
+        #expect(frames == start)
+    }
+
+    @Test func zoomingUpNearAScreenEdgeMovesTheStackBackOnScreen() {
+        let screen = CGRect(x: 0, y: 0, width: 2560, height: 1415)
+        let nearRight = CGRect(x: 2000, y: 1200, width: 275, height: 116)
+        let below = CGRect(x: 2000, y: 1084, width: 275, height: 116)
+        let frames = WinampDocking.zoom([nearRight, below], anchor: 0, from: 1, to: 3, screens: [screen])
+        #expect(frames[0] == CGRect(x: 1735, y: 968, width: 825, height: 348))
+        #expect(frames[1] == CGRect(x: 1735, y: 620, width: 825, height: 348))
+        #expect(WinampDocking.areDocked(frames[0], frames[1]))
+
+        // A stack taller than the screen keeps its top on screen, so the title bar can be grabbed.
+        let small = CGRect(x: 0, y: 0, width: 1440, height: 875)
+        let main = CGRect(x: 1000, y: 700, width: 275, height: 116)
+        let equalizer = CGRect(x: 1000, y: 584, width: 275, height: 116)
+        let tall = WinampDocking.zoom([main, equalizer], anchor: 0, from: 1, to: 4, screens: [small])
+        #expect(tall[0] == CGRect(x: 340, y: 411, width: 1100, height: 464))
+        #expect(tall[1] == CGRect(x: 340, y: -53, width: 1100, height: 464))
+        #expect(WinampDocking.areDocked(tall[0], tall[1]))
+    }
+
+    @Test func aLooseWindowStaysOnItsOwnScreen() {
+        let left = CGRect(x: 0, y: 0, width: 1440, height: 875)
+        let right = CGRect(x: 1440, y: 0, width: 1920, height: 1055)
+        let loose = CGRect(x: 3000, y: 100, width: 275, height: 232)
+        let frames = WinampDocking.zoom([main, loose], anchor: 0, from: 1, to: 2, screens: [left, right])
+        #expect(frames[0] == CGRect(x: 100, y: 384, width: 550, height: 232))
+        #expect(frames[1] == CGRect(x: 2810, y: 0, width: 550, height: 464))
+        #expect(right.contains(frames[1]))
+    }
+
+    @Test func screenAndFitHelpers() {
+        let left = CGRect(x: 0, y: 0, width: 1440, height: 875)
+        let right = CGRect(x: 1440, y: 0, width: 1920, height: 1055)
+        #expect(WinampDocking.screen(for: CGRect(x: 1400, y: 100, width: 275, height: 116), among: [left, right]) == right)
+        #expect(WinampDocking.screen(for: CGRect(x: -900, y: 100, width: 275, height: 116), among: [left, right]) == nil)
+        #expect(WinampDocking.offset(toFit: CGRect(x: 10, y: 10, width: 100, height: 100), in: left) == CGVector(dx: 0, dy: 0))
+        #expect(WinampDocking.offset(toFit: CGRect(x: -20, y: 800, width: 100, height: 100), in: left) == CGVector(dx: 20, dy: -25))
+        // Too big both ways: the left and top edges line up with the screen's.
+        #expect(WinampDocking.offset(toFit: CGRect(x: 100, y: -500, width: 2000, height: 2000), in: left) == CGVector(dx: -100, dy: -625))
+        // Off every screen, a window isn't moved.
+        let lost = CGRect(x: -900, y: 100, width: 275, height: 116)
+        #expect(WinampDocking.zoom([main, lost], anchor: 0, from: 1, to: 2, screens: [left])[1]
+            == CGRect(x: -1900, y: -416, width: 550, height: 232))
     }
 }
 
@@ -153,6 +222,44 @@ struct WinampShadeTests {
         #expect(one.width == 275 && one.height == 232)
         let two = try #require(WinampEqualizerRenderer.render(WinampEqualizerDisplayState(), skin: skin, sprites: sprites, scale: 2))
         #expect(two.width == 550 && two.height == 232)
+    }
+
+    /// 3× and 4× on a Retina display draw each skin pixel as a solid 6×6 or 8×8 block of the
+    /// colour it has at 1×: nearest-neighbour, with no smoothing between pixels.
+    @Test func skinPixelsStaySharpAtEveryZoom() throws {
+        let skin = try WinampSkin.bundled()
+        let sprites = WinampSpriteCache(skin: skin)
+        var state = WinampEqualizerDisplayState()
+        state.isOn = true
+        let one = try #require(WinampEqualizerRenderer.render(state, skin: skin, sprites: sprites, scale: 1))
+        let base = rgbaPixels(one)
+        for scale in [6, 8] {
+            let big = try #require(WinampEqualizerRenderer.render(state, skin: skin, sprites: sprites, scale: CGFloat(scale)))
+            #expect(big.width == one.width * scale && big.height == one.height * scale)
+            let pixels = rgbaPixels(big)
+            var mismatches = 0
+            for y in 0..<big.height {
+                for x in 0..<big.width {
+                    let source = ((y / scale) * one.width + x / scale) * 4
+                    let target = (y * big.width + x) * 4
+                    if pixels[target..<target + 4] != base[source..<source + 4] { mismatches += 1 }
+                }
+            }
+            #expect(mismatches == 0, "\(mismatches) pixels differ at \(scale)×")
+        }
+    }
+
+    private func rgbaPixels(_ image: CGImage) -> [UInt8] {
+        var bytes = [UInt8](repeating: 0, count: image.width * image.height * 4)
+        bytes.withUnsafeMutableBytes { buffer in
+            let context = CGContext(data: buffer.baseAddress, width: image.width, height: image.height,
+                                    bitsPerComponent: 8, bytesPerRow: image.width * 4,
+                                    space: CGColorSpace(name: CGColorSpace.sRGB)!,
+                                    bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
+            context.interpolationQuality = .none
+            context.draw(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
+        }
+        return bytes
     }
 }
 

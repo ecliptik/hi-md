@@ -626,7 +626,7 @@ final class WinampMainWindowController: NSObject, NSWindowDelegate, WinampMainVi
         menu.addItem(item(String(localized: "Windowshade"), isOn: isShaded) { $0.toggleShade() })
         menu.addItem(.separator())
         menu.addItem(item(String(localized: "Always on Top"), isOn: preferences.isAlwaysOnTop) { $0.host?.toggleAlwaysOnTop() })
-        menu.addItem(item(String(localized: "Double Size"), isOn: preferences.isDoubleSize) { $0.host?.toggleDoubleSize() })
+        menu.addItem(winampZoomMenuItem(host: host))
         let visualizer = NSMenuItem(title: String(localized: "Visualizer"), action: nil, keyEquivalent: "")
         visualizer.submenu = visualizerMenu()
         menu.addItem(visualizer)

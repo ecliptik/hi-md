@@ -18,7 +18,7 @@ protocol WinampSurfaceDelegate: AnyObject {
 final class WinampSurfaceView: NSView {
     weak var delegate: WinampSurfaceDelegate?
 
-    /// The window's size in skin pixels; the view's bounds are this times the Double Size scale.
+    /// The window's size in skin pixels; the view's bounds are this times the zoom.
     var logicalSize: CGSize {
         didSet { if logicalSize != oldValue { needsDisplay = true } }
     }
@@ -42,10 +42,11 @@ final class WinampSurfaceView: NSView {
         needsDisplay = true
     }
 
-    /// Bitmap pixels per skin pixel: the Double Size scale times the display's density.
+    /// Bitmap pixels per skin pixel: the zoom times the display's density. The zoom is rounded to
+    /// a whole number so every skin pixel covers the same number of bitmap pixels.
     private var pixelScale: CGFloat {
         let scale = logicalSize.width > 0 ? bounds.width / logicalSize.width : 1
-        return max(scale, 1) * (window?.backingScaleFactor ?? 2)
+        return max(scale.rounded(), 1) * (window?.backingScaleFactor ?? 2)
     }
 
     override var wantsUpdateLayer: Bool { true }

@@ -4,7 +4,7 @@ import Foundation
 
 /// Draws skin sprites in a window's top-left pixel coordinates into a bitmap `scale` times the
 /// window's size. Sprites are scaled with nearest-neighbour filtering so they stay pixel-exact;
-/// text drawn with `drawString` is rendered at the full scale, so it stays sharp at 2× and on
+/// text drawn with `drawString` is rendered at the full scale, so it stays sharp at every zoom and on
 /// Retina displays.
 nonisolated struct WinampCanvas {
     let context: CGContext

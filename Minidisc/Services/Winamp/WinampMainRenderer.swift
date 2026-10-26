@@ -2,7 +2,7 @@ import CoreGraphics
 import Foundation
 
 /// Draws the classic main window from a skin's sprites into a 275×116 bitmap, one sprite pixel
-/// per bitmap pixel. Callers scale the result with nearest-neighbour filtering for 1× and 2×.
+/// per bitmap pixel. Callers scale the result with nearest-neighbour filtering for 1× to 4×.
 /// Pixels outside the skin's `region.txt` shape stay transparent.
 nonisolated enum WinampMainRenderer {
     static let width = Int(WinampMainLayout.size.width)

@@ -352,6 +352,7 @@ struct WinampPreferencesTests {
             let preferences = WinampPreferences(defaults: defaults)
             #expect(!preferences.isOpen)
             #expect(preferences.windowTopLeft == nil)
+            #expect(preferences.zoom == 1)
             #expect(!preferences.isDoubleSize)
             #expect(!preferences.isAlwaysOnTop)
             #expect(preferences.visualizerMode == .spectrum)
@@ -365,7 +366,7 @@ struct WinampPreferencesTests {
             let first = WinampPreferences(defaults: defaults)
             first.isOpen = true
             first.windowTopLeft = CGPoint(x: 120.5, y: 840)
-            first.isDoubleSize = true
+            first.zoom = 3
             first.isAlwaysOnTop = true
             first.visualizerMode = .oscilloscope
             first.timeMode = .remaining
@@ -373,7 +374,10 @@ struct WinampPreferencesTests {
             let second = WinampPreferences(defaults: defaults)
             #expect(second.isOpen)
             #expect(second.windowTopLeft == CGPoint(x: 120.5, y: 840))
+            #expect(second.zoom == 3)
             #expect(second.isDoubleSize)
+            // The View menu's zoom items read the same key through @AppStorage.
+            #expect(defaults.integer(forKey: WinampPreferences.Key.zoom) == 3)
             #expect(second.isAlwaysOnTop)
             #expect(second.visualizerMode == .oscilloscope)
             #expect(second.timeMode == .remaining)
@@ -383,6 +387,35 @@ struct WinampPreferencesTests {
             second.windowTopLeft = nil
             #expect(WinampPreferences(defaults: defaults).windowTopLeft == nil)
         }
+    }
+
+    @Test func zoomIsClampedAndDoubleSizeFromAnOlderBuildBecomesTwoTimes() {
+        withDefaults { defaults in
+            defaults.set(true, forKey: WinampPreferences.Key.isDoubleSize)
+            let migrated = WinampPreferences(defaults: defaults)
+            #expect(migrated.zoom == 2)
+            #expect(defaults.integer(forKey: WinampPreferences.Key.zoom) == 2)
+
+            migrated.zoom = 9
+            #expect(migrated.zoom == 4)
+            migrated.zoom = 0
+            #expect(migrated.zoom == 1)
+            // An older build, which only knows Double Size, opens at normal size again.
+            #expect(!defaults.bool(forKey: WinampPreferences.Key.isDoubleSize))
+            migrated.zoom = 3
+            #expect(defaults.bool(forKey: WinampPreferences.Key.isDoubleSize))
+
+            defaults.set(17, forKey: WinampPreferences.Key.zoom)
+            #expect(WinampPreferences(defaults: defaults).zoom == 4)
+        }
+    }
+
+    @Test func doubleSizeTogglesBetweenOneAndTwoTimes() {
+        #expect(WinampZoom.toggledDoubleSize(from: 1) == 2)
+        #expect(WinampZoom.toggledDoubleSize(from: 2) == 1)
+        #expect(WinampZoom.toggledDoubleSize(from: 3) == 1)
+        #expect(WinampZoom.toggledDoubleSize(from: 4) == 1)
+        #expect(Array(WinampZoom.levels).map(WinampZoom.title) == ["1×", "2×", "3×", "4×"])
     }
 
     @Test func skinChoicePersistsAndResets() {

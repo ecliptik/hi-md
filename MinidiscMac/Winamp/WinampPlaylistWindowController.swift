@@ -591,9 +591,7 @@ final class WinampPlaylistWindowController: NSObject, NSWindowDelegate, WinampSu
     private func optionsMenu() -> NSMenu {
         let menu = NSMenu()
         menu.addItem(winampMenuItem(String(localized: "Windowshade"), isOn: isShaded) { [weak self] in self?.toggleShade() })
-        menu.addItem(winampMenuItem(String(localized: "Double Size"), isOn: preferences.isDoubleSize) { [weak self] in
-            self?.host?.toggleDoubleSize()
-        })
+        menu.addItem(winampZoomMenuItem(host: host))
         menu.addItem(winampMenuItem(String(localized: "Always on Top"), isOn: preferences.isAlwaysOnTop) { [weak self] in
             self?.host?.toggleAlwaysOnTop()
         })

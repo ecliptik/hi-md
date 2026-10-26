@@ -117,16 +117,57 @@ nonisolated enum WinampDocking {
         return result
     }
 
-    /// Frames scaled by `factor` about the top-left corner of the window at `anchor`, for Double
-    /// Size: every window doubles or halves and docked windows stay docked.
-    static func scale(_ frames: [CGRect], anchor: Int, by factor: CGFloat) -> [CGRect] {
-        guard frames.indices.contains(anchor), factor > 0 else { return frames }
+    // MARK: Zoom
+
+    /// Frames after the zoom changes from `old` to `new` skin pixels per point. Every window is
+    /// scaled about the top-left corner of the window at `anchor`, so docked windows stay docked,
+    /// and corners land on whole points. Then the anchor's docked stack moves as one back inside
+    /// the screen it was on, and each other window inside its own screen, keeping the top-left
+    /// corner visible when a window is bigger than the screen.
+    static func zoom(_ frames: [CGRect], anchor: Int, from old: Int, to new: Int, screens: [CGRect]) -> [CGRect] {
+        guard frames.indices.contains(anchor), old > 0, new > 0 else { return frames }
         let origin = CGPoint(x: frames[anchor].minX, y: frames[anchor].maxY)
-        return frames.map { frame in
-            let left = origin.x + (frame.minX - origin.x) * factor
-            let top = origin.y + (frame.maxY - origin.y) * factor
-            let size = CGSize(width: frame.width * factor, height: frame.height * factor)
-            return CGRect(x: left, y: top - size.height, width: size.width, height: size.height)
+        // Multiplying before dividing keeps sizes exact: 825 × 2 / 3 is 550, not 549.99….
+        func scaled(_ value: CGFloat) -> CGFloat { (value * CGFloat(new) / CGFloat(old)).rounded() }
+        var result = frames.map { frame in
+            let left = origin.x + scaled(frame.minX - origin.x)
+            let top = origin.y + scaled(frame.maxY - origin.y)
+            let size = CGSize(width: scaled(frame.width), height: scaled(frame.height))
+            return CGRect(x: left.rounded(), y: top.rounded() - size.height, width: size.width, height: size.height)
         }
+        let stack = dockedGroup(root: anchor, frames: frames).union([anchor])
+        func move(_ indices: [Int], ontoScreenOf original: CGRect) {
+            guard let screen = screen(for: original, among: screens) else { return }
+            let bounds = indices.reduce(CGRect.null) { $0.union(result[$1]) }
+            let offset = offset(toFit: bounds, in: screen)
+            for index in indices { result[index] = result[index].offsetBy(dx: offset.dx, dy: offset.dy) }
+        }
+        move(stack.sorted(), ontoScreenOf: frames[anchor])
+        for index in frames.indices where !stack.contains(index) {
+            move([index], ontoScreenOf: frames[index])
+        }
+        return result
+    }
+
+    /// The screen showing the most of `frame`, or nil when it's on none of them.
+    static func screen(for frame: CGRect, among screens: [CGRect]) -> CGRect? {
+        let overlaps = screens.map { screen -> (CGRect, CGFloat) in
+            let shared = screen.intersection(frame)
+            return (screen, shared.isNull ? 0 : shared.width * shared.height)
+        }
+        guard let best = overlaps.max(by: { $0.1 < $1.1 }), best.1 > 0 else { return nil }
+        return best.0
+    }
+
+    /// The smallest move that brings `frame` inside `screen`. When it's wider or taller than the
+    /// screen, its left and top edges win, so the title bar stays reachable.
+    static func offset(toFit frame: CGRect, in screen: CGRect) -> CGVector {
+        var dx: CGFloat = 0
+        if frame.maxX > screen.maxX { dx = screen.maxX - frame.maxX }
+        if frame.minX + dx < screen.minX { dx = screen.minX - frame.minX }
+        var dy: CGFloat = 0
+        if frame.minY < screen.minY { dy = screen.minY - frame.minY }
+        if frame.maxY + dy > screen.maxY { dy = screen.maxY - frame.maxY }
+        return CGVector(dx: dx, dy: dy)
     }
 }

@@ -45,7 +45,7 @@ protocol WinampMainViewDelegate: AnyObject {
 }
 
 /// Shows the rendered main window. Each state change renders a fresh 275×116 bitmap that the
-/// layer scales up with nearest-neighbour filtering, so sprites stay pixel-exact at 1× and 2× on
+/// layer scales up with nearest-neighbour filtering, so sprites stay pixel-exact at every zoom on
 /// any display.
 final class WinampMainView: NSView {
     weak var delegate: WinampMainViewDelegate?
