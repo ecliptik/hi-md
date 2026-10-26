@@ -16,9 +16,9 @@
 
 <p align="center">
   <img src="docs/screenshots/ios/01-home.jpg" alt="Home: playlists and favourite songs" width="200">
-  <img src="docs/screenshots/ios/02-now-playing.jpg" alt="Now Playing with the cover's colours" width="200">
+  <img src="docs/screenshots/ios/02-now-playing.jpg" alt="Now Playing, showing where the music is playing from" width="200">
   <img src="docs/screenshots/ios/03-lyrics.jpg" alt="Synced lyrics in the player" width="200">
-  <img src="docs/screenshots/ios/05-discover.jpg" alt="Discover: stations and Smart Shuffle" width="200">
+  <img src="docs/screenshots/ios/04-discover.jpg" alt="Discover: stations and Smart Shuffle" width="200">
 </p>
 
 ## About this fork
@@ -78,10 +78,12 @@ The fork follows its own direction and doesn't send changes upstream, but it mer
 
 | | | |
 |:-:|:-:|:-:|
-| <img src="docs/screenshots/ios/06-artist.jpg" alt="Artist page" width="240"> | <img src="docs/screenshots/ios/07-library.jpg" alt="Library" width="240"> | <img src="docs/screenshots/ios/08-playlists.jpg" alt="Playlists" width="240"> |
-| Artist pages with a favourite button | Library | Playlists, with search |
-| <img src="docs/screenshots/ios/09-recommended.jpg" alt="Recommended for You" width="240"> | <img src="docs/screenshots/ios/10-playback-settings.jpg" alt="Playback settings" width="240"> | <img src="docs/screenshots/ios/04-minidisc-cover.jpg" alt="The MiniDisc cover easter egg" width="240"> |
-| Recommendations from Apple Intelligence | Playback settings, in Plexamp's order | Tap the cover for a MiniDisc |
+| <img src="docs/screenshots/ios/05-album.jpg" alt="Album page" width="240"> | <img src="docs/screenshots/ios/11-now-playing-colours.jpg" alt="Now Playing coloured by the cover" width="240"> | <img src="docs/screenshots/ios/06-library.jpg" alt="Library" width="240"> |
+| Albums, with a favourite button | The player takes its colours from the cover | Library |
+| <img src="docs/screenshots/ios/07-albums.jpg" alt="Albums list" width="240"> | <img src="docs/screenshots/ios/08-playlists.jpg" alt="Playlists" width="240"> | <img src="docs/screenshots/ios/09-recommended.jpg" alt="Recommended for You" width="240"> |
+| Albums, with an index | Playlists, with search | Recommendations from Apple Intelligence |
+| <img src="docs/screenshots/ios/10-playback-settings.jpg" alt="Playback settings" width="240"> | | |
+| Playback settings, in Plexamp's order | | |
 
 ## Features from upstream
 
