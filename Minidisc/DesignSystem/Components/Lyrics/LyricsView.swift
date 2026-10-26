@@ -54,6 +54,16 @@ struct LyricsView: View {
                 .padding(.vertical, 200)
             }
             .scrollIndicators(.hidden)
+            .onAppear {
+                // Open on the line being sung instead of scrolling down to it from the top.
+                viewModel.syncToPlayback()
+                guard let index = viewModel.currentLineIndex else { return }
+                var transaction = Transaction()
+                transaction.disablesAnimations = true
+                withTransaction(transaction) {
+                    proxy.scrollTo(index, anchor: .center)
+                }
+            }
             .onChange(of: viewModel.currentLineIndex) { _, newIndex in
                 guard viewModel.autoScrollEnabled,
                       !viewModel.isUserScrolling,

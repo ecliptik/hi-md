@@ -52,7 +52,8 @@ final class MockPlayerService: PlayerServiceProtocol {
 private func makeViewModel(
     songId: String = "song-1",
     serverId: UUID = UUID(),
-    lyrics: LyricsList? = nil
+    lyrics: LyricsList? = nil,
+    position: TimeInterval = 0
 ) throws -> (LyricsViewModel, MockPlayerService) {
     let container = try ModelContainer(
         for: Schema([CachedLyrics.self]),
@@ -70,6 +71,7 @@ private func makeViewModel(
     let service = LyricsService(serverService: serverService, modelContainer: container)
     let playerService = MockPlayerService()
     let playerState = PlayerState()
+    playerState.position = position
 
     let vm = LyricsViewModel(
         track: DisplayableSong(
@@ -332,5 +334,39 @@ struct LyricsViewModelLoadTests {
         let (vm, _) = try makeViewModel(serverId: id, lyrics: empty)
         await vm.load()
         #expect(vm.state == .empty)
+    }
+}
+
+// MARK: - Opening the lyrics panel
+
+@Suite("LyricsViewModel — opening the panel")
+@MainActor
+struct LyricsViewModelOpeningTests {
+
+    @Test func loadStartsOnTheLineBeingSung() async throws {
+        let id = UUID()
+        let (vm, _) = try makeViewModel(serverId: id, lyrics: syncedList(), position: 1.5)
+        await vm.load()
+        // Without this the panel showed line 0 until the first tracking tick, then scrolled down.
+        #expect(vm.currentLineIndex == 1)
+    }
+
+    @Test func reusedOnlyForTheSameSongAndSource() async throws {
+        let id = UUID()
+        let (vm, _) = try makeViewModel(songId: "song-1", serverId: id, lyrics: syncedList())
+        await vm.load()
+        #expect(vm.canBeReused(forTrackID: "song-1", source: .navidrome))
+        #expect(!vm.canBeReused(forTrackID: "song-2", source: .navidrome))
+        #expect(!vm.canBeReused(forTrackID: "song-1", source: .automatic))
+    }
+
+    @Test func failedLoadIsRetriedInsteadOfReused() async throws {
+        let (vm, _) = try makeViewModel(songId: "song-1", lyrics: nil)
+        await vm.load()
+        guard case .error = vm.state else {
+            Issue.record("Expected .error with no cache and no network, got \(vm.state)")
+            return
+        }
+        #expect(!vm.canBeReused(forTrackID: "song-1", source: .navidrome))
     }
 }

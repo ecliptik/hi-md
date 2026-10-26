@@ -42,6 +42,8 @@ struct FullPlayerView: View {
     @State private var vm = FullPlayerViewModel()
     @State private var playlistAddition = PlaylistAddition()
     @State private var showLyrics = false
+    /// Whether the lyrics now showing were opened from the queue rather than the cover.
+    @State private var lyricsReplacedQueue = false
     @State private var surface: PlayerSurface = .player
     @State private var lyricsViewModel: LyricsViewModel?
     @State private var trackSwipe = TrackSwipeInteraction()
@@ -54,6 +56,8 @@ struct FullPlayerView: View {
     private static let playerTopGap: CGFloat = 36
     private static let playerCoverToTitleGap: CGFloat = MinidiscSpacing.xl
     private static let playerControlsSpacing: CGFloat = MinidiscSpacing.xl
+    private static let queueArtworkSide: CGFloat = 56
+    private static let queueHeaderInsets = EdgeInsets(top: MinidiscSpacing.s, leading: MinidiscSpacing.l, bottom: 0, trailing: 0)
 
     var body: some View {
         @Bindable var playlistAddition = playlistAddition
@@ -78,11 +82,18 @@ struct FullPlayerView: View {
                         lyricsViewModel = nil
                         return
                     }
-                    guard showLyrics,
-                          let track = playerState.currentTrack, !track.isLocalFile,
+                    guard let track = playerState.currentTrack, !track.isLocalFile,
                           let serverId = container?.serverState.activeServer?.id,
                           let lyricsService = container?.lyricsService,
                           let playerService = container?.playerService else {
+                        lyricsViewModel = nil
+                        return
+                    }
+                    // Keep this song's lyrics while they're hidden, so they reopen loaded.
+                    if lyricsViewModel?.canBeReused(forTrackID: track.id, source: lyricsSource) == true {
+                        return
+                    }
+                    guard showLyrics else {
                         lyricsViewModel = nil
                         return
                     }
@@ -174,35 +185,44 @@ struct FullPlayerView: View {
     /// The cover, or lyrics or the queue in its place.
     private func mediaArea(_ playerState: PlayerState, coverArtId: String, showingQueue: Bool) -> some View {
         ZStack {
-            if showLyrics, let lyricsVM = lyricsViewModel {
-                LyricsView(viewModel: lyricsVM)
-                    .frame(maxWidth: .infinity)
-                    .padding(.horizontal, 20)
-                    .mask(
-                        LinearGradient(
-                            stops: [
-                                .init(color: .clear, location: 0),
-                                .init(color: .black, location: 0.1),
-                                .init(color: .black, location: 0.8),
-                                .init(color: .clear, location: 1)
-                            ],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
+            // Inserted with the lyrics button's animation; the view model can arrive a frame later.
+            if showLyrics {
+                Group {
+                    if let lyricsVM = lyricsViewModel {
+                        LyricsView(viewModel: lyricsVM)
+                    } else {
+                        Color.clear
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, 20)
+                .mask(
+                    LinearGradient(
+                        stops: [
+                            .init(color: .clear, location: 0),
+                            .init(color: .black, location: 0.1),
+                            .init(color: .black, location: 0.8),
+                            .init(color: .clear, location: 1)
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
                     )
-                    .transition(.opacity)
+                )
+                .transition(.opacity)
             } else if showingQueue {
                 flowingQueueContent(playerState)
                     .transition(.opacity)
             }
 
-            // Keep the cover mounted across player and queue for matched geometry.
-            if !showLyrics {
-                flowingCover(playerState, coverArtId: coverArtId, isSource: !showingQueue)
-                    .allowsHitTesting(!showingQueue)
-                    .padding(.horizontal, showingQueue || isLandscapeLayout ? 0 : Self.playerCoverHPadding)
-                    .transition(.opacity)
-            }
+            // Keep the cover mounted across player, queue and lyrics for matched geometry; lyrics
+            // only fade it. Removing it made a cover leaving the queue grow to full size as it
+            // faded. While lyrics fade in it keeps the size it had.
+            let coverInQueue = showLyrics ? lyricsReplacedQueue : showingQueue
+            flowingCover(playerState, coverArtId: coverArtId, isSource: !coverInQueue)
+                .allowsHitTesting(!showLyrics && !coverInQueue)
+                .padding(.horizontal, coverInQueue || isLandscapeLayout ? 0 : Self.playerCoverHPadding)
+                .opacity(showLyrics ? 0 : 1)
+                .accessibilityHidden(showLyrics)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -253,6 +273,7 @@ struct FullPlayerView: View {
     private func bottomToolbar(_ playerState: PlayerState) -> some View {
         BottomToolbar(
             showLyrics: $showLyrics,
+            lyricsReplacedQueue: $lyricsReplacedQueue,
             surface: $surface,
             isLiveStream: playerState.isLiveStream,
             secondaryContentColor: vm.secondaryContentColor,
@@ -279,13 +300,18 @@ struct FullPlayerView: View {
                     )
                 )
                 .matchedGeometryEffect(id: "playerArtwork", in: artworkNamespace ?? morphNS, isSource: isSource)
-                .frame(width: isSource ? artworkSide : nil, height: isSource ? artworkSide : nil)
+                // In the queue the cover's own frame matches the header thumbnail, so it stays put
+                // when that header leaves with the queue (going to lyrics) instead of filling the area.
+                .frame(width: isSource ? artworkSide : Self.queueArtworkSide,
+                       height: isSource ? artworkSide : Self.queueArtworkSide)
                 .shadow(
                     color: isSource ? Color.black.opacity(0.28) : .clear,
                     radius: 18,
                     y: 10
                 )
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                .padding(.leading, isSource ? 0 : Self.queueHeaderInsets.leading)
+                .padding(.top, isSource ? 0 : Self.queueHeaderInsets.top)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: isSource ? .top : .topLeading)
                 .trackSwipeGesture(
                     interaction: trackSwipe,
                     playerState: playerState,
@@ -302,7 +328,7 @@ struct FullPlayerView: View {
             HStack(spacing: MinidiscSpacing.m) {
                 // Invisible endpoint for the cover's matched-geometry transition.
                 Color.clear
-                    .frame(width: 56, height: 56)
+                    .frame(width: Self.queueArtworkSide, height: Self.queueArtworkSide)
                     .matchedGeometryEffect(id: "playerArtwork", in: artworkNamespace ?? morphNS, isSource: true)
 
                 TrackInfoSection(
@@ -313,8 +339,8 @@ struct FullPlayerView: View {
                     compact: true
                 )
             }
-            .padding(.horizontal, MinidiscSpacing.l)
-            .padding(.top, MinidiscSpacing.s)
+            .padding(.horizontal, Self.queueHeaderInsets.leading)
+            .padding(.top, Self.queueHeaderInsets.top)
 
             queuePills(playerState)
                 .padding(.horizontal, MinidiscSpacing.l)
@@ -957,6 +983,7 @@ private struct PlaybackControlsView: View {
 
 private struct BottomToolbar: View {
     @Binding var showLyrics: Bool
+    @Binding var lyricsReplacedQueue: Bool
     @Binding var surface: PlayerSurface
     let isLiveStream: Bool
     let secondaryContentColor: Color
@@ -967,8 +994,18 @@ private struct BottomToolbar: View {
         HStack(spacing: MinidiscSpacing.xxxxl) {
             if !isLiveStream {
                 Button {
+                    if !showLyrics { lyricsReplacedQueue = surface == .queue }
                     if surface == .queue { surface = .player }
-                    withAnimation(.smooth(duration: 0.3)) { showLyrics.toggle() }
+                    withAnimation(.smooth(duration: 0.3)) {
+                        showLyrics.toggle()
+                    } completion: {
+                        // Once hidden, the cover returns to the player's size unseen, so closing the
+                        // lyrics fades it back in place.
+                        guard showLyrics, lyricsReplacedQueue else { return }
+                        var transaction = Transaction()
+                        transaction.disablesAnimations = true
+                        withTransaction(transaction) { lyricsReplacedQueue = false }
+                    }
                 } label: {
                     Image(systemName: "quote.bubble")
                         .font(.title3)

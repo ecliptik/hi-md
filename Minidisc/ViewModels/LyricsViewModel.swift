@@ -78,7 +78,21 @@ final class LyricsViewModel {
         }
     }
 
+    /// Whether these lyrics can be shown again for this track and source instead of reloading
+    /// them. A failed load is retried.
+    func canBeReused(forTrackID trackID: String, source: LyricsSource) -> Bool {
+        guard track.id == trackID, self.source == source else { return false }
+        if case .error = state { return false }
+        return true
+    }
+
     // MARK: - Line tracking
+
+    /// Moves the current line to the playback position now, rather than on the next tracking tick,
+    /// so the lyrics open on the line being sung.
+    func syncToPlayback() {
+        update(elapsedMs: Int(playerState.position * 1000))
+    }
 
     func update(elapsedMs: Int) {
         guard case .loaded(let structured) = state, structured.synced else {
@@ -197,6 +211,7 @@ final class LyricsViewModel {
         let best = lyricsService.selectBestLanguage(from: list, preferred: selectedLanguage)
         currentLineIndex = nil
         state = best.map { .loaded($0) } ?? .empty
+        syncToPlayback()
         reconcileTracking()
     }
 
