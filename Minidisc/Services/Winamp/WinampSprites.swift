@@ -17,6 +17,8 @@ nonisolated enum WinampSpriteSheet: String, CaseIterable, Sendable {
     case shufrep
     case eqmain
     case pledit
+    /// The equaliser's windowshade bar. Optional: without it the equaliser has no shade mode.
+    case eqEx = "eq_ex"
 
     var fileName: String { rawValue + ".bmp" }
 
@@ -38,12 +40,13 @@ nonisolated enum WinampSpriteSheet: String, CaseIterable, Sendable {
         case .shufrep: (92, 85)
         case .eqmain: (275, 315)
         case .pledit: (280, 186)
+        case .eqEx: (275, 56)
         }
     }
 
     /// A skin needs one of `numbers` or `nums_ex`, and Winamp draws the balance slider from
     /// `volume` when `balance` is missing.
-    static let required: [WinampSpriteSheet] = allCases.filter { $0 != .numsEx && $0 != .balance && $0 != .numbers }
+    static let required: [WinampSpriteSheet] = allCases.filter { ![.numsEx, .balance, .numbers, .eqEx].contains($0) }
 }
 
 /// A rectangle in one sprite sheet, in pixels from the top-left corner.
@@ -110,6 +113,11 @@ nonisolated enum WinampSprites {
                                            pressed: WinampSprite(.titlebar, 9, 18, 9, 9))
     static let unshade = WinampButtonSprites(normal: WinampSprite(.titlebar, 0, 27, 9, 9),
                                              pressed: WinampSprite(.titlebar, 9, 27, 9, 9))
+    /// The windowshade bar's small position slider.
+    static let shadePositionBackground = WinampSprite(.titlebar, 0, 36, 17, 7)
+    static let shadePositionThumb = WinampSprite(.titlebar, 20, 36, 3, 7)
+    static let shadePositionThumbLeft = WinampSprite(.titlebar, 17, 36, 3, 7)
+    static let shadePositionThumbRight = WinampSprite(.titlebar, 23, 36, 3, 7)
     static let clutterBar = WinampSprite(.titlebar, 304, 0, 8, 43)
     static let clutterBarDisabled = WinampSprite(.titlebar, 312, 0, 8, 43)
     /// One clutter-bar letter drawn lit, over the bar, while it is pressed or its option is on.
@@ -247,6 +255,17 @@ nonisolated enum WinampSprites {
     static let equalizerGraphLineColors = WinampSprite(.eqmain, 115, 294, 1, 19)
     static let equalizerPreampLine = WinampSprite(.eqmain, 0, 314, 113, 1)
 
+    // MARK: eq_ex.bmp
+
+    static let equalizerShadeActive = WinampSprite(.eqEx, 0, 0, 275, 14)
+    static let equalizerShadeInactive = WinampSprite(.eqEx, 0, 15, 275, 14)
+    /// The shade button on the full window, pressed.
+    static let equalizerShadeButtonPressed = WinampSprite(.eqEx, 1, 47, 9, 9)
+    /// The shade bar's unshade button, pressed; its normal state is part of the bar.
+    static let equalizerShadeUnshadePressed = WinampSprite(.eqEx, 1, 38, 9, 9)
+    static let equalizerShadeClose = WinampButtonSprites(normal: WinampSprite(.eqEx, 11, 38, 9, 9),
+                                                         pressed: WinampSprite(.eqEx, 11, 47, 9, 9))
+
     // MARK: pledit.bmp
 
     static let playlistTopLeftActive = WinampSprite(.pledit, 0, 0, 25, 20)
@@ -268,6 +287,12 @@ nonisolated enum WinampSprites {
     /// Pressed states of the buttons painted into the top-right corner.
     static let playlistClosePressed = WinampSprite(.pledit, 52, 42, 9, 9)
     static let playlistShadePressed = WinampSprite(.pledit, 62, 42, 9, 9)
+    /// The shaded playlist bar: a left end, a tile and the right end with its buttons.
+    static let playlistShadeLeft = WinampSprite(.pledit, 72, 42, 25, 14)
+    static let playlistShadeTile = WinampSprite(.pledit, 72, 57, 25, 14)
+    static let playlistShadeRightActive = WinampSprite(.pledit, 99, 42, 50, 14)
+    static let playlistShadeRightInactive = WinampSprite(.pledit, 99, 57, 50, 14)
+    static let playlistUnshadePressed = WinampSprite(.pledit, 150, 42, 9, 9)
 
     /// The +ADD, −REM, SEL, MISC and LIST pop-up menus: each item normal and pressed, plus the
     /// strip drawn down the menu's left edge.
@@ -297,6 +322,9 @@ nonisolated enum WinampSprites {
             playlistTopLeftInactive, playlistTitleInactive, playlistTopTileInactive, playlistTopRightInactive,
             playlistLeftTile, playlistRightTile, playlistBottomLeft, playlistBottomRight, playlistBottomTile,
             playlistVisualizerBackground, playlistClosePressed, playlistShadePressed,
+            playlistShadeLeft, playlistShadeTile, playlistShadeRightActive, playlistShadeRightInactive, playlistUnshadePressed,
+            shadePositionBackground, shadePositionThumb, shadePositionThumbLeft, shadePositionThumbRight,
+            equalizerShadeActive, equalizerShadeInactive, equalizerShadeButtonPressed, equalizerShadeUnshadePressed,
             volumeBackground(frame: 0), volumeBackground(frame: sliderFrameCount - 1),
             balanceBackground(frame: 0), balanceBackground(frame: sliderFrameCount - 1),
             equalizerSliderBackground(frame: 0), equalizerSliderBackground(frame: sliderFrameCount - 1),
@@ -304,7 +332,8 @@ nonisolated enum WinampSprites {
         ]
         sprites += WinampClutterButton.allCases.map(clutterSelected)
         let buttons = transport + [options, minimize, close, shade, unshade, seekThumb, volumeThumb, balanceThumb,
-                                   equalizerClose, equalizerPresets, equalizerSliderThumb, playlistScrollThumb]
+                                   equalizerClose, equalizerPresets, equalizerSliderThumb, playlistScrollThumb,
+                                   equalizerShadeClose]
         let toggles = [repeatToggle, shuffleToggle, equalizerToggle, playlistToggle, equalizerOn, equalizerAuto]
         let menus = [playlistAddMenu, playlistRemoveMenu, playlistSelectMenu, playlistMiscMenu, playlistListMenu]
         sprites += buttons.flatMap { [$0.normal, $0.pressed] }
@@ -401,4 +430,25 @@ nonisolated enum WinampMainLayout {
     static let minimize = CGPoint(x: 244, y: 3)
     static let shade = CGPoint(x: 254, y: 3)
     static let close = CGPoint(x: 264, y: 3)
+}
+
+/// The main window's windowshade bar, 275×14, in its own top-left coordinates.
+nonisolated enum WinampMainShadeLayout {
+    static let size = CGSize(width: 275, height: 14)
+    /// "-mm:ss" in text glyphs.
+    static let time = CGPoint(x: 125, y: 4)
+    static let timeArea = CGRect(x: 125, y: 4, width: 30, height: 6)
+    static let seekBar = CGRect(x: 226, y: 4, width: 17, height: 7)
+    static let previous = CGRect(x: 169, y: 2, width: 8, height: 11)
+    static let play = CGRect(x: 177, y: 2, width: 10, height: 11)
+    static let pause = CGRect(x: 187, y: 2, width: 10, height: 11)
+    static let stop = CGRect(x: 197, y: 2, width: 9, height: 11)
+    static let next = CGRect(x: 206, y: 2, width: 8, height: 11)
+    static let eject = CGRect(x: 215, y: 2, width: 9, height: 11)
+
+    /// The time text: a minus or a space, then minutes and seconds.
+    static func timeText(_ time: WinampTimeDisplay?) -> String {
+        guard let time else { return "" }
+        return (time.isNegative ? "-" : " ") + String(format: "%02d:%02d", time.minutes, time.seconds)
+    }
 }

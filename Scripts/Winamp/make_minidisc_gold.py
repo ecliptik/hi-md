@@ -275,6 +275,31 @@ GLYPH_SHADE = ["#####", "#...#", "#####", ".....", "....."]
 GLYPH_UNSHADE = ["#####", "#...#", "#...#", "#...#", "#####"]
 
 
+SHADE_ICONS = [
+    (169, ["#..#", "#.##", "####", "#.##", "#..#"]),        # previous
+    (178, ["#...", "##..", "###.", "##..", "#..."]),        # play
+    (188, ["##.##", "##.##", "##.##", "##.##", "##.##"]),   # pause
+    (198, ["####", "####", "####", "####", "...."]),        # stop
+    (207, ["#..#", "##.#", "####", "##.#", "#..#"]),        # next
+    (216, ["..#..", ".###.", "#####", ".....", "#####"]),   # eject
+]
+
+
+def shade_bar(img, x, y, active):
+    face = PANEL if active else PANEL_DOWN
+    fill(img, x, y, 275, 14, face)
+    fill(img, x, y, 275, 1, BEVEL_HI if active else GOLD_DEEP)
+    fill(img, x, y + 13, 275, 1, BEVEL_LO)
+    rule = GOLD if active else GOLD_DEEP
+    for rule_y in (y + 5, y + 8):
+        fill(img, x + 18, rule_y, 55, 1, rule)
+    text(img, x + 80, y + 4, "MD", GOLD_HI if active else GOLD_DIM)
+    bevel(img, x + 122, y + 2, 36, 10, face=LCD, sunken=True)
+    for icon_x, glyph in SHADE_ICONS:
+        pattern(img, x + icon_x + 1, y + 4, glyph, GOLD if active else GOLD_DIM)
+    bevel(img, x + 225, y + 3, 19, 9, face=INK_DEEP, sunken=True)
+
+
 def make_titlebar():
     img = new(344, 87, INK_DEEP)
     for col, glyph in enumerate([GLYPH_OPTIONS, GLYPH_MINIMIZE, GLYPH_CLOSE]):
@@ -287,10 +312,10 @@ def make_titlebar():
 
     title_strip(img, 27, 0, active=True)
     title_strip(img, 27, 15, active=False)
-    # Windowshade bars carry their own small display.
+    # Windowshade bars carry their own small display: the time at x 125, the small transport's
+    # icons at 169-224 and the position slot at 226-243 (positions in the 275-wide bar).
     for y, active in ((29, True), (42, False)):
-        title_strip(img, 27, y, active=active, label="MD")
-        bevel(img, 27 + 79, y + 3, 97, 8, face=LCD, sunken=True)
+        shade_bar(img, 27, y, active)
     title_strip(img, 27, 57, active=True, label="MINIDISC GOLD")
     title_strip(img, 27, 72, active=False, label="MINIDISC GOLD")
 
@@ -519,7 +544,8 @@ def make_shufrep():
 # eqmain.bmp ------------------------------------------------------------------------------------
 
 EQ_SLIDERS = [21] + [78 + band * 18 for band in range(10)]
-EQ_LABELS = ["PRE", "60", "170", "310", "600", "1K", "3K", "6K", "12K", "14K", "16K"]
+# Minidisc's equaliser bands: each Winamp slider drives the engine band in the same position.
+EQ_LABELS = ["PRE", "32", "64", "125", "250", "500", "1K", "2K", "4K", "8K", "16K"]
 
 
 def eq_slider_fill(img, x, y, frame):
@@ -562,8 +588,10 @@ def make_eqmain():
                                   (95, "AUTO", True, False), (213, "AUTO", True, True)):
         toggle_button(img, x, 119, 32, 12, label, on, pressed)
 
-    title_strip(img, 0, 134, active=True, label="EQUALIZER")
-    title_strip(img, 0, 149, active=False, label="EQUALIZER")
+    for y, active in ((134, True), (149, False)):
+        title_strip(img, 0, y, active=active, label="EQUALIZER")
+        small_button(img, 254, y + 3, GLYPH_SHADE, pressed=False)
+        small_button(img, 264, y + 3, GLYPH_CLOSE, pressed=False)
 
     for frame in range(28):
         eq_slider_fill(img, 13 + (frame % 14) * 15, 164 + (frame // 14) * 65, frame)
@@ -580,6 +608,22 @@ def make_eqmain():
     for row in range(19):
         img.putpixel((115, 294 + row), blend(GOLD_HI, GOLD_DEEP, row / 18))
     fill(img, 0, 314, 113, 1, GOLD_DIM)
+    return img
+
+
+def make_eq_ex():
+    """The equaliser's windowshade bar, active and inactive, and its pressed buttons."""
+    img = new(275, 56, INK_DEEP)
+    for y, active in ((0, True), (15, False)):
+        title_strip(img, 0, y, active=active, label="EQUALIZER")
+        small_button(img, 254, y + 3, GLYPH_UNSHADE, pressed=False)
+        small_button(img, 264, y + 3, GLYPH_CLOSE, pressed=False)
+    for x in (1, 4, 7, 11, 14, 17):
+        fill(img, x, 30, 3, 7, GOLD)
+    small_button(img, 1, 38, GLYPH_UNSHADE, pressed=True)   # unshade, pressed (shade bar)
+    small_button(img, 1, 47, GLYPH_SHADE, pressed=True)     # shade, pressed (full window)
+    small_button(img, 11, 38, GLYPH_CLOSE, pressed=False)
+    small_button(img, 11, 47, GLYPH_CLOSE, pressed=True)
     return img
 
 
@@ -631,14 +675,22 @@ def make_pledit():
         for gy in (60, 62, 64):
             fill(img, x + 2, gy, 4, 1, GOLD_DEEP)
 
-    # Shade-mode pieces.
+    # Shade-mode pieces: the left end at (72, 42), a tile at (72, 57), and the right end with
+    # the unshade and close buttons, active at (99, 42) and inactive at (99, 57).
+    for y, piece_w in ((42, 25), (57, 25)):
+        fill(img, 72, y, piece_w, 14, PANEL)
+        fill(img, 72, y, piece_w, 1, BEVEL_HI)
+        fill(img, 72, y + 13, piece_w, 1, BEVEL_LO)
+    fill(img, 72, 42, 1, 14, BEVEL_HI)
     for y, active in ((42, True), (57, False)):
         face = PANEL if active else PANEL_DOWN
-        fill(img, 72, y, 25, 14, face)
         fill(img, 99, y, 50, 14, face)
-        fill(img, 72, y + 6, 25, 1, GOLD_DEEP)
-        small_button(img, 99 + 38, y + 3, GLYPH_UNSHADE, pressed=False)
-    fill(img, 150, 42, 9, 9, PANEL_DOWN)
+        fill(img, 99, y, 50, 1, BEVEL_HI if active else GOLD_DEEP)
+        fill(img, 99, y + 13, 50, 1, BEVEL_LO)
+        bevel(img, 99 + 2, y + 2, 28, 10, face=LCD, sunken=True)
+        small_button(img, 99 + 29, y + 3, GLYPH_UNSHADE, pressed=False)
+        small_button(img, 99 + 39, y + 3, GLYPH_CLOSE, pressed=False)
+    small_button(img, 150, 42, GLYPH_UNSHADE, pressed=True)
 
     # Bottom bar: buttons on the left, time and LIST on the right.
     bottom_left = new(125, 38, PANEL)
@@ -742,6 +794,7 @@ def sheets():
         "shufrep.bmp": make_shufrep(),
         "eqmain.bmp": make_eqmain(),
         "pledit.bmp": make_pledit(),
+        "eq_ex.bmp": make_eq_ex(),
     }
 
 
