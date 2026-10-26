@@ -731,7 +731,7 @@ actor DownloadService: DownloadServiceProtocol {
                 throw cancellation
             } catch {
                 try checkDownloadCancellation()
-                Logger.download.error("Cover art download failed for album '\(album.id, privacy: .public)' (coverArtId: \(coverArtId, privacy: .public)): \(error, privacy: .public)")
+                Logger.download.error("Cover art download failed for album '\(album.id, privacy: .public)' (coverArtId: \(coverArtId, privacy: .public)): \(error.logSafe, privacy: .public)")
             }
         }
         try checkDownloadCancellation()
@@ -848,7 +848,7 @@ actor DownloadService: DownloadServiceProtocol {
                 throw cancellation
             } catch {
                 try checkDownloadCancellation()
-                Logger.download.error("Cover art download failed for playlist '\(playlist.id, privacy: .public)' (coverArtId: \(coverArtId, privacy: .public)): \(error, privacy: .public)")
+                Logger.download.error("Cover art download failed for playlist '\(playlist.id, privacy: .public)' (coverArtId: \(coverArtId, privacy: .public)): \(error.logSafe, privacy: .public)")
             }
         }
         try checkDownloadCancellation()
@@ -1013,7 +1013,7 @@ actor DownloadService: DownloadServiceProtocol {
         } catch {
             try checkDownloadCancellation()
             Logger.download.error(
-                "Failed song '\(song.id, privacy: .public)' in album '\(albumId, privacy: .public)': \(error, privacy: .public)"
+                "Failed song '\(song.id, privacy: .public)' in album '\(albumId, privacy: .public)': \(error.logSafe, privacy: .public)"
             )
             return false
         }
@@ -1041,7 +1041,7 @@ actor DownloadService: DownloadServiceProtocol {
         } catch {
             try checkDownloadCancellation()
             Logger.download.error(
-                "Failed song '\(song.id, privacy: .public)' in playlist '\(playlistId, privacy: .public)': \(error, privacy: .public)"
+                "Failed song '\(song.id, privacy: .public)' in playlist '\(playlistId, privacy: .public)': \(error.logSafe, privacy: .public)"
             )
         }
     }

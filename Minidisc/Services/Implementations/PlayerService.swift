@@ -4112,7 +4112,7 @@ actor PlayerService: PlayerServiceProtocol {
                 Logger.player.debug("Cache download cancelled for '\(songId, privacy: .public)'")
             } else {
                 playbackDiagnostics.record(.cache(.failed(code: (error as NSError).code)))
-                Logger.player.debug("Cache download failed for '\(songId, privacy: .public)': \(error, privacy: .public)")
+                Logger.player.debug("Cache download failed for '\(songId, privacy: .public)': \(error.logSafe, privacy: .public)")
             }
         }
     }
