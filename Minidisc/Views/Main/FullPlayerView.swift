@@ -47,6 +47,7 @@ struct FullPlayerView: View {
     @State private var surface: PlayerSurface = .player
     @State private var lyricsViewModel: LyricsViewModel?
     @State private var trackSwipe = TrackSwipeInteraction()
+    @State private var showsSpinningDisc = false
     @Namespace private var morphNS
 
     // MARK: - Player layout
@@ -291,14 +292,23 @@ struct FullPlayerView: View {
     private func flowingCover(_ playerState: PlayerState, coverArtId: String, isSource: Bool) -> some View {
         GeometryReader { geo in
             let artworkSide = min(geo.size.width, geo.size.height)
-            CoverArtView(id: coverArtId, size: 1000,
-                         initialImage: initialArtwork?.id == coverArtId ? initialArtwork?.image : nil)
-                .clipShape(
-                    RoundedRectangle(
-                        cornerRadius: isSource ? MinidiscCornerRadius.large : MinidiscCornerRadius.standard,
-                        style: .continuous
-                    )
-                )
+            ZStack {
+                // Easter egg: tapping the cover swaps it for the Minidisc, spinning while music plays.
+                if showsSpinningDisc {
+                    MinidiscLogoView(isSpinning: playerState.playbackState == .playing)
+                        .transition(.scale(scale: 0.9).combined(with: .opacity))
+                } else {
+                    CoverArtView(id: coverArtId, size: 1000,
+                                 initialImage: initialArtwork?.id == coverArtId ? initialArtwork?.image : nil)
+                        .clipShape(
+                            RoundedRectangle(
+                                cornerRadius: isSource ? MinidiscCornerRadius.large : MinidiscCornerRadius.standard,
+                                style: .continuous
+                            )
+                        )
+                        .transition(.opacity)
+                }
+            }
                 .matchedGeometryEffect(id: "playerArtwork", in: artworkNamespace ?? morphNS, isSource: isSource)
                 // In the queue the cover's own frame matches the header thumbnail, so it stays put
                 // when that header leaves with the queue (going to lyrics) instead of filling the area.
@@ -312,6 +322,11 @@ struct FullPlayerView: View {
                 .padding(.leading, isSource ? 0 : Self.queueHeaderInsets.leading)
                 .padding(.top, isSource ? 0 : Self.queueHeaderInsets.top)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: isSource ? .top : .topLeading)
+                .onTapGesture {
+                    guard isSource else { return }
+                    HapticFeedback.light.trigger()
+                    withAnimation(.smooth(duration: 0.35)) { showsSpinningDisc.toggle() }
+                }
                 .trackSwipeGesture(
                     interaction: trackSwipe,
                     playerState: playerState,
