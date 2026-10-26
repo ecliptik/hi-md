@@ -48,7 +48,7 @@ struct PlayerContrastTests {
 
     @Test @MainActor func colorsUseTheCap() throws {
         let white = try #require(PlayerBackgroundPalette.colors(from: [.white]).first?.rgbComponents)
-        let expected = PlayerBackgroundPalette.capped(.white)
+        let expected = PlayerBackgroundPalette.capped(WCAGContrast.RGB.white)
         #expect(abs(white.red - expected.red) < 0.002)
         let pureRed = Color(red: 1, green: 0, blue: 0)
         for color in PlayerBackgroundPalette.colors(from: [.white, pureRed, .yellow, .black]) {

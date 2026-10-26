@@ -35,6 +35,14 @@ enum PlayerBackgroundPalette {
         return stop
     }
 
+    /// `color` darkened to the backdrop cap, for other surfaces that carry the player's white
+    /// content over a cover colour (the mini player's tint, the artist information sheet).
+    static func capped(_ color: Color) -> Color {
+        guard let rgb = WCAGContrast.RGB(color.rgbComponents) else { return color }
+        let stop = capped(rgb)
+        return Color(red: stop.red, green: stop.green, blue: stop.blue)
+    }
+
     static func luminance(red: Double, green: Double, blue: Double) -> Double {
         WCAGContrast.luminance(WCAGContrast.RGB(red: red, green: green, blue: blue))
     }
