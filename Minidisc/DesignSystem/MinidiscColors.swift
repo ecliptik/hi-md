@@ -40,7 +40,7 @@ public enum MinidiscColors {
 
     public static let border = Color("MinidiscBorder")
     
-    // MARK: — Accent Ramp (raw gold stops from the 💽 icon's disc, light-mode only — gradients, artwork tints, brand chips).
+    // MARK: — Accent Ramp (raw gold stops from the app icon's gold, light-mode only — gradients, artwork tints, brand chips).
     public enum AccentRamp {
         public static let v50  = Color(hex: "#FDF5E2")
         public static let v100 = Color(hex: "#FBE8BB")
