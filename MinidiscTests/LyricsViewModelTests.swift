@@ -53,7 +53,8 @@ private func makeViewModel(
     songId: String = "song-1",
     serverId: UUID = UUID(),
     lyrics: LyricsList? = nil,
-    position: TimeInterval = 0
+    position: TimeInterval = 0,
+    isPlaying: Bool = false
 ) throws -> (LyricsViewModel, MockPlayerService) {
     let container = try ModelContainer(
         for: Schema([CachedLyrics.self]),
@@ -72,6 +73,7 @@ private func makeViewModel(
     let playerService = MockPlayerService()
     let playerState = PlayerState()
     playerState.position = position
+    if isPlaying { playerState.playbackState = .playing }
 
     let vm = LyricsViewModel(
         track: DisplayableSong(
@@ -358,6 +360,27 @@ struct LyricsViewModelOpeningTests {
         #expect(vm.canBeReused(forTrackID: "song-1", source: .navidrome))
         #expect(!vm.canBeReused(forTrackID: "song-2", source: .navidrome))
         #expect(!vm.canBeReused(forTrackID: "song-1", source: .automatic))
+    }
+
+    @Test func trackingMovesToTheNextSongsViewModelWhileThePanelStaysOpen() async throws {
+        let id = UUID()
+        let (first, _) = try makeViewModel(songId: "song-1", serverId: id, lyrics: syncedList(), isPlaying: true)
+        let (second, _) = try makeViewModel(songId: "song-2", serverId: id, lyrics: syncedList(), isPlaying: true)
+        await first.load()
+        await second.load()
+        var visibility = LyricsVisibilityHandoff()
+
+        visibility.show(first)
+        #expect(first.isTrackingPlayback)
+        // The panel stays on screen across the track change, so only the view model changes.
+        visibility.show(second)
+        #expect(!first.isTrackingPlayback)
+        #expect(second.isTrackingPlayback)
+        // A repeated hand-off of the same view model must not count it visible twice.
+        visibility.show(second)
+        visibility.hide()
+        #expect(!second.isTrackingPlayback)
+        #expect(visibility.shown == nil)
     }
 
     @Test func failedLoadIsRetriedInsteadOfReused() async throws {

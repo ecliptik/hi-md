@@ -200,6 +200,8 @@ final class LyricsViewModel {
         trackingTask = nil
     }
 
+    var isTrackingPlayback: Bool { trackingTask != nil }
+
     // MARK: - Private helpers
 
     private func applyCurrentLanguage() {
@@ -218,5 +220,25 @@ final class LyricsViewModel {
     private func networkErrorMessage(from error: LyricsError) -> String {
         if case .networkError(let msg) = error { return msg }
         return error.localizedDescription
+    }
+}
+
+/// The view model a lyrics view counts as visible. The player hands a view a new view model when
+/// the song changes while the view stays on screen, so `onAppear` doesn't fire again; the new one
+/// must be marked visible and the old one released, or line tracking stops.
+@MainActor
+struct LyricsVisibilityHandoff {
+    private(set) var shown: LyricsViewModel?
+
+    mutating func show(_ viewModel: LyricsViewModel) {
+        guard shown !== viewModel else { return }
+        shown?.setVisible(false)
+        viewModel.setVisible(true)
+        shown = viewModel
+    }
+
+    mutating func hide() {
+        shown?.setVisible(false)
+        shown = nil
     }
 }

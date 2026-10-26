@@ -4,6 +4,7 @@ import SwiftSonic
 struct LyricsView: View {
     @Bindable var viewModel: LyricsViewModel
     @State private var showsKaraoke = false
+    @State private var visibility = LyricsVisibilityHandoff()
 
     var body: some View {
         Group {
@@ -25,8 +26,10 @@ struct LyricsView: View {
                 errorState(message)
             }
         }
-        .onAppear { viewModel.setVisible(true) }
-        .onDisappear { viewModel.setVisible(false) }
+        .onAppear { visibility.show(viewModel) }
+        // The player swaps in the next song's view model while this view stays on screen.
+        .onChange(of: ObjectIdentifier(viewModel)) { visibility.show(viewModel) }
+        .onDisappear { visibility.hide() }
         .onChange(of: viewModel.isPlaying) { _, _ in viewModel.reconcileTracking() }
         .fullScreenCover(isPresented: $showsKaraoke) { KaraokeLyricsView(viewModel: viewModel) }
     }
