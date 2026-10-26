@@ -4,7 +4,11 @@
 
 - Preparing a queue, buffering and reconnecting have explicit waiting states. Brief waits remain hidden for 700 ms; the reconnection message requires an actual recovery attempt, not a preventive watchdog marker. Pause and Next remain meaningful during recovery. A late queue preparation cannot override a newer transport command.
 - Replacement items keep the saved listening position while loading and seeking. A failed restore seek stops playback before unmuting, so it cannot replay the beginning; explicit Play retries the saved position for both remote streams and local files.
-- A stalled remote item checks for audio downloaded or cached since playback began. A completed local copy can replace it without a server availability request, including offline, while restoring the listening position.
+- A stalled remote item checks for audio downloaded or cached since playback began. A completed local copy at least as good as the stream replaces it at once, without a grace period or a server availability request, including offline, while restoring the listening position. A lower-quality copy (a cellular transcode heard on Wi-Fi) is used only if the stall lasts.
+- A stall is not rebuilt while the item's loaded range keeps growing, for up to 15 seconds; with nothing arriving it is rebuilt after 5 seconds. A buffering stall of a song that has already played skips the server check; item failures and songs that never started still make it.
+- While AVPlayer waits for data, Now Playing shows rate 0 at the real position, so the Lock Screen and car clocks stop with the music.
+- Remote items on both decks buffer 240 seconds ahead; local files use the system default.
+- Cellular rules (stream quality, how far ahead to cache) apply to expensive paths and to a VPN tunnel such as Tailscale running over cellular.
 - A failed stream is checked against Navidrome before treating the song as removed. Only a structured `getSong`/`getPlaylist` not-found response confirms deletion; connectivity failures and proxy HTTP 404 responses do not.
 - Opening or starting an old playlist revalidates its content. A deleted playlist displays one explanation and retains its downloaded music. An unavailable queue advances through a bounded number of songs and stops safely when none are playable.
 - Home displays its last saved feed by server while offline. During a cold load, one slow section does not hold back the others. Pull-to-refresh applies its result together to preserve scroll layout.
@@ -26,7 +30,7 @@ iOS controls background scheduling. Force-quitting an app prevents its backgroun
 
 ## Local diagnostics
 
-The automatic audio cache is populated by a separate transfer after 30 seconds of listening. It is a bounded LRU cache, not a download of the whole queue; a full cache does not guarantee the current song is present. Cache transfers request actual response framing (`estimateContentLength=false`) even when playback uses an estimated length for a transcode. The mobile-data preference is also applied to the URLSession request, so it remains effective across network handovers.
+The automatic audio cache is populated by a separate transfer that downloads a streamed song in full from its first second, on cellular too, and retries a dropped connection with backoff. Settings > Caching then pre-caches upcoming songs: by default the next 3 on cellular and the entire queue on Wi-Fi, up to the stream cache size limit, without evicting songs still ahead in the queue. Pre-caching starts only after the playing song's download, pauses from 30 seconds (plus the crossfade) before a transition, and retries failures. Low Data Mode turns both off; Low Power Mode does not. Each cache file name records the quality it was fetched at, and a lower-quality copy never replaces a better one. Cache transfers request actual response framing (`estimateContentLength=false`) even when playback uses an estimated length for a transcode.
 
 The playback timeline records cache scheduling and format, transfer start, completion, cancellation, cellular exclusion and numeric failure codes. Identical network-path notifications are coalesced so they do not push useful playback events out of the bounded report.
 
@@ -43,6 +47,7 @@ Playback startup is measured from transport command to observed playhead progres
 - `DownloadTaskCoordinatorTests`, `OfflineDownloadRoundTripTests` and `OfflineLibraryRemovalCoordinatorTests`: shared cancellation, persisted ordering and safe removal of shared audio.
 - `PlaylistEditCommitterTests` and `FavoritesFailureTests`: partial saves and persistent rollback after failed actions.
 - `PlaybackDiagnosticsTests`: redaction and local continuity counters.
+- `CurrentSongDownloadTests`, `UpcomingSongsPrefetcherTests`, `PatientStallRecoveryTests`, `NowPlayingBufferingTests`, `AudioStreamCacheTests`, `CellularDetectionTests` and `AVPlayerEngineForwardBufferTests`: the full download, per-network pre-caching, patient stall recovery, Now Playing rate while buffering, quality-aware caching, VPN cellular detection and the forward buffer.
 
 The complete Swift Testing run passed 843 tests in 137 suites on 5 September 2026. Subsequent changes passed 47 targeted tests (including two new favorites cases), followed by nine shared-download tests. The subsequent Next/reconnection correction passed 16 targeted tests, including a reproduced regression and verification that real retries remain visible.
 
