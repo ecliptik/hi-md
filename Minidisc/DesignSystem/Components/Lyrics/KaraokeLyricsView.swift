@@ -23,7 +23,7 @@ struct KaraokeLyricsView: View {
             default:
                 Text("No lyrics available")
                     .font(.title2.weight(.semibold))
-                    .foregroundStyle(.white.opacity(0.7))
+                    .foregroundStyle(.white.opacity(PlayerBackgroundPalette.secondaryOpacity))
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -63,7 +63,9 @@ struct KaraokeLyricsView: View {
                         .blur(radius: 60)
                         .opacity(0.55)
                 }
-                Color.black.opacity(0.35)
+                // Keeps a white cover at luminance 0.074 or less, so the dimmest lyric line
+                // (0.5) still has 3.5:1.
+                Color.black.opacity(0.45)
             }
         }
         .ignoresSafeArea()
@@ -108,7 +110,8 @@ struct KaraokeLyricsView: View {
         HStack(alignment: .top) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(track?.title ?? "").font(.headline).lineLimit(1)
-                Text(track?.artist ?? "").font(.subheadline).foregroundStyle(.white.opacity(0.7)).lineLimit(1)
+                Text(track?.artist ?? "").font(.subheadline)
+                    .foregroundStyle(.white.opacity(PlayerBackgroundPalette.secondaryOpacity)).lineLimit(1)
             }
             Spacer()
             Button { dismiss() } label: {

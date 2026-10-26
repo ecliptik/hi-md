@@ -17,7 +17,7 @@ struct WrappedIntroSlide: View {
                     Text("YOUR")
                         .scaledFont(size: 16, weight: .heavy, design: .rounded)
                         .tracking(4)
-                        .foregroundStyle(.white.opacity(0.7))
+                        .foregroundStyle(.white.opacity(WrappedYearPalette.secondaryTextOpacity))
 
                     Text("\(year)")
                         .scaledFont(size: 120, weight: .black, design: .rounded)
@@ -37,7 +37,7 @@ struct WrappedIntroSlide: View {
 
                 Text("Your year in music.")
                     .scaledFont(size: 18, weight: .medium, design: .rounded)
-                    .foregroundStyle(.white.opacity(0.75))
+                    .foregroundStyle(.white.opacity(WrappedYearPalette.secondaryTextOpacity))
                     .padding(.bottom, MinidiscSpacing.xxxxl)
             }
             .padding(.horizontal, MinidiscSpacing.xl)

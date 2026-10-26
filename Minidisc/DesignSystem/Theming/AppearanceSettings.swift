@@ -6,7 +6,7 @@ import UIKit
 import AppKit
 #endif
 
-/// The accent colours offered in Settings > Appearance. Gold comes from the 💽 icon.
+/// The accent colours offered in Settings > Appearance. Gold comes from the app icon.
 nonisolated enum AccentChoice: String, CaseIterable, Identifiable, Sendable {
     case gold, coral, red, orange, pink, purple, blue, teal, green
 

@@ -19,10 +19,10 @@ struct WrappedMinutesSlide: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("This year, you")
                         .scaledFont(size: 22, weight: .medium, design: .rounded)
-                        .foregroundStyle(.white.opacity(0.8))
+                        .foregroundStyle(.white.opacity(WrappedYearPalette.secondaryTextOpacity))
                     Text("listened to")
                         .scaledFont(size: 22, weight: .medium, design: .rounded)
-                        .foregroundStyle(.white.opacity(0.8))
+                        .foregroundStyle(.white.opacity(WrappedYearPalette.secondaryTextOpacity))
                 }
 
                 Spacer(minLength: MinidiscSpacing.xl)
@@ -34,7 +34,7 @@ struct WrappedMinutesSlide: View {
                 if totalHours > 0 {
                     Text("That's \(totalHours) hours of music.")
                         .scaledFont(size: 20, weight: .semibold, design: .rounded)
-                        .foregroundStyle(.white.opacity(0.75))
+                        .foregroundStyle(.white.opacity(WrappedYearPalette.secondaryTextOpacity))
                 }
 
                 Spacer()
@@ -77,7 +77,7 @@ private struct AnimatedMinutesText: View, Animatable {
                 .minimumScaleFactor(0.5)
             Text(unit)
                 .scaledFont(size: 24, weight: .medium, design: .rounded)
-                .foregroundStyle(.white.opacity(0.85))
+                .foregroundStyle(.white.opacity(WrappedYearPalette.secondaryTextOpacity))
         }
     }
 }

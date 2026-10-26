@@ -172,7 +172,7 @@ struct SongsListView: View {
             }
         }
         .buttonStyle(.bordered)
-        .tint(.minidiscAccent)
+        .tint(.minidiscTextAccent)
         .disabled(songs.isEmpty)
         .listRowSeparator(.hidden)
         .listRowBackground(Color.clear)

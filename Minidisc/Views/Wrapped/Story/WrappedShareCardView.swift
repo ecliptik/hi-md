@@ -17,7 +17,7 @@ struct WrappedShareCardView: View {
                     Text("YOUR")
                         .font(.system(size: 13, weight: .heavy, design: .rounded))
                         .tracking(3.5)
-                        .foregroundStyle(.white.opacity(0.7))
+                        .foregroundStyle(.white.opacity(WrappedYearPalette.secondaryTextOpacity))
 
                     Text("\(year)")
                         .font(.system(size: 96, weight: .black, design: .rounded))
@@ -55,7 +55,7 @@ struct WrappedShareCardView: View {
 
                 Text("Minidisc")
                     .font(.system(size: 15, weight: .semibold, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.55))
+                    .foregroundStyle(.white.opacity(WrappedYearPalette.secondaryTextOpacity))
             }
             .padding(.horizontal, 40)
             .padding(.vertical, 56)
@@ -67,7 +67,7 @@ struct WrappedShareCardView: View {
         HStack(spacing: 10) {
             Image(systemName: icon)
                 .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(.white.opacity(0.7))
+                .foregroundStyle(.white.opacity(WrappedYearPalette.secondaryTextOpacity))
                 .frame(width: 20, alignment: .center)
             VStack(alignment: .leading, spacing: 1) {
                 Text(primary)
@@ -76,7 +76,7 @@ struct WrappedShareCardView: View {
                     .lineLimit(1)
                 Text(secondary)
                     .font(.system(size: 12, weight: .medium, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.65))
+                    .foregroundStyle(.white.opacity(WrappedYearPalette.secondaryTextOpacity))
                     .lineLimit(1)
             }
         }

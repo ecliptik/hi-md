@@ -243,9 +243,12 @@ private struct LidarrArtistCell: View {
                 .clipShape(RoundedRectangle(cornerRadius: MinidiscCornerRadius.standard))
             .overlay(alignment: .topTrailing) {
                 if !artist.monitored {
+                    // On a dark disc, so the badge shows on a white cover too.
                     Image(systemName: "bookmark.slash.fill")
                         .font(.caption)
-                        .foregroundStyle(.white, .black.opacity(0.4))
+                        .foregroundStyle(.white)
+                        .padding(5)
+                        .background(Color.black.opacity(0.6), in: Circle())
                         .padding(MinidiscSpacing.xs)
                 }
             }

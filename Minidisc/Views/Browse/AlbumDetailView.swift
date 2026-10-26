@@ -79,6 +79,10 @@ struct AlbumDetailView: View {
     private var isAlbumFavorite: Bool { !albumFavoriteMatches.isEmpty }
     private var isOnline: Bool { container?.serverState.isOnline == true }
     private var albumCoverId: String { viewModel?.coverArtId ?? coverArtId ?? albumId }
+    /// "Playing from" this album.
+    private var playbackContext: PlaybackContext {
+        .album(id: albumId, name: viewModel?.albumName ?? initialName, coverArtId: albumCoverId)
+    }
     /// Every cover id the override must cover so it's resolved from ANY surface: the album cover + each song's
     /// own cover id (these can differ from the album's while pointing at the same artwork — e.g. the full player).
     private var albumThemeIds: [String] {
@@ -249,6 +253,7 @@ struct AlbumDetailView: View {
                 AlbumPlaybackActions(
                     albumId: albumId,
                     songs: songs,
+                    playbackContext: playbackContext,
                     mode: mode,
                     viewModel: viewModel,
                     downloadedAlbumTracks: downloadedAlbumTracks,
@@ -303,7 +308,7 @@ struct AlbumDetailView: View {
                             onTap: { index in
                                 Task {
                                     do {
-                                        try await container?.playerService.play(tracks: songs, startIndex: index)
+                                        try await container?.playerService.play(tracks: songs, startIndex: index, context: playbackContext)
                                     } catch {
                                         Logger.player.error("[PLAYBACK] play failed: \(error, privacy: .public)")
                 if !UserFacingError.isCancellation(error) {
@@ -405,7 +410,11 @@ struct AlbumDetailView: View {
                         Divider()
                         Button("Instant Mix", systemImage: instantMixSymbol) {
                             HapticFeedback.medium.trigger()
-                            startInstantMix(from: .album(id: albumId), using: container)
+                            startInstantMix(
+                                from: .album(id: albumId),
+                                using: container,
+                                context: .instantMix(seed: .album, id: albumId, name: viewModel?.albumName ?? initialName)
+                            )
                         }
                         .disabled(displaySongs().isEmpty || !isOnline)
                         Divider()
@@ -613,15 +622,26 @@ struct AlbumDetailPalette {
             )
         }
 
-        let topColor = themedColor(brightnessMultiplier: appearance == .dark ? 1.06 : 1.08)
-        let bottomColor = themedColor(brightnessMultiplier: appearance == .dark ? 0.84 : 0.92)
-        let usesDarkContent = topColor.luminance > 0.62 && bottomColor.luminance > 0.55
+        var topColor = themedColor(brightnessMultiplier: appearance == .dark ? 1.06 : 1.08)
+        var bottomColor = themedColor(brightnessMultiplier: appearance == .dark ? 0.84 : 0.92)
+        // Black or white by WCAG contrast over both stops. Perceived brightness kept white text on
+        // light-mode greens and yellows at 1.9:1, and 70% secondary text at 1.6:1.
+        var usesDarkContent = false
+        var secondaryOpacity = 0.7
+        if let top = WCAGContrast.RGB(topColor.rgbComponents), let bottom = WCAGContrast.RGB(bottomColor.rgbComponents) {
+            let readable = ReadableContent.resolve(backgrounds: [top, bottom])
+            usesDarkContent = readable.usesDarkContent
+            secondaryOpacity = readable.secondaryOpacity
+            let stops = readable.backgrounds.map { Color(red: $0.red, green: $0.green, blue: $0.blue) }
+            topColor = stops[0]
+            bottomColor = stops[1]
+        }
         let foreground: Color = usesDarkContent ? .black : .white
 
         backgroundTopColor = topColor
         backgroundBottomColor = bottomColor
         contentColor = foreground
-        secondaryContentColor = foreground.opacity(0.7)
+        secondaryContentColor = foreground.opacity(secondaryOpacity)
         controlFillColor = foreground.opacity(0.12)
         playLabelColor = themedColor(
             brightnessMultiplier: min(max(0.32 / max(adjustedBrightness, 0.01), 0.5), 1)
@@ -740,6 +760,7 @@ private struct AlbumMetadataLine: View {
 private struct AlbumPlaybackActions: View {
     let albumId: String
     let songs: [DisplayableSong]
+    let playbackContext: PlaybackContext
     let mode: AlbumDetailMode
     let viewModel: AlbumDetailViewModel?
     let downloadedAlbumTracks: [DownloadedTrack]
@@ -761,7 +782,9 @@ private struct AlbumPlaybackActions: View {
                     HapticFeedback.medium.trigger()
                     Task {
                         guard !songs.isEmpty else { return }
-                        await container?.toastService.perform { try await container?.playerService.play(tracks: songs.shuffled(), startIndex: 0) }
+                        await container?.toastService.perform {
+                            try await container?.playerService.play(tracks: songs.shuffled(), startIndex: 0, context: playbackContext)
+                        }
                     }
                 } label: {
                     AlbumCircularActionLabel(
@@ -773,7 +796,8 @@ private struct AlbumPlaybackActions: View {
                 .disabled(songs.isEmpty)
                 .accessibilityLabel("Shuffle")
 
-                PlayMenuButton(songs: songs, fillColor: playFillColor, labelColor: playLabelColor)
+                PlayMenuButton(songs: songs, fillColor: playFillColor, labelColor: playLabelColor,
+                               context: playbackContext)
                     .frame(maxWidth: 220)
 
                 // Balances Shuffle on the other side of Play: star the album.
@@ -1139,7 +1163,8 @@ private struct AlbumReleaseInformationSection: View {
                 }
             }
             .font(.footnote)
-            .foregroundStyle(textColor.opacity(0.82))
+            // Already the palette's secondary colour, tuned for 4.5:1; a further 82% fell under it.
+            .foregroundStyle(textColor)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, MinidiscSpacing.l)
             .padding(.top, MinidiscSpacing.l)

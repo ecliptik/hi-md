@@ -7,7 +7,9 @@ final class FullPlayerViewModel {
     private(set) var coverArtID: String?
 
     var contentColor: Color { .white }
-    var secondaryContentColor: Color { Color.white.opacity(0.7) }
+    var secondaryContentColor: Color { Color.white.opacity(PlayerBackgroundPalette.secondaryOpacity) }
+    /// Glyphs and large text that need 3:1 over the backdrop.
+    var dimmedContentColor: Color { Color.white.opacity(PlayerBackgroundPalette.dimmedOpacity) }
 
     func updateColors(for coverArtId: String?, colorExtractor: DominantColorExtractor,
                       container: AppContainer?, reduceMotion: Bool = false) async {

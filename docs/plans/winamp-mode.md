@@ -1,6 +1,6 @@
 # Winamp mode (feature request)
 
-Status: phases 1 and 2 built on the native Mac app, plus a round of polish (2026-10-26). Requested by the owner on 2026-10-25 as an easter egg for the Mac version: a mode that looks and works like classic Winamp 2 / XMMS. Tracked on the "Minidisc Winamp mode" board card.
+Status: phases 1 and 2 built on the native Mac app, plus a round of polish (2026-10-26). Requested by the owner on 2026-10-25 as an easter egg for the Mac version: a mode that looks and works like classic Winamp 2 / XMMS.
 
 ## Progress
 

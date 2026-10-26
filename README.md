@@ -5,138 +5,180 @@
 <h1 align="center">Minidisc</h1>
 
 <p align="center">
-  Minidisc is an opinionated music player for iOS that plays the music from your own server, and it gives you an experience that is close to Apple Music.
+  A personal fork of <a href="https://github.com/Loriage/Minidisc">Minidisc</a>, the iOS music player for your own Subsonic or Navidrome server.
 </p>
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MPL--2.0-brightgreen.svg" alt="License: MPL 2.0"></a>
-  <a href="#requirements"><img src="https://img.shields.io/badge/platform-iOS%2026%2B-blue.svg" alt="Platform: iOS 26+"></a>
+  <a href="#build-from-source"><img src="https://img.shields.io/badge/platform-iOS%2027%2B-blue.svg" alt="Platform: iOS 27+"></a>
   <a href="https://swift.org"><img src="https://img.shields.io/badge/Swift-6-orange.svg" alt="Swift 6"></a>
 </p>
 
+<p align="center">
+  <img src="docs/screenshots/ios/01-home.jpg" alt="Home: playlists and favourite songs" width="200">
+  <img src="docs/screenshots/ios/02-now-playing.jpg" alt="Now Playing with the cover's colours" width="200">
+  <img src="docs/screenshots/ios/03-lyrics.jpg" alt="Synced lyrics in the player" width="200">
+  <img src="docs/screenshots/ios/05-discover.jpg" alt="Discover: stations and Smart Shuffle" width="200">
+</p>
+
+## About this fork
+
+This repository is a fork of [Loriage/Minidisc](https://github.com/Loriage/Minidisc), which is itself a fork of [Cassette](https://github.com/CassetteLab/cassette) by Mathieu Dubart. Minidisc is a SwiftUI player for servers that speak the Subsonic or OpenSubsonic API, such as [Navidrome](https://www.navidrome.org). It has no accounts and no tracking: your music goes between your device and your server.
+
+The fork follows its own direction and doesn't send changes upstream, but it merges upstream work from time to time. It is built for one person's library and devices and is shared as source only: there is no App Store listing, TestFlight or prebuilt `.ipa`. For the original app, its releases and its App Store listing, go to [upstream Minidisc](https://github.com/Loriage/Minidisc).
+
+[FORK.md](FORK.md) has the details for anyone building or maintaining the fork: what differs from upstream, how upstream changes are merged, and what to keep when merging.
+
+## What's different from upstream
+
+**Playback**
+
+- A single Playback settings page in Plexamp's order: Audio Output, Quality, Loudness Leveling, Crossfade, Downmix to Stereo, Equalizer, Autoplay and Caching.
+- A 10-band equalizer with presets, a curve editor on AutoEQ's bands, and a search of [AutoEq](https://github.com/jaakkopasanen/AutoEq) headphone corrections.
+- Loudness leveling with a preamp and a peak limiter.
+- Autoplay with Album Direction (continue with similar music, or stop when a chosen album ends) and a choice of whether Autoplay songs count as plays.
+- The two-deck engine keeps gapless playback and real crossfades through all of this.
+
+**Buffering, caching and weak networks**
+
+- Remote songs buffer four minutes ahead on both decks, and the playing song downloads in full from its first second.
+- Upcoming songs are pre-cached per network, cellular included, along with recently played and pinned songs. A Caching page controls how far ahead.
+- Streams above a per-network bitrate threshold are converted by the server; each cached copy remembers its quality.
+- Stalls wait while data still arrives, then switch to a complete local copy when one is at least as good as the stream.
+- An unreachable server counts as offline, and scrobbles wait until it is back. Cellular rules also apply through a VPN tunnel, such as Tailscale running over cellular.
+- [docs/PlaybackContinuity.md](docs/PlaybackContinuity.md) describes the behaviour in detail.
+
+**Apple platforms**
+
+- Requires iOS 27 and publishes Now Playing through the iOS 27 NowPlaying framework.
+- Widgets, Control Center controls and a download Live Activity.
+- Siri and Shortcuts actions, Spotlight indexing of artists, albums and playlists, and plain-language library search with the on-device model.
+- An Apple Watch remote, iPad and landscape layouts, and a Mac Catalyst build.
+- CarPlay with Home, Library, Downloads and Moods tabs. It runs in the simulator; a device build needs Apple's CarPlay audio entitlement.
+- A native Mac app with a Winamp mode (classic `.wsz` skins, docking playlist and equalizer windows) is in progress on the `feat/winamp-phase2` branch.
+
+**Interface**
+
+- A redesigned interface: a tile-based Library, a searchable Playlists tab, restyled album, playlist and artist screens, a mini player tinted from the cover, and an Accent Color setting.
+- Full-screen karaoke lyrics, a sleep timer, and a spinning MiniDisc in place of the cover on tap.
+- A photographed MiniDisc as the app icon (gold, with dark and light alternates), the logo and the no-artwork placeholder.
+
+**Discovery**
+
+- Album recommendations on Discover from Apple Intelligence on the device, or from Anthropic or OpenAI with your own API key. Missing albums link to Lidarr, Bandcamp and MusicBrainz.
+- ListenBrainz is read-only here: plays reach ListenBrainz through the server's scrobbling, so the app doesn't submit them itself.
+
+**Accessibility and quality**
+
+- VoiceOver, Switch Control, Dynamic Type and Reduce Motion fixes, and a contrast sweep that brings text over covers and tinted surfaces to WCAG AA.
+- Security, concurrency, memory, performance, energy, UX and accessibility audits, with their follow-ups, are in [docs/audits](docs/audits).
+
 ## Screenshots
 
-|                        Home                        |                        Discover                        |                        Player                        |                        Album                        |                           Lidarr                           |
-| :------------------------------------------------: | :----------------------------------------------------: | :--------------------------------------------------: | :-------------------------------------------------: | :--------------------------------------------------------: |
-| <img src="docs/screenshots/home.jpeg" width="150"> | <img src="docs/screenshots/discover.jpeg" width="150"> | <img src="docs/screenshots/player.jpeg" width="150"> | <img src="docs/screenshots/album.jpeg" width="150"> | <img src="docs/screenshots/lidarr-album.jpeg" width="150"> |
+| | | |
+|:-:|:-:|:-:|
+| <img src="docs/screenshots/ios/06-artist.jpg" alt="Artist page" width="240"> | <img src="docs/screenshots/ios/07-library.jpg" alt="Library" width="240"> | <img src="docs/screenshots/ios/08-playlists.jpg" alt="Playlists" width="240"> |
+| Artist pages with a favourite button | Library | Playlists, with search |
+| <img src="docs/screenshots/ios/09-recommended.jpg" alt="Recommended for You" width="240"> | <img src="docs/screenshots/ios/10-playback-settings.jpg" alt="Playback settings" width="240"> | <img src="docs/screenshots/ios/04-minidisc-cover.jpg" alt="The MiniDisc cover easter egg" width="240"> |
+| Recommendations from Apple Intelligence | Playback settings, in Plexamp's order | Tap the cover for a MiniDisc |
 
-## What is Minidisc?
+## Features from upstream
 
-Minidisc is a music player for iOS, written in Swift and SwiftUI, that plays the music from your own server. It uses the Subsonic and OpenSubsonic API, so it works with [Navidrome](https://www.navidrome.org) and with other servers that follow these standards.
+Everything upstream Minidisc offers is still here, including:
 
-Minidisc does not use accounts or subscriptions, and it does not track you, so your music stays between your device and your server. It gives you the same smooth experience as Apple Music, but it plays the music that you own.
+- A player close to Apple Music: a full-screen player, a mini player in the tab bar, Home shelves, background playback, lock screen and Control Center controls, and AirPlay.
+- Your library: playlists, artists, albums, favourites synced with the server, search, offline downloads, lyrics, shuffle, repeat and a full queue.
+- **Wrapped**, a summary of your year of listening.
+- **AudioMuse-AI** mood playlists.
+- **Lidarr**: add artists, search for missing albums, pick releases and follow the download queue.
+- Lossless streaming by default, with a lighter format per network if you want one.
 
-## An opinionated fork
+## Privacy
 
-Minidisc is a fork of [Cassette](https://github.com/CassetteLab/cassette), which Mathieu Dubart wrote as a good client for iOS and macOS. Minidisc takes a different, narrower path, and it follows four rules:
+- Minidisc does not track you. Library and playback traffic goes directly to your server.
+- Credentials are kept only in the Keychain. Custom HTTP headers are supported for servers behind a reverse proxy such as Cloudflare Access or Authelia.
+- Some features talk to other services, and only when you use them:
+  - LRCLIB, for lyrics: the track's title, artist, album and duration.
+  - MusicBrainz, Wikidata and Wikimedia Commons, for artist images.
+  - GitHub, to search AutoEq headphone corrections.
+  - ListenBrainz, AudioMuse-AI and Lidarr, at the addresses you configure.
+  - Anthropic or OpenAI, for recommendations. The names of recent and favourite albums, top artists and playlists are sent, and the app lists them and asks before the first request.
+- Server credentials, custom headers and server identifiers are never sent to these services.
 
-- **iOS only.** Minidisc does not support macOS, because each screen is made for the phone.
-- **Opinionated.** Minidisc has few settings and good defaults, because it makes the decisions for you and keeps the interface simple.
-- **Smooth first.** Minidisc adds a function only when the function feels as good as Apple Music.
-- **Familiar.** The tab bar, the mini-player, the player screen, and the Home shelves use the usual iOS patterns, so you do not have to learn them.
+## Build from source
 
-If you want the largest set of functions on Mac and iPhone, use Cassette. If you want the simplest iOS player for your own library, use Minidisc.
+You need:
 
-## Features
+- A Mac with Xcode 27 or later.
+- A Subsonic, OpenSubsonic or Navidrome server.
+- For a device build, an Apple Developer account. The free personal team is enough, with the limits below.
 
-**A player that is close to Apple Music**
+Steps:
 
-- Native iOS 26 design with Liquid Glass.
-- A full-screen player with a large cover.
-- A mini-player that stays in the tab bar, and you tap it to open the full player.
-- A Home screen with your top picks, your recent music, and one shelf for each genre.
-- Background playback with lock screen and Control Center controls.
-- AirPlay support.
+1. Clone the repository and open the project:
 
-**Your library**
-
-- Browse your playlists, artists, albums, downloads, and favorites.
-- Search all of your library.
-- Offline mode, so you can download albums, playlists, or single tracks.
-- Sync your favorites with the server.
-- Lyrics, shuffle, repeat, and a full queue.
-- The app keeps your session and continues from the last position.
-
-**More functions**
-
-- **Wrapped** gives you a summary of your year of listening.
-- **ListenBrainz** scrobbles your plays and gets recommendations for you.
-- **AudioMuse-AI** builds weekly mood playlists from the sound of your music.
-- **Lidarr** manages your music collection from the app: add artists, monitor and search for missing albums, pick releases with an interactive search, and follow the download queue with manual import.
-- **Streaming quality** is lossless by default, but you can pick a lighter format per network (Wi-Fi and cellular).
-
-**Privacy**
-
-- Minidisc does not track you. Library and playback traffic goes directly to your configured server.
-- If you select LRCLIB as the lyrics source, or use it as the automatic fallback, Minidisc sends the track title, artist, album, and duration to LRCLIB over HTTPS. Server credentials, custom headers, and server identifiers are never included.
-- Minidisc keeps your credentials only in the iOS Keychain.
-- Minidisc can send custom HTTP headers for a server behind a reverse proxy, for example Cloudflare Access or Authelia.
-
-## Installation
-
-### iOS: sideload the app
-
-1. Download the `.ipa` file from the [Releases](../../releases) page.
-2. Install the file with AltStore, Sideloadly, or a different sideload tool. The tool signs the app with your Apple ID during the installation.
-
-### Build from the source
-
-You need these items:
-
-- macOS 15 or later, with Xcode 26 or later.
-- A Subsonic, OpenSubsonic, or Navidrome server.
-- An Apple Developer account. The free level is sufficient for a personal build.
-
-Do these steps:
-
-1. Clone the repository and open the project.
     ```bash
-    git clone https://github.com/Loriage/Minidisc.git
+    git clone https://github.com/ecliptik/Minidisc.git
     cd Minidisc
     open Minidisc.xcodeproj
     ```
-    Swift Package Manager gets the dependencies (SwiftSonic), so you do not have to do more setup.
-2. Select your team in **Signing & Capabilities**.
-3. Select an iOS 26 device or simulator.
-4. Build and run the app when you press Command-R.
-5. At the first start, Minidisc asks for your server address, your username, and your password. Enter them and tap **Connect**. If your server is behind a reverse proxy that needs custom headers, open **Advanced** and add the headers.
 
-## Requirements
+    Swift Package Manager fetches the only dependency, [SwiftSonic](https://github.com/MathieuDubart/swiftsonic).
 
-- iOS 26.1 or later.
-- A Subsonic, OpenSubsonic, or Navidrome server.
+2. Simulator builds need no signing setup: pick an iOS 27 simulator and press Command-R.
 
-## Server compatibility
+3. For a device, set your team in a local, git-ignored xcconfig instead of in the project:
 
-Minidisc works with each server that has the Subsonic or OpenSubsonic API. Navidrome is the recommended server, and the team tests Minidisc primarily with Navidrome. If your server has the Subsonic API but a function does not work, [open an issue](https://github.com/Loriage/Minidisc/issues).
+    ```bash
+    cp Config/Signing.local.xcconfig.example Config/Signing.local.xcconfig
+    # then edit it: DEVELOPMENT_TEAM = <your 10-character team ID>
+    ```
+
+    `Config/Signing.xcconfig` is the project's base configuration and includes this file when it exists, so every target (app, widgets, watch app and tests) picks up your team. Xcode shows the team ID under Settings > Accounts.
+
+4. The bundle IDs use the `com.ecliptik.minidisc` prefix and the App Group `group.com.ecliptik.minidisc`. Apple registers each bundle ID to only one team, so for a device build of your own copy, change the prefix everywhere `git grep com.ecliptik` finds it: the project, the entitlements files, `Info.plist`, `Shared/WidgetSnapshot.swift`, `BackgroundDownloadTransport.swift`, the UI tests and `Scripts/doctor.sh`.
+
+5. On first launch, enter your server address, username and password and tap **Connect**. Headers for a reverse proxy go under **Advanced**.
+
+A free personal team can't use the Siri capability, so the Siri entitlement is left out and Siri's own play requests go unused; App Shortcuts still work. It can also register only 10 new App IDs per 7 days, and the app, the widget extension and the watch app take three.
+
+### Checks
+
+```bash
+./Scripts/doctor.sh            # project, privacy and packaging checks
+./Scripts/doctor.sh --build    # also an unsigned Release build
+```
+
+Run the `MinidiscTests` scheme for unit tests. The UI tests in `MinidiscUITests` use a local fixture server, described in [Scripts/Testing/README.md](Scripts/Testing/README.md).
 
 ## Architecture
 
-This information is for developers:
+- **UI:** SwiftUI views with `@Observable @MainActor` view models; views hold no business logic.
+- **Services:** Swift actors such as `PlayerService` and `LibraryService`, which import neither SwiftUI nor UIKit.
+- **Playback:** a two-deck `AVPlayer` engine (`AVPlayerEngine`) for gapless playback, crossfades and ReplayGain, with an equalizer and loudness stage.
+- **Subsonic API:** [SwiftSonic](https://github.com/MathieuDubart/swiftsonic).
+- **Extensions:** `MinidiscWidgets` (widgets, controls, Live Activity) and `MinidiscWatch`, sharing code through `Shared/` and `WatchShared/`.
+- **Persistence:** SwiftData for app data, the Keychain for credentials.
+- **Concurrency:** Swift 6 strict concurrency.
 
-- **UI.** SwiftUI views with `@Observable @MainActor` view models, and the views have no business logic.
-- **Services.** Swift actors, for example `PlayerService` and `LibraryService`, that do not import SwiftUI or UIKit.
-- **Playback.** A two-deck `AVPlayer` engine (`AVPlayerEngine`) for gapless playback, real crossfades, and ReplayGain, which connects to `MPNowPlayingInfoCenter` and `MPRemoteCommandCenter`.
-- **Subsonic API.** [SwiftSonic](https://github.com/CassetteLab/swiftsonic) does all server communication.
-- **Integrations.** ListenBrainz, AudioMuse-AI, and Lidarr each have their own client and settings.
-- **Persistence.** SwiftData for the app data, and Keychain for the credentials.
-- **Concurrency.** Swift 6 strict concurrency.
-- **Dependencies.** SwiftSonic, and there are no other dependencies.
+## Issues
+
+Report problems with this fork at [github.com/ecliptik/Minidisc/issues](https://github.com/ecliptik/Minidisc/issues). If a problem also happens in upstream Minidisc, report it there too.
 
 ## License
 
-Minidisc uses the [MPL-2.0](LICENSE) license.
+Minidisc is licensed under the [Mozilla Public License 2.0](LICENSE), like upstream Minidisc and Cassette. `LICENSE`, `NOTICE` and `COPYRIGHT` are upstream's and are kept unchanged. The fork's changes are also under MPL-2.0, and the source of every change is in this repository.
 
-- You can use, study, change, and share the source.
-- Changed files stay under MPL-2.0, but you can combine them with proprietary code in a larger work.
+Third-party code and data, SwiftSonic and AutoEq (both MIT), are listed with their notices in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
-Dependencies: [SwiftSonic](https://github.com/CassetteLab/swiftsonic) (MIT), which is compatible with MPL-2.0.
+> Code before upstream commit 21f9227 was licensed GPL-3.0-or-later.
 
-> Code before commit 21f9227 used the GPL-3.0-or-later license.
+"MiniDisc" is a trademark of Sony. This project is not affiliated with Sony, Apple, Nullsoft or the Winamp brand owners; those names are used only to describe the app.
 
 ## Acknowledgments
 
-- [Cassette](https://github.com/CassetteLab/cassette) by Mathieu Dubart, because Minidisc is a fork of Cassette.
-- The [Navidrome](https://www.navidrome.org) team, because Navidrome is an excellent self-hosted music server.
-- The [OpenSubsonic](https://opensubsonic.netlify.app) community, because they modernized the Subsonic API.
-
+- [Minidisc](https://github.com/Loriage/Minidisc) by NO HIT Dev, which this repository forks.
+- [Cassette](https://github.com/CassetteLab/cassette) by Mathieu Dubart, which Minidisc is a fork of.
+- [SwiftSonic](https://github.com/MathieuDubart/swiftsonic) by Mathieu Dubart.
+- [AutoEq](https://github.com/jaakkopasanen/AutoEq) by Jaakko Pasanen, for the headphone corrections.
+- The [Navidrome](https://www.navidrome.org) team and the [OpenSubsonic](https://opensubsonic.netlify.app) community.

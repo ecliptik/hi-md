@@ -5,7 +5,10 @@ protocol PlayerServiceProtocol: AnyObject, Sendable {
     /// MainActor playback state shared by views and system Now Playing.
     var state: PlayerState { get }
 
+    /// Plays an ad-hoc queue: a new queue clears the playing-from context, the same queue keeps it.
     func play(tracks: [DisplayableSong], startIndex: Int) async throws
+    /// Plays a queue from a known source, which the player shows as "Playing from …".
+    func play(tracks: [DisplayableSong], startIndex: Int, context: PlaybackContext?) async throws
     /// Resolves a fresh queue without allowing a late result to override Pause, Next or another Play.
     func play(preparingQueue: @escaping @Sendable () async throws -> PreparedPlaybackQueue) async throws
     func resume() async
@@ -42,6 +45,12 @@ protocol PlayerServiceProtocol: AnyObject, Sendable {
     /// A supplied seedTrack starts immediately while similarity queries build the queue.
     /// Without it, waits for the mix and throws instantMixEmpty if none is available.
     func playInstantMix(from seed: InstantMixSeed, startingWith seedTrack: DisplayableSong?) async throws
+    /// As above, naming the mix's source for "Playing from …".
+    func playInstantMix(
+        from seed: InstantMixSeed,
+        startingWith seedTrack: DisplayableSong?,
+        context: PlaybackContext?
+    ) async throws
     /// Toggles the auto-extend preference and persists it to UserDefaults.
     /// When enabled and ≤15 tracks remain, the player appends a fresh smart shuffle batch automatically.
     func setAutoExtendEnabled(_ enabled: Bool) async
@@ -68,14 +77,28 @@ nonisolated struct PreparedPlaybackQueue: Sendable {
     let tracks: [DisplayableSong]
     let startIndex: Int
     var repeatMode: RepeatMode? = nil
+    var context: PlaybackContext? = nil
 }
 
 extension PlayerServiceProtocol {
     func setAppVisible(_ visible: Bool) async {}
 
+    /// Conformers without a playing-from label (test doubles) ignore the context.
+    nonisolated func play(tracks: [DisplayableSong], startIndex: Int, context: PlaybackContext?) async throws {
+        try await play(tracks: tracks, startIndex: startIndex)
+    }
+
+    nonisolated func playInstantMix(
+        from seed: InstantMixSeed,
+        startingWith seedTrack: DisplayableSong?,
+        context: PlaybackContext?
+    ) async throws {
+        try await playInstantMix(from: seed, startingWith: seedTrack)
+    }
+
     nonisolated func play(preparingQueue: @escaping @Sendable () async throws -> PreparedPlaybackQueue) async throws {
         let queue = try await preparingQueue()
         if let repeatMode = queue.repeatMode { await setRepeatMode(repeatMode) }
-        try await play(tracks: queue.tracks, startIndex: queue.startIndex)
+        try await play(tracks: queue.tracks, startIndex: queue.startIndex, context: queue.context)
     }
 }

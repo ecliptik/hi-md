@@ -230,7 +230,11 @@ struct DiscoverView: View {
         HapticFeedback.medium.trigger()
         defer { if startingStationID == station.id { startingStationID = nil } }
         await container.toastService.perform {
-            try await container.playerService.playInstantMix(from: .artist(id: station.id), startingWith: station.starter)
+            try await container.playerService.playInstantMix(
+                from: .artist(id: station.id),
+                startingWith: station.starter,
+                context: .artistStation(artistId: station.id, artistName: station.artist.name)
+            )
         }
     }
 

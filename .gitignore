@@ -22,3 +22,22 @@ graphify-out/
 /*/*/.DS_Store
 AppStore/
 outputs/build/
+
+# Local tooling and agent worktrees
+.claude/
+CLAUDE.local.md
+
+# Signing: each developer's own team lives in a git-ignored override (see Config/Signing.xcconfig)
+Config/Signing.local.xcconfig
+Config/*.local.xcconfig
+
+# Build output
+DerivedData/
+*.xcresult
+
+# Signing material and secrets
+*.mobileprovision
+*.p12
+*.p8
+*.cer
+.env

@@ -130,7 +130,7 @@ struct FullPlayerView: View {
             .minidiscContentWidth()
             .padding(contentInsets)
             .environment(\.colorScheme, .dark)
-            .environment(\.minidiscPlayingAccent, MinidiscColors.accent)
+            .environment(\.minidiscPlayingAccent, .minidiscTextAccent)
         .background {
             FullPlayerBackground(colors: colors)
         }
@@ -261,6 +261,18 @@ struct FullPlayerView: View {
     @ViewBuilder
     private func controlsArea(_ playerState: PlayerState, showsHeader: Bool, showsVolume: Bool) -> some View {
         if !showsHeader {
+            // Radio leaves no context: its title already names the station.
+            if let context = playerState.playbackContext {
+                PlaybackContextLabel(
+                    context: context,
+                    color: vm.secondaryContentColor,
+                    isOnline: container?.serverState.isOnline == true
+                )
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, Self.playerHorizontalPadding)
+                .transition(.opacity)
+            }
+
             TrackInfoSection(
                 playerState: playerState,
                 container: container,
@@ -305,8 +317,8 @@ struct FullPlayerView: View {
             showLyrics: $showLyrics,
             surface: $surface,
             isLiveStream: playerState.isLiveStream,
+            contentColor: vm.contentColor,
             secondaryContentColor: vm.secondaryContentColor,
-            accentColor: MinidiscColors.accent,
             playerState: playerState
         )
         .padding(.top, MinidiscSpacing.s)
@@ -372,10 +384,17 @@ struct FullPlayerView: View {
                 .padding(.horizontal, MinidiscSpacing.l)
                 .padding(.vertical, MinidiscSpacing.m)
 
+            if let context = playerState.playbackContext {
+                PlaybackContextQueueHeader(context: context, color: vm.secondaryContentColor)
+                    .padding(.horizontal, MinidiscSpacing.l)
+                    .padding(.bottom, MinidiscSpacing.s)
+            }
+
             InlineQueueList(
                 playerState: playerState,
                 contentColor: vm.contentColor,
                 secondaryContentColor: vm.secondaryContentColor,
+                dimmedContentColor: vm.dimmedContentColor,
                 loadArtwork: true
             )
             .environment(\.colorScheme, .dark)
@@ -446,7 +465,7 @@ struct FullPlayerView: View {
             dismissAction()
         } label: {
             Capsule()
-                .fill(vm.contentColor.opacity(0.4))
+                .fill(vm.dimmedContentColor)
                 .frame(width: 60, height: 5)
                 .frame(maxWidth: .infinity, minHeight: 28, alignment: .top)
                 .contentShape(Rectangle())
@@ -581,7 +600,8 @@ private struct TrackInfoSection: View {
                         Divider()
                         Button("Instant Mix", systemImage: instantMixSymbol) {
                             guard let track = playerState.currentTrack else { return }
-                            startInstantMix(from: .song(id: track.id), using: container, startingWith: track)
+                            startInstantMix(from: .song(id: track.id), using: container, startingWith: track,
+                                            context: songMixContext(track))
                         }
                         .disabled(!isOnline || playerState.currentTrack == nil || playerState.currentTrack?.isLocalFile == true)
                         Divider()
@@ -1025,8 +1045,8 @@ private struct BottomToolbar: View {
     @Binding var showLyrics: Bool
     @Binding var surface: PlayerSurface
     let isLiveStream: Bool
+    let contentColor: Color
     let secondaryContentColor: Color
-    let accentColor: Color
     let playerState: PlayerState
 
     var body: some View {
@@ -1038,7 +1058,7 @@ private struct BottomToolbar: View {
                 } label: {
                     Image(systemName: "quote.bubble")
                         .font(.title3)
-                        .foregroundStyle(isLyricsActive ? accentColor : secondaryContentColor)
+                        .foregroundStyle(isLyricsActive ? Self.activeGlyph : secondaryContentColor)
                         .frame(width: 44, height: 44)
                         .background { activeIndicator(isLyricsActive) }
                 }
@@ -1062,12 +1082,13 @@ private struct BottomToolbar: View {
                 } label: {
                     Image(systemName: "list.bullet")
                         .font(.title3)
-                        .foregroundStyle(isQueueActive ? accentColor : secondaryContentColor)
+                        .foregroundStyle(isQueueActive ? Self.activeGlyph : secondaryContentColor)
                         .overlay(alignment: .topTrailing) {
                             if let badge = playerState.queueModeBadge {
                                 Image(systemName: badge)
                                     .font(.system(size: 10, weight: .bold))
-                                    .foregroundStyle(Color.minidiscAccent)
+                                    // The text shade: the fill shade is 4.5:1 on the black disc at best.
+                                    .foregroundStyle(Color.minidiscTextAccent)
                                     .padding(2)
                                     .background(.background, in: Circle())
                                     .overlay(Circle().stroke(.background.opacity(0.5), lineWidth: 0.5))
@@ -1089,30 +1110,39 @@ private struct BottomToolbar: View {
     private var isLyricsActive: Bool { showLyrics && surface == .player }
     private var isQueueActive: Bool { surface == .queue }
 
-    /// A filled disc behind the active button, so its state doesn't rest on the accent colour
-    /// alone: gold over a bright cover can be dimmer than the inactive icons.
+    /// The active button is a solid disc in the player's content colour with a dark glyph, as in
+    /// Apple Music. A gold glyph on a faint disc was hard to see over mid-tone covers.
+    private static let activeGlyph = Color.black.opacity(0.8)
+
     @ViewBuilder
     private func activeIndicator(_ isActive: Bool) -> some View {
         if isActive {
             Circle()
-                .fill(secondaryContentColor.opacity(0.22))
+                .fill(contentColor)
                 .frame(width: 40, height: 40)
         }
     }
 }
 
 private struct AirPlayRouteButton: UIViewRepresentable {
-    var tintColor: Color = Color.white.opacity(0.7)
+    var tintColor: Color = Color.white.opacity(PlayerBackgroundPalette.secondaryOpacity)
 
     func makeUIView(context: Context) -> AVRoutePickerView {
         let view = AVRoutePickerView()
-        view.activeTintColor = UIColor(Color.minidiscAccent)
+        view.activeTintColor = Self.activeTint
         view.tintColor = UIColor(tintColor)
         view.backgroundColor = .clear
         return view
     }
     func updateUIView(_ uiView: AVRoutePickerView, context: Context) {
         uiView.tintColor = UIColor(tintColor)
+        uiView.activeTintColor = Self.activeTint
+    }
+
+    /// The accent's dark text shade, whatever the device appearance: the fill shade was 1.6:1 on
+    /// the backdrop, the text shade is at least 3.7:1.
+    private static var activeTint: UIColor {
+        UIColor(Color.minidiscTextAccent).resolvedColor(with: UITraitCollection(userInterfaceStyle: .dark))
     }
 }
 

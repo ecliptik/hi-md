@@ -75,8 +75,9 @@ struct ArtistInformationSheet: View {
     }
 
     private let contentColor = Color.white
-    private let secondaryColor = Color.white.opacity(0.68)
-    private let tertiaryColor = Color.white.opacity(0.44)
+    /// The biography and the fact labels. The labels were 44% white (2.2:1 at worst, 4.3:1 even on
+    /// black) and the biography 68%; over the capped gradient 78% keeps 4.5:1.
+    private let secondaryColor = Color.white.opacity(PlayerBackgroundPalette.secondaryOpacity)
 
     var body: some View {
         NavigationStack {
@@ -167,7 +168,7 @@ struct ArtistInformationSheet: View {
         VStack(alignment: .leading, spacing: MinidiscSpacing.xs) {
             Text(title)
                 .font(.footnote)
-                .foregroundStyle(tertiaryColor)
+                .foregroundStyle(secondaryColor)
             Text(value)
                 .font(.title3.weight(.regular))
                 .foregroundStyle(contentColor)
@@ -180,7 +181,7 @@ struct ArtistInformationSheet: View {
         VStack(alignment: .leading, spacing: MinidiscSpacing.s) {
             Text("Genre")
                 .font(.footnote)
-                .foregroundStyle(tertiaryColor)
+                .foregroundStyle(secondaryColor)
 
             ScrollView(.horizontal, showsIndicators: false) {
                 LazyHStack(spacing: MinidiscSpacing.s) {
@@ -262,12 +263,14 @@ struct ArtistInformationSheet: View {
 
             LinearGradient(
                 stops: [
+                    // Capped like the player's backdrop: a white cover's stops were light grey,
+                    // with the white name and facts at 1.4:1.
                     .init(
-                        color: accentColor.adjusted(saturation: -0.04, brightness: -0.10),
+                        color: PlayerBackgroundPalette.capped(accentColor.adjusted(saturation: -0.04, brightness: -0.10)),
                         location: 0
                     ),
                     .init(
-                        color: accentColor.adjusted(saturation: -0.16, brightness: -0.25),
+                        color: PlayerBackgroundPalette.capped(accentColor.adjusted(saturation: -0.16, brightness: -0.25)),
                         location: 0.56
                     ),
                     .init(color: Color.black.opacity(0.97), location: 1)

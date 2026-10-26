@@ -40,7 +40,7 @@ struct WrappedStatHero: View {
                 Text(data.totalUniqueAlbums.plural("album", "albums"))
             }
             .scaledFont(size: 14, weight: .regular)
-            .foregroundStyle(.white.opacity(0.7))
+            .foregroundStyle(.white.opacity(WrappedYearPalette.secondaryTextOpacity))
         }
         .padding(.horizontal, MinidiscSpacing.xl)
         .padding(.vertical, MinidiscSpacing.l)
@@ -97,7 +97,7 @@ private struct AnimatedHeroText: View, Animatable {
                 .minimumScaleFactor(0.5)
             Text(unit)
                 .scaledFont(size: 22, weight: .medium, design: .rounded)
-                .foregroundStyle(.white.opacity(0.85))
+                .foregroundStyle(.white.opacity(WrappedYearPalette.secondaryTextOpacity))
         }
     }
 }

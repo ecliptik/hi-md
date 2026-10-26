@@ -139,7 +139,8 @@ struct SongContextMenuModifier: ViewModifier {
             }
 
             Button {
-                startInstantMix(from: .song(id: song.id), using: container, startingWith: song)
+                startInstantMix(from: .song(id: song.id), using: container, startingWith: song,
+                                context: songMixContext(song))
             } label: {
                 Label("Instant Mix", systemImage: instantMixSymbol)
             }
@@ -191,6 +192,13 @@ struct CollectionContextMenuModifier: ViewModifier {
         container?.pinService.isPinned(itemType: itemType, itemId: itemId) == true
     }
 
+    private var playbackContext: PlaybackContext {
+        switch itemType {
+        case .album: .album(id: itemId, name: displayName, coverArtId: coverArtId)
+        case .playlist: .forPlaylist(id: itemId, name: displayName, coverArtId: coverArtId)
+        }
+    }
+
     private var isFavorite: Bool {
         guard let ft = favoriteType else { return false }
         return container?.favoritesService.isFavorite(itemType: ft, itemId: itemId) == true
@@ -204,7 +212,7 @@ struct CollectionContextMenuModifier: ViewModifier {
                     Button {
                         Task {
                             do {
-                                try await container?.playerService.play(tracks: songs, startIndex: 0)
+                                try await container?.playerService.play(tracks: songs, startIndex: 0, context: playbackContext)
                             } catch {
                                 Logger.player.error("[PLAYBACK] play failed: \(error, privacy: .public)")
                             }
@@ -217,7 +225,7 @@ struct CollectionContextMenuModifier: ViewModifier {
                         let shuffled = songs.shuffled()
                         Task {
                             do {
-                                try await container?.playerService.play(tracks: shuffled, startIndex: 0)
+                                try await container?.playerService.play(tracks: shuffled, startIndex: 0, context: playbackContext)
                             } catch {
                                 Logger.player.error("[PLAYBACK] play failed: \(error, privacy: .public)")
                             }
@@ -244,7 +252,8 @@ struct CollectionContextMenuModifier: ViewModifier {
                 // Instant Mix seeds from the album itself (similarity), so only albums — not playlists.
                 if itemType == .album {
                     Button {
-                        startInstantMix(from: .album(id: itemId), using: container)
+                        startInstantMix(from: .album(id: itemId), using: container,
+                                        context: .instantMix(seed: .album, id: itemId, name: displayName))
                     } label: {
                         Label("Instant Mix", systemImage: instantMixSymbol)
                     }
@@ -350,6 +359,13 @@ struct LazyCollectionContextMenuModifier: ViewModifier {
         container?.pinService.isPinned(itemType: itemType, itemId: itemId) == true
     }
 
+    private var playbackContext: PlaybackContext {
+        switch itemType {
+        case .album: .album(id: itemId, name: displayName, coverArtId: coverArtId)
+        case .playlist: .forPlaylist(id: itemId, name: displayName, coverArtId: coverArtId)
+        }
+    }
+
     private var isFavorite: Bool {
         guard let ft = favoriteType else { return false }
         return container?.favoritesService.isFavorite(itemType: ft, itemId: itemId) == true
@@ -374,7 +390,7 @@ struct LazyCollectionContextMenuModifier: ViewModifier {
                     Task {
                         guard let songs = try? await playableSongs(), !songs.isEmpty else { return }
                         do {
-                            try await container?.playerService.play(tracks: songs, startIndex: 0)
+                            try await container?.playerService.play(tracks: songs, startIndex: 0, context: playbackContext)
                         } catch {
                             Logger.player.error("[PLAYBACK] play failed: \(error, privacy: .public)")
                         }
@@ -387,7 +403,7 @@ struct LazyCollectionContextMenuModifier: ViewModifier {
                     Task {
                         guard let songs = try? await playableSongs(), !songs.isEmpty else { return }
                         do {
-                            try await container?.playerService.play(tracks: songs.shuffled(), startIndex: 0)
+                            try await container?.playerService.play(tracks: songs.shuffled(), startIndex: 0, context: playbackContext)
                         } catch {
                             Logger.player.error("[PLAYBACK] play failed: \(error, privacy: .public)")
                         }
@@ -419,7 +435,8 @@ struct LazyCollectionContextMenuModifier: ViewModifier {
                 // Instant Mix seeds from the album itself (similarity), so only albums — not playlists.
                 if itemType == .album {
                     Button {
-                        startInstantMix(from: .album(id: itemId), using: container)
+                        startInstantMix(from: .album(id: itemId), using: container,
+                                        context: .instantMix(seed: .album, id: itemId, name: displayName))
                     } label: {
                         Label("Instant Mix", systemImage: instantMixSymbol)
                     }

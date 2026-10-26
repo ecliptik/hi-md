@@ -91,7 +91,7 @@ struct SmartSearchResultsView: View {
                 }
             }
             .buttonStyle(.bordered)
-            .tint(.minidiscAccent)
+            .tint(.minidiscTextAccent)
             .listRowSeparator(.hidden)
             .listRowBackground(Color.clear)
             ForEach(Array(result.songs.enumerated()), id: \.element.id) { index, song in

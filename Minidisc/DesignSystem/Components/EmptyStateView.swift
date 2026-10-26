@@ -10,12 +10,15 @@ struct EmptyStateView: View {
     let title: LocalizedStringKey
     var subtitle: LocalizedStringKey? = nil
     var action: Action? = nil
+    /// The icon and subtitle. Views over artwork pass a colour tuned for their backdrop, since the
+    /// system secondary falls under 4.5:1 there.
+    var secondaryStyle = AnyShapeStyle(.secondary)
 
     var body: some View {
         VStack(spacing: MinidiscSpacing.l) {
             Image(systemName: systemImage)
                 .font(.system(size: 48, weight: .light))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(secondaryStyle)
 
             VStack(spacing: MinidiscSpacing.s) {
                 Text(title)
@@ -24,7 +27,7 @@ struct EmptyStateView: View {
                 if let subtitle {
                     Text(subtitle)
                         .font(.minidiscBody)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(secondaryStyle)
                         .multilineTextAlignment(.center)
                         .frame(maxWidth: 280)
                 }

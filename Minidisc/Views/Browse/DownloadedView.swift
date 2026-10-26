@@ -124,7 +124,7 @@ private struct DownloadedContent: View {
                                         }
                                         Text("\(display.downloadedTracksCount) tracks")
                                             .font(.minidiscCaption)
-                                            .foregroundStyle(.tertiary)
+                                            .foregroundStyle(.secondary)
                                     }
                                     Spacer(minLength: 0)
                                 }

@@ -28,6 +28,8 @@ public enum MinidiscColors {
 
     public static let textSecondary = Color("MinidiscTextSecondary")
 
+    /// Glyphs and decorative marks only: 3.1:1 or more on the Minidisc backgrounds, under the
+    /// 4.5:1 text needs. Text uses `textSecondary`, which reaches 4.75:1 (contrast sweep 2026-10-26).
     public static let textTertiary = Color("MinidiscTextTertiary")
 
     /// Accent-coloured text on tinted or raised surfaces; see `Color.minidiscTextAccent`.
@@ -38,7 +40,7 @@ public enum MinidiscColors {
 
     public static let border = Color("MinidiscBorder")
     
-    // MARK: — Accent Ramp (raw gold stops from the 💽 icon's disc, light-mode only — gradients, artwork tints, brand chips).
+    // MARK: — Accent Ramp (raw gold stops from the app icon's gold, light-mode only — gradients, artwork tints, brand chips).
     public enum AccentRamp {
         public static let v50  = Color(hex: "#FDF5E2")
         public static let v100 = Color(hex: "#FBE8BB")

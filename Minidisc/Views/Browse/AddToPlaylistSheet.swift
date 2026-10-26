@@ -81,7 +81,7 @@ private struct PlaylistDestinationsList: View {
         List {
             Section {
                 Button("New Playlist", systemImage: "plus.circle", action: onCreate)
-                    .foregroundStyle(Color.minidiscAccent)
+                    .foregroundStyle(Color.minidiscTextAccent)
                     .accessibilityIdentifier("playlist.destination.new")
             } footer: {
                 Text("\(vm.songs.count) songs selected")

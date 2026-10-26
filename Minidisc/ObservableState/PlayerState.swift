@@ -58,9 +58,20 @@ final class PlayerState {
     /// Mutually exclusive with active queue playback: starting play(tracks:) clears this to nil.
     var currentRadio: InternetRadioStation?
     var isLiveStream: Bool { currentRadio != nil }
+    /// Where the current queue came from ("Playing from …"); nil for an ad-hoc queue.
+    /// Kept while the queue is that source's queue: skips, appends, Instant Mix fill, auto-extend,
+    /// reorder and removal leave it alone. A new unrelated queue, radio or stop clears it, and it
+    /// is saved and restored with the session.
+    var playbackContext: PlaybackContext?
+    /// The context to show: live radio names its station, otherwise the queue's context.
+    var displayedPlaybackContext: PlaybackContext? {
+        if let currentRadio { return .internetRadio(name: currentRadio.name) }
+        return playbackContext
+    }
     /// True when the current playback session was started via Smart Shuffle.
-    /// Survives skips and pauses; resets on new explicit play, radio, stop, or cold start.
-    var isSmartShuffleActive: Bool = false
+    /// Survives skips and pauses; resets on new explicit play, radio or stop. Derived from
+    /// `playbackContext`, so a restored Smart Shuffle session keeps it.
+    var isSmartShuffleActive: Bool { playbackContext == .smartShuffle }
     /// User preference: when enabled, the player automatically appends a fresh smart shuffle batch
     /// when ≤15 tracks remain. Suppressed by loop mode and live stream mode. AppContainer loads the
     /// persisted initial value from PlaybackPreferences.

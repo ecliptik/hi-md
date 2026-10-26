@@ -498,20 +498,28 @@ actor PlayerService: PlayerServiceProtocol {
     // MARK: - Play
 
     func play(tracks: [DisplayableSong], startIndex: Int) async throws {
+        try await play(tracks: tracks, startIndex: startIndex, context: nil)
+    }
+
+    func play(tracks: [DisplayableSong], startIndex: Int, context: PlaybackContext?) async throws {
         try await play(
             tracks: tracks,
             startIndex: startIndex,
             preparedPlayback: nil,
-            engineTransition: nil
+            engineTransition: nil,
+            context: context
         )
     }
 
+    /// A non-nil `context` names the new queue's source. Without one, a new queue clears the
+    /// context and the same queue (skips, transitions) keeps it.
     private func play(
         tracks: [DisplayableSong],
         startIndex: Int,
         preparedPlayback: PreparedNextPlayback?,
         engineTransition: AudioEngineTrackEnd?,
-        skippingUnavailableTracks: Bool = false
+        skippingUnavailableTracks: Bool = false,
+        context: PlaybackContext? = nil
     ) async throws {
         guard tracks.indices.contains(startIndex) else { return }
         playbackDiagnostics.record(.command(.play(queueCount: tracks.count, startIndex: startIndex)))
@@ -637,7 +645,8 @@ actor PlayerService: PlayerServiceProtocol {
             isNewQueue: isNewQueue,
             generation: generation,
             transportGeneration: transportGeneration,
-            engineTransition: engineTransition
+            engineTransition: engineTransition,
+            context: context
         )
     }
 
@@ -650,7 +659,8 @@ actor PlayerService: PlayerServiceProtocol {
         isNewQueue: Bool,
         generation: UInt64,
         transportGeneration: UInt64,
-        engineTransition: AudioEngineTrackEnd?
+        engineTransition: AudioEngineTrackEnd?,
+        context: PlaybackContext?
     ) async {
         await waitForTransitionCommit()
         guard isCurrentPlaybackIntent(
@@ -697,10 +707,15 @@ actor PlayerService: PlayerServiceProtocol {
             if isNewQueue {
                 state.isShuffled = false
                 state.originalQueueEndIndex = nil
+            }
+            // The context is committed with the queue it describes, so the label never lags it.
+            if let context {
+                if state.playbackContext != context { state.playbackContext = context }
+            } else if isNewQueue, state.playbackContext != nil {
                 if state.isSmartShuffleActive {
-                    state.isSmartShuffleActive = false
                     Logger.player.debug("Ending Smart Shuffle session — starting new explicit queue")
                 }
+                state.playbackContext = nil
             }
         }
         guard isCurrentPlaybackIntent(
@@ -1015,7 +1030,7 @@ actor PlayerService: PlayerServiceProtocol {
             state.queueGeneration = radioQueueGeneration
             state.currentTrack = nil
             state.currentRadio = station
-            state.isSmartShuffleActive = false
+            state.playbackContext = nil
             state.originalQueueEndIndex = nil
             state.playbackState = .loading
             state.position = 0
@@ -1171,25 +1186,12 @@ actor PlayerService: PlayerServiceProtocol {
             throw MinidiscError.smartShuffleEmpty
         }
 
-        // play(tracks:) resets isSmartShuffleActive via the new-queue check, so set the flag after.
+        // The Smart Shuffle context is committed with the queue, so it also marks the session
+        // (isSmartShuffleActive) without a window where a skip could see it unset.
         let expectedPlayGeneration = playbackGeneration &+ 1
         let expectedBuildGeneration = queueBuildGeneration &+ 1
-        try await play(tracks: tracks, startIndex: 0)
+        try await play(tracks: tracks, startIndex: 0, context: .smartShuffle)
         guard expectedPlayGeneration == playbackGeneration,
-              expectedBuildGeneration == queueBuildGeneration
-        else { return }
-        let expectedQueueGeneration = queueGeneration
-        let expectedTrackIDs = tracks.map(\.id)
-        let didCommit = await MainActor.run {
-            guard state.queueGeneration == expectedQueueGeneration,
-                  state.queue.map(\.id) == expectedTrackIDs,
-                  state.currentTrack?.id == tracks[0].id
-            else { return false }
-            state.isSmartShuffleActive = true
-            return true
-        }
-        guard didCommit,
-              expectedPlayGeneration == playbackGeneration,
               expectedBuildGeneration == queueBuildGeneration
         else { return }
 
@@ -1199,6 +1201,15 @@ actor PlayerService: PlayerServiceProtocol {
     // MARK: - Instant Mix
 
     func playInstantMix(from seed: InstantMixSeed, startingWith seedTrack: DisplayableSong?) async throws {
+        try await playInstantMix(from: seed, startingWith: seedTrack, context: nil)
+    }
+
+    /// The context is set with the seed's one-song queue and kept as the mix fills in behind it.
+    func playInstantMix(
+        from seed: InstantMixSeed,
+        startingWith seedTrack: DisplayableSong?,
+        context: PlaybackContext?
+    ) async throws {
         // Like Smart Shuffle, claim before resolving the seed: the result of an
         // older, slower request must never replace a newer playback intent.
         queueBuildGeneration &+= 1
@@ -1217,13 +1228,14 @@ actor PlayerService: PlayerServiceProtocol {
         guard let starter = resolved else {
             try await buildThenPlayInstantMix(
                 from: seed,
-                requestGeneration: requestGeneration
+                requestGeneration: requestGeneration,
+                context: context
             )
             return
         }
         let expectedPlayGeneration = playbackGeneration &+ 1
         let expectedBuildGeneration = queueBuildGeneration &+ 1
-        try await play(tracks: [starter], startIndex: 0)
+        try await play(tracks: [starter], startIndex: 0, context: context)
         guard expectedPlayGeneration == playbackGeneration,
               expectedBuildGeneration == queueBuildGeneration
         else { return }
@@ -1354,7 +1366,8 @@ actor PlayerService: PlayerServiceProtocol {
 
     private func buildThenPlayInstantMix(
         from seed: InstantMixSeed,
-        requestGeneration: UInt64
+        requestGeneration: UInt64,
+        context: PlaybackContext?
     ) async throws {
         let tStart = Date()
         let tracks = try await libraryService.instantMix(from: seed, count: 100)
@@ -1368,7 +1381,7 @@ actor PlayerService: PlayerServiceProtocol {
         let tPlay = Date()
         let expectedPlayGeneration = playbackGeneration &+ 1
         let expectedBuildGeneration = queueBuildGeneration &+ 1
-        try await play(tracks: tracks, startIndex: 0)
+        try await play(tracks: tracks, startIndex: 0, context: context)
         guard expectedPlayGeneration == playbackGeneration,
               expectedBuildGeneration == queueBuildGeneration
         else { return }
@@ -1826,7 +1839,7 @@ actor PlayerService: PlayerServiceProtocol {
             guard request == queueBuildGeneration, transport == transportIntentGeneration,
                   !Task.isCancelled else { return }
         }
-        try await play(tracks: queue.tracks, startIndex: queue.startIndex)
+        try await play(tracks: queue.tracks, startIndex: queue.startIndex, context: queue.context)
     }
 
     func togglePlayPause() async {
@@ -1899,7 +1912,7 @@ actor PlayerService: PlayerServiceProtocol {
             state.playbackState = .idle
             state.currentTrack = nil
             state.currentRadio = nil
-            state.isSmartShuffleActive = false
+            state.playbackContext = nil
             state.originalQueueEndIndex = nil
             state.queue = []
             state.position = 0
@@ -2399,7 +2412,8 @@ actor PlayerService: PlayerServiceProtocol {
                 queue: state.queue,
                 currentTrack: state.currentTrack,
                 repeatMode: state.repeatMode,
-                queueRevision: state.queueRevision
+                queueRevision: state.queueRevision,
+                context: state.playbackContext
             )
         }
         await sessionService.save(playerState: snapshot)
@@ -2433,6 +2447,7 @@ actor PlayerService: PlayerServiceProtocol {
             state.currentIndex = data.currentIndex
             state.currentTrack = track
             state.currentRadio = nil
+            state.playbackContext = data.context
             state.position = restoredPosition
             state.duration = restoredDuration
             state.repeatMode = data.repeatMode

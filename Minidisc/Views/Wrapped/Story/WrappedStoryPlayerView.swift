@@ -283,7 +283,7 @@ struct WrappedStoryPlayerView: View {
                 .foregroundStyle(.white)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, MinidiscSpacing.m)
-                .background(Color.white.opacity(0.2), in: RoundedRectangle(cornerRadius: MinidiscCornerRadius.large, style: .continuous))
+                .background(Color.white.opacity(WrappedYearPalette.chipFillOpacity), in: RoundedRectangle(cornerRadius: MinidiscCornerRadius.large, style: .continuous))
             }
             .buttonStyle(.plain)
             .padding(.horizontal, MinidiscSpacing.xl)

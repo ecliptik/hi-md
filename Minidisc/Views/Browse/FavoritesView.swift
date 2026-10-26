@@ -103,7 +103,7 @@ struct FavoritesView: View {
                     }
                 }
                 .buttonStyle(.bordered)
-                .tint(.minidiscAccent)
+                .tint(.minidiscTextAccent)
                 .listRowSeparator(.hidden)
                 .listRowBackground(Color.clear)
                 .padding(.vertical, 4)

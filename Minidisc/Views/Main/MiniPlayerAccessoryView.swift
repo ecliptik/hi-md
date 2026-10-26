@@ -20,7 +20,10 @@ struct MiniPlayerAccessoryView: View {
 
     // Inherit the accessory’s system color scheme so text follows glass contrast changes.
     private var typoColor: Color { .primary }
-    private var typoSecondaryColor: Color { .secondary }
+    /// On the cover tint, the player's secondary white: the system secondary is 2.9:1 there.
+    private var typoSecondaryColor: Color {
+        coverTint != .clear ? .white.opacity(PlayerBackgroundPalette.secondaryOpacity) : .secondary
+    }
 
     var body: some View {
         if let playerState = container?.playerState {
@@ -167,7 +170,9 @@ struct MiniPlayerAccessoryView: View {
             } else {
                 GeometryReader { geo in
                     Capsule()
-                        .fill(isAvailable ? Color.minidiscAccent : Color.secondary.opacity(0.3))
+                        // On the tint, the accent's text shade: the fill shade is 1.6:1 there.
+                        .fill(isAvailable ? (coverTint != .clear ? Color.minidiscTextAccent : Color.minidiscAccent)
+                                          : Color.secondary.opacity(0.3))
                         .frame(width: geo.size.width * CGFloat(progress), height: 3)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
@@ -175,10 +180,11 @@ struct MiniPlayerAccessoryView: View {
                 .accessibilityHidden(true)
             }
         }
-        // A capsule tinted from the cover, fading towards the controls, with white text on it.
+        // A capsule tinted from the cover, fading a little towards the controls, with white text on
+        // it. At 55% a light-mode glass behind the controls left them at 2.5:1; at 85% they keep 5:1.
         .background {
             if coverTint != .clear {
-                LinearGradient(colors: [coverTint, coverTint.opacity(0.55)], startPoint: .leading, endPoint: .trailing)
+                LinearGradient(colors: [coverTint, coverTint.opacity(0.85)], startPoint: .leading, endPoint: .trailing)
             }
         }
         .environment(\.colorScheme, coverTint != .clear ? .dark : colorSchemeFallback)
@@ -195,8 +201,15 @@ struct MiniPlayerAccessoryView: View {
             guard let image = await container?.artworkImageCache.load(coverArtId: coverArtId) else { return }
             color = colorExtractor.dominantColor(for: coverArtId, image: image)
         }
-        let tint = color == .clear ? .clear : AlbumDetailPalette(dominantColor: color, appearance: .dark).backgroundBottomColor
+        let tint = color == .clear ? .clear : Self.tint(for: color)
         withAnimation(.easeInOut(duration: 0.3)) { coverTint = tint }
+    }
+
+    /// The album screen's dark bottom colour, darkened like the full player's backdrop so white
+    /// text reaches 4.5:1 at the player's secondary opacity.
+    private static func tint(for dominantColor: Color) -> Color {
+        PlayerBackgroundPalette.capped(
+            AlbumDetailPalette(dominantColor: dominantColor, appearance: .dark).backgroundBottomColor)
     }
 
     private func miniArtwork(_ coverArtId: String, size: CGFloat = 30) -> some View {

@@ -1,18 +1,18 @@
 # Fork notes
 
-This repository is a hard fork of [Loriage/Minidisc](https://github.com/Loriage/Minidisc), itself a fork of [Cassette](https://github.com/CassetteLab/cassette). Changes are not sent upstream, but upstream work is brought in from time to time. The code stays under the Mozilla Public License 2.0.
+This repository, [ecliptik/Minidisc](https://github.com/ecliptik/Minidisc), is a hard fork of [Loriage/Minidisc](https://github.com/Loriage/Minidisc), itself a fork of [Cassette](https://github.com/CassetteLab/cassette). Changes are not sent upstream, but upstream work is merged in from time to time. The code stays under the Mozilla Public License 2.0; `LICENSE`, `NOTICE` and `COPYRIGHT` are upstream's and stay unchanged. The README summarises how the fork differs; this file is for building and maintaining it.
+
+## Branches
+
+- `main`: the iOS app, with its widgets, watch app and Mac Catalyst build.
+- `feat/winamp-phase2`: adds the native Mac app (`MinidiscMac`) and its Winamp mode. It is kept current by merging `main` into it.
 
 ## Remotes
 
-| Remote | URL | Use |
-|---|---|---|
-| `origin` | `https://github.com/ecliptik/hi-md.git` | The fork's only home and push destination |
-| `upstream` | `https://github.com/Loriage/Minidisc.git` | Fetch only; pushing is disabled |
-
-A fresh clone needs `upstream` added again:
-
     git remote add upstream https://github.com/Loriage/Minidisc.git
     git remote set-url --push upstream DISABLED-no-pushes-to-upstream
+
+`upstream` is fetch-only, so nothing is pushed there by accident.
 
 ## Bringing in upstream changes
 
@@ -23,20 +23,35 @@ A fresh clone needs `upstream` added again:
 
 Then build, run the `MinidiscTests` scheme and `./Scripts/doctor.sh --build` before merging the sync branch into `main`.
 
+## Signing
+
+The project carries no signing team. `Config/Signing.xcconfig` is the project-level base configuration for Debug and Release; it sets an empty `DEVELOPMENT_TEAM` and includes `Config/Signing.local.xcconfig` if it exists. That file is git-ignored; copy `Config/Signing.local.xcconfig.example` to create it and set your own team ID. Targets must not set `DEVELOPMENT_TEAM` themselves, because a target setting overrides the xcconfig. The one exception is the UI-test runner, which signs locally with an empty team.
+
+A free personal team works, with two limits:
+
+- It cannot use the Siri capability, so `com.apple.developer.siri` is left out of `Minidisc.entitlements`. Upstream's SiriKit play handler stays but goes unused, and App Shortcuts still work.
+- Apple allows only 10 new App IDs per 7 days across all of the team's apps. Minidisc uses three: the app, the widget extension and the watch app.
+
 ## Fork-specific changes to keep during merges
 
 - **Minimum iOS:** the deployment target is iOS 27.0 (upstream: 26.1). Keep 27.0 when merging `project.pbxproj`; the iOS 27 adoption plan is `docs/plans/ios27.md`.
-- **Identity:** bundle ID `com.ecliptik.minidisc` (plus `.tests` and `.uitests`), signing team `JG6P86C33U`, the background download session ID in `BackgroundDownloadTransport.swift`, the URL type name in `Info.plist`, and the bundle-ID check in `Scripts/doctor.sh`.
-- **Branding:** `AppIcon.icon` (Apple 💽 emoji on a gold fill), `docs/app-icon.png`, the gold accent colour sets in `Assets.xcassets`, `MinidiscColors.AccentRamp`, `ColorContrastUtils` and the 2026 palette in `WrappedYearPalette`. The light and dark accents are chosen so white button labels stay at or above 4.5:1.
-- **Signing:** team JG6P86C33U is a free personal team. It cannot use the Siri capability, so `com.apple.developer.siri` is left out of `Minidisc.entitlements` (upstream's SiriKit play handler stays but goes unused), and Apple allows only 10 new App IDs per 7 days across all of the team's apps.
-- **Mac (native):** the `MinidiscMac` target is a native macOS 27 app (not Catalyst; `SUPPORTS_MACCATALYST = NO` on the iOS target). It uses the same bundle ID, `com.ecliptik.minidisc`, so it needs no new App ID. Its own code is in `MinidiscMac/`. It also compiles the `Minidisc` and `Shared` folders, minus the iOS-only files listed in its `PBXFileSystemSynchronizedBuildFileExceptionSet` (`Views/` apart from `CoverArtView.swift`, `CarPlay/`, `Services/Watch/`, the widget snapshot writers, the SiriKit handler, the UIKit-only design-system components, `MinidiscApp.swift`, `Info.plist` and the entitlements). Xcode doesn't exclude folders from synchronized groups, so the list names every file: **a new file under `Views/` or another excluded folder must be added to that list** or the Mac build breaks. The sandbox (outgoing network, user-selected files) and the hardened runtime come from build settings. On the Mac, the MediaPlayer-based `NowPlayingCenterPresenter+MediaPlayer.swift` drives Now Playing and the media keys, the audio-session controller is a no-op, and the download activity, haptics and background tasks are no-ops. `Scripts/run-mac.sh` builds and opens it, signed to run locally.
-- **Mac interface:** `MinidiscMac/` holds a Music-style interface (sidebar, song tables, player bar, lyrics and queue inspector, menu bar player, Settings tabs). `MacInterface` owns the navigation, playback actions and playlists that the window, the menus and the menu bar player share. Its non-view logic lives in shared folders so `MinidiscTests` covers it on iOS: `SongTable.swift`, `PlaybackKeyRouting.swift`, `PlaybackCommandState.swift`, `UpNextClearing.swift` and `PlaylistLibraryViewModel.swift`. Play/Pause has no menu key equivalent, because that would take the space bar from text fields; `MacSpaceKeyMonitor` handles the space bar. `MacAppDelegate` starts the services at launch rather than from the window, and sets `ApplePersistenceIgnoreState` so stale saved window state (the old Catalyst build's) can't leave the app with no window. `MinidiscMac/Info.plist` only exports the `com.ecliptik.minidisc.songs` drag type and is merged into the generated plist.
-- **Winamp mode (Mac):** View > Winamp Mode (⌘⇧W) opens classic Winamp 2 windows over the shared PlayerService: the main window, the equaliser and the playlist, which dock, snap within 10 points, windowshade and zoom (1× to 4×) together. The playlist's ADD > URL browses the server's folders; ADD > FILE and DIR add local files through `LocalMusicStore`, which keeps security-scoped bookmarks on the Mac. Platform-neutral logic and its tests live in `Minidisc/Services/Winamp/` (skin loading, sprites, layouts, hit maps, renderers, docking, M3U); the AppKit windows are in `MinidiscMac/Winamp/`. The bundled Minidisc Gold skin is generated by `Scripts/Winamp/make_minidisc_gold.py`. The equaliser window binds to `EqualizerSettings` through the `WinampEqualizerModel` protocol (an empty conformance in `WinampMode.swift`), and each slider drives the engine band in the same position. The plan is `docs/plans/winamp-mode.md`.
-- **Apple Watch:** the `MinidiscWatch` target (`com.ecliptik.minidisc.watchkitapp`, watchOS 27) and the `WatchShared/` folder compiled into the app and the watch app. `PhoneWatchBridge` publishes Now Playing over WatchConnectivity and runs the watch's commands. Installing on a device needs one more App ID for the watch app.
+- **Identity:** bundle ID `com.ecliptik.minidisc` (plus `.tests`, `.uitests`, `.widgets` and `.watchkitapp`), the App Group `group.com.ecliptik.minidisc`, the background download session ID in `BackgroundDownloadTransport.swift`, the URL type name in `Info.plist`, and the bundle-ID check in `Scripts/doctor.sh`. Anyone building their own copy for a device changes this prefix, since a bundle ID belongs to one team.
+- **Signing:** `Config/Signing.xcconfig` as the project's base configuration, and no `DEVELOPMENT_TEAM` in the targets (see above).
+- **Branding:** the photographed MiniDisc in `AppIcon.icon`, `AppIconDark.icon` and `AppIconLight.icon` (gold, dark and light), the `MinidiscLogo*`, `AppIconPreview*` and `NowPlayingNoArtwork` images, `docs/app-icon.png` (exported from `AppIcon.icon` with Icon Composer), the gold accent colour sets in `Assets.xcassets`, `MinidiscColors.AccentRamp`, `ColorContrastUtils` and the 2026 palette in `WrappedYearPalette`. The light and dark accents are chosen so white button labels stay at or above 4.5:1.
+- **Mac (native):** the `MinidiscMac` target is a native macOS 27 app (not Catalyst; `SUPPORTS_MACCATALYST = NO` on the iOS target). It uses the same bundle ID, `com.ecliptik.minidisc` and the same signing setup. Its own code is in `MinidiscMac/`. It also compiles the `Minidisc` and `Shared` folders, minus the iOS-only files listed in its `PBXFileSystemSynchronizedBuildFileExceptionSet` (`Views/` apart from `CoverArtView.swift`, `CarPlay/`, `Services/Watch/`, the widget snapshot writers, the SiriKit handler, the UIKit-only design-system components, `MinidiscApp.swift`, `Info.plist` and the entitlements). Xcode doesn't exclude folders from synchronized groups, so the list names every file: **a new file under `Views/` or another excluded folder must be added to that list** or the Mac build breaks. The sandbox (outgoing network, user-selected files) and the hardened runtime come from build settings. On the Mac, the MediaPlayer-based `NowPlayingCenterPresenter+MediaPlayer.swift` drives Now Playing and the media keys, the audio-session controller is a no-op, and the download activity, haptics and background tasks are no-ops. `Scripts/run-mac.sh` builds and opens it, signed to run locally.
+- **Apple Watch:** the `MinidiscWatch` target (watchOS 27) and the `WatchShared/` folder compiled into the app and the watch app. `PhoneWatchBridge` publishes Now Playing over WatchConnectivity and runs the watch's commands.
 - **CarPlay:** `Minidisc/CarPlay/` and a hand-written `UIApplicationSceneManifest` in `Info.plist` (generation is off). The `com.apple.developer.carplay-audio` entitlement is only in `Minidisc-Simulator.entitlements`, selected by `CODE_SIGN_ENTITLEMENTS[sdk=iphonesimulator*]`; move it into `Minidisc.entitlements` once a paid team has Apple's approval.
-- **Widget extension:** the `MinidiscWidgets` target (`com.ecliptik.minidisc.widgets`), the `Shared/` folder compiled into both targets, and the App Group `group.com.ecliptik.minidisc` in both entitlements files. Upstream has no extension, so merges of `project.pbxproj` must keep the target, the embed phase and the `Shared` group.
+- **Widget extension:** the `MinidiscWidgets` target, the `Shared/` folder compiled into both targets, and the App Group in both entitlements files. Upstream has no extension, so merges of `project.pbxproj` must keep the target, the embed phase and the `Shared` group.
 - **Now Playing:** `NowPlayingCenterPresenter` uses the iOS 27 NowPlaying framework instead of MediaPlayer; keep it when upstream edits that file.
-- **Links:** `MinidiscURLs` points at this GitHub repository, the App Store review and share rows are removed from Settings, and Acknowledgements credits upstream Minidisc.
+- **Playback engine:** the two-deck engine's gapless playback and crossfades must survive every merge, along with the fork's buffering and caching (`docs/PlaybackContinuity.md`).
+- **ListenBrainz:** the app reads from ListenBrainz but doesn't submit listens (`ListenBrainzService.submitsListens` is off); plays reach ListenBrainz through the server's scrobbling.
+- **Links:** `MinidiscURLs` points Report an Issue and View Source at this repository, the lyrics and artist-image User-Agents name it, the App Store review and share rows are removed from Settings, and Acknowledgements credits upstream Minidisc and Cassette.
+- **Notices:** `THIRD_PARTY_NOTICES.md` lists third-party code and data; add to it when bringing in more. Upstream's `.github/FUNDING.yml` is removed so the fork doesn't show upstream's sponsor links.
 - **Audits:** reports live in `docs/audits/`.
 
-The 💽 artwork is Apple's emoji, which is Apple-copyrighted. That is acceptable for personal builds; replace it with an openly licensed design before any public or App Store distribution.
+## Licence compliance
+
+- Upstream files keep their MPL-2.0 terms, and new files are MPL-2.0 as well. The `NOTICE`, `COPYRIGHT` and `LICENSE` files are not altered (MPL-2.0 §3.4).
+- `NOTICE` asks modified versions to acknowledge Cassette; the README and the in-app Acknowledgements screen credit Cassette and upstream Minidisc.
+- The source of every change is published in this repository, which meets MPL-2.0's source-availability requirement for anyone distributing a build.
+- Third-party code and data (SwiftSonic and AutoEq, both MIT) are listed with their notices in `THIRD_PARTY_NOTICES.md`.

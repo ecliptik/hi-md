@@ -397,7 +397,8 @@ extension ModelContainer {
     /// The legacy main-store model remains registered for migration compatibility.
     /// - Parameter inMemory: Pass `true` in tests.
     static func session(inMemory: Bool = false) throws -> ModelContainer {
-        let schema = Schema([PlaybackSession.self])
+        // Adding a model to this unversioned store is a lightweight migration.
+        let schema = Schema([PlaybackSession.self, PlaybackSessionContext.self])
         let config = ModelConfiguration("minidisc-session", schema: schema, isStoredInMemoryOnly: inMemory)
         return try ModelContainer(for: schema, configurations: config)
     }

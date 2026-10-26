@@ -444,7 +444,7 @@ struct SearchView: View {
                                 showClearConfirm = true
                             }
                             .font(.minidiscBody)
-                            .foregroundStyle(Color.minidiscAccent)
+                            .foregroundStyle(Color.minidiscTextAccent)
                         }
                         .textCase(nil)
                     }

@@ -74,10 +74,10 @@ actor ListenBrainzService {
     var pendingListenCount: Int { pendingQueue.count }
     var credentialMutationWaiterCount: Int { credentialMutationWaiters.count }
 
-    /// Plays reach ListenBrainz through the server: Navidrome records them and multi-scrobbler
-    /// relays them, and starred songs become ListenBrainz loves the same way. Submitting from the
-    /// app as well would count every play twice, so the app only reads from ListenBrainz. Tests
-    /// of the submission path turn it on.
+    /// Plays reach ListenBrainz through the server's scrobbling, so the app doesn't submit them
+    /// itself: the server records each play and forwards it, and starred songs become ListenBrainz
+    /// loves the same way. Submitting from the app as well would count every play twice, so the
+    /// app only reads from ListenBrainz. Tests of the submission path turn it on.
     nonisolated let submitsListens: Bool
 
     init(

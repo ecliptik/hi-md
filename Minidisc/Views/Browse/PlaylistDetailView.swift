@@ -160,13 +160,17 @@ struct PlaylistDetailView: View {
     private func playSongs(_ requested: [DisplayableSong], startIndex: Int) async {
         guard requested.indices.contains(startIndex), let vm = viewModel, let container else { return }
         let selectedID = requested[startIndex].id
+        // Mood and Wrapped playlists are recognised by their server names.
+        let context = PlaybackContext.forPlaylist(
+            id: playlistId, name: vm.name.isEmpty ? initialName : vm.name, coverArtId: effectiveCoverArtId
+        )
         do {
             try await container.playerService.play(preparingQueue: {
                 let refreshed = await vm.playbackSongs(from: requested)
                 guard let index = refreshed.firstIndex(where: { $0.id == selectedID }) else {
                     throw UserFacingError.contentRemoved
                 }
-                return PreparedPlaybackQueue(tracks: refreshed, startIndex: index)
+                return PreparedPlaybackQueue(tracks: refreshed, startIndex: index, context: context)
             })
         } catch {
             if !UserFacingError.isCancellation(error), !vm.isRemovedFromServer {
