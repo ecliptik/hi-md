@@ -2,7 +2,6 @@ import SwiftUI
 
 /// Settings > Playback: everything about how music sounds and keeps playing, one row each.
 struct PlaybackSettingsView: View {
-    let downloadsVM: DownloadsViewModel
     @Environment(\.appContainer) private var container
     @Bindable private var equalizer = EqualizerSettings.shared
 
@@ -72,10 +71,8 @@ struct PlaybackSettingsView: View {
                     value: Self.onOff(container.playerState.isAutoExtendEnabled)
                 )
             }
-            // Caching: the stream cache lives in Storage for now. Repoint this link at
-            // CachingSettingsView when fix/playback-buffering merges.
             NavigationLink {
-                StorageSettingsView(vm: downloadsVM)
+                CachingSettingsView(settings: container.cacheSettings)
             } label: {
                 SettingsRowLabel(title: "Caching", subtitle: "How much music is kept on this device for smooth playback.")
             }

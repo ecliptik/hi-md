@@ -61,7 +61,7 @@ struct SettingsView: View {
                         .foregroundStyle(.primary)
                 }
                 NavigationLink {
-                    PlaybackSettingsView(downloadsVM: downloadsVM)
+                    PlaybackSettingsView()
                 } label: {
                     Label("Playback", systemImage: "play.circle")
                         .foregroundStyle(.primary)
@@ -355,15 +355,6 @@ struct StorageSettingsView: View {
                         set: { cacheSettings.cacheWhilePlaying = $0 }
                     )) {
                         Text("Save songs as they play")
-                            .foregroundStyle(.primary)
-                    }
-                    .tint(Color(.systemGreen))
-
-                    Toggle(isOn: Binding(
-                        get: { cacheSettings.cacheOverCellular },
-                        set: { cacheSettings.cacheOverCellular = $0 }
-                    )) {
-                        Text("Use cellular data")
                             .foregroundStyle(.primary)
                     }
                     .tint(Color(.systemGreen))

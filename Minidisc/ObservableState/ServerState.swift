@@ -23,6 +23,31 @@ nonisolated struct NetworkPathDescriptor: Sendable, Equatable {
     let supportsIPv6: Bool
     let interfaces: Interfaces
     let gateways: [String]
+    /// The physical interfaces available under a tunnel-only path, such as a Tailscale VPN whose
+    /// own interface type is "other". Empty when the path uses a physical interface directly.
+    let underlyingInterfaces: Interfaces
+
+    init(
+        isOnline: Bool,
+        isExpensive: Bool,
+        isConstrained: Bool,
+        supportsDNS: Bool,
+        supportsIPv4: Bool,
+        supportsIPv6: Bool,
+        interfaces: Interfaces,
+        gateways: [String],
+        underlyingInterfaces: Interfaces = []
+    ) {
+        self.isOnline = isOnline
+        self.isExpensive = isExpensive
+        self.isConstrained = isConstrained
+        self.supportsDNS = supportsDNS
+        self.supportsIPv4 = supportsIPv4
+        self.supportsIPv6 = supportsIPv6
+        self.interfaces = interfaces
+        self.gateways = gateways
+        self.underlyingInterfaces = underlyingInterfaces
+    }
 
     static let unknown = NetworkPathDescriptor(
         isOnline: true,
@@ -35,7 +60,16 @@ nonisolated struct NetworkPathDescriptor: Sendable, Equatable {
         gateways: []
     )
 
-    var isCellular: Bool { interfaces.contains(.cellular) }
+    /// Cellular rules (stream quality, how far ahead to cache) apply to metered data and to a
+    /// cellular radio, including one hidden behind a VPN tunnel. A tunnel's own interface type is
+    /// "other", so the interface alone would mistake Tailscale over cellular for Wi-Fi.
+    var isCellular: Bool {
+        if interfaces.contains(.cellular) || isExpensive { return true }
+        let physical: Interfaces = [.wifi, .cellular, .wiredEthernet]
+        guard interfaces.isDisjoint(with: physical) else { return false }
+        return underlyingInterfaces.contains(.cellular)
+            && underlyingInterfaces.isDisjoint(with: [.wifi, .wiredEthernet])
+    }
 }
 
 /// Monotonic network-path event published by `NetworkMonitor`.
@@ -141,7 +175,8 @@ final class ServerState {
             descriptor: NetworkPathDescriptor(
                 isOnline: isOnline, isExpensive: path.isExpensive, isConstrained: path.isConstrained,
                 supportsDNS: path.supportsDNS, supportsIPv4: path.supportsIPv4,
-                supportsIPv6: path.supportsIPv6, interfaces: path.interfaces, gateways: path.gateways
+                supportsIPv6: path.supportsIPv6, interfaces: path.interfaces, gateways: path.gateways,
+                underlyingInterfaces: path.underlyingInterfaces
             )
         )
     }
@@ -169,7 +204,7 @@ extension NetworkPathDescriptor {
         NetworkPathDescriptor(
             isOnline: isOnline, isExpensive: isExpensive, isConstrained: isConstrained,
             supportsDNS: supportsDNS, supportsIPv4: supportsIPv4, supportsIPv6: supportsIPv6,
-            interfaces: interfaces, gateways: gateways
+            interfaces: interfaces, gateways: gateways, underlyingInterfaces: underlyingInterfaces
         )
     }
 }

@@ -125,6 +125,62 @@ struct NetworkPathGenerationTests {
     }
 }
 
+@Suite("Cellular detection through a VPN")
+struct CellularDetectionTests {
+    private func path(
+        expensive: Bool,
+        interfaces: NetworkPathDescriptor.Interfaces,
+        underlying: NetworkPathDescriptor.Interfaces = []
+    ) -> NetworkPathDescriptor {
+        NetworkPathDescriptor(
+            isOnline: true, isExpensive: expensive, isConstrained: false,
+            supportsDNS: true, supportsIPv4: true, supportsIPv6: true,
+            interfaces: interfaces, gateways: [], underlyingInterfaces: underlying
+        )
+    }
+
+    @Test("an expensive tunnel-only path is cellular")
+    func expensiveTunnel() {
+        #expect(path(expensive: true, interfaces: [.other]).isCellular)
+    }
+
+    @Test("a tunnel over the cellular radio is cellular even when not marked expensive")
+    func tunnelOverCellular() {
+        let underlying = NetworkMonitor.underlyingInterfaces(path: [.other], available: [.other, .cellular])
+        #expect(underlying == [.cellular])
+        #expect(path(expensive: false, interfaces: [.other], underlying: underlying).isCellular)
+    }
+
+    @Test("a tunnel over Wi-Fi keeps Wi-Fi rules")
+    func tunnelOverWiFi() {
+        let underlying = NetworkMonitor.underlyingInterfaces(path: [.other], available: [.other, .wifi, .cellular])
+        #expect(!path(expensive: false, interfaces: [.other], underlying: underlying).isCellular)
+        #expect(!path(expensive: false, interfaces: [.wifi]).isCellular)
+    }
+
+    @Test("physical paths report no underlying interfaces")
+    func physicalPath() {
+        #expect(NetworkMonitor.underlyingInterfaces(path: [.wifi], available: [.wifi, .cellular]).isEmpty)
+        #expect(path(expensive: true, interfaces: [.cellular]).isCellular)
+    }
+
+    @Test("the underlying interface survives folding in server reachability")
+    func reachabilityKeepsUnderlyingInterfaces() {
+        let tunnel = path(expensive: false, interfaces: [.other], underlying: [.cellular])
+        #expect(tunnel.withOnline(false).underlyingInterfaces == [.cellular])
+        #expect(tunnel.withOnline(false).isCellular)
+    }
+
+    @Test("a path change that hides cellular behind a tunnel still reaches the server state as cellular")
+    @MainActor
+    func serverStateSeesTunnelAsCellular() {
+        let state = ServerState()
+        state.applyNetworkPath(NetworkPathEvent(generation: 1, descriptor: path(expensive: true, interfaces: [.other])))
+        #expect(state.networkPathEvent.descriptor.isCellular)
+        #expect(state.isExpensive)
+    }
+}
+
 @Suite("Playback network recovery policy")
 struct PlaybackNetworkRecoveryPolicyTests {
     @Test("local sources never rebuild for a network event", arguments: [
@@ -322,6 +378,28 @@ struct UnexpectedPlaybackStallRecoveryTests {
             isOnline: true,
             playbackState: .loading
         ))
+    }
+}
+
+@Suite("Stall recovery while data arrives — policy")
+struct StallRecoveryDecisionTests {
+    @Test("a stall with data arriving waits up to the data-flowing grace")
+    func waitsWhileDataArrives() {
+        #expect(PlayerService.stallRecoveryDecision(bufferedGrowth: 2, stalledFor: .seconds(5), dataFlowingGrace: .seconds(15)) == .keepWaiting)
+        #expect(PlayerService.stallRecoveryDecision(bufferedGrowth: 2, stalledFor: .seconds(15), dataFlowingGrace: .seconds(15)) == .rebuild)
+    }
+
+    @Test("a stall with nothing arriving is rebuilt")
+    func rebuildsWhenNothingArrives() {
+        #expect(PlayerService.stallRecoveryDecision(bufferedGrowth: 0, stalledFor: .seconds(5), dataFlowingGrace: .seconds(15)) == .rebuild)
+        #expect(PlayerService.stallRecoveryDecision(bufferedGrowth: 0.1, stalledFor: .seconds(5), dataFlowingGrace: .seconds(15)) == .rebuild)
+    }
+
+    @Test("the defaults allow about 15 s of trickling data")
+    func defaults() {
+        let timing = PlaybackNetworkRecoveryTiming()
+        #expect(timing.dataFlowingGrace == .seconds(15))
+        #expect(timing.stallGrace < timing.dataFlowingGrace)
     }
 }
 

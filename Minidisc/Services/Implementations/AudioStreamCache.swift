@@ -3,7 +3,8 @@ import SwiftData
 import OSLog
 
 /// Byte-bounded LRU audio cache in Caches. Permanent downloads live separately in Documents
-/// and are never evicted by this service.
+/// and are never evicted by this service. Each file name records the quality it was fetched at
+/// (see `CachedAudioQuality`), so a lower-quality copy never replaces a better one.
 actor AudioStreamCache: AudioStreamCacheProtocol {
     private let modelContainer: ModelContainer
     private lazy var modelContext: ModelContext = ModelContext(modelContainer)
@@ -52,14 +53,21 @@ actor AudioStreamCache: AudioStreamCacheProtocol {
     }
 
     func cachedURL(forSongId songId: String, serverId: UUID) async -> URL? {
-        if let url = await offlineFavorites?.localURL(songID: songId, serverID: serverId) { return url }
+        await cachedEntry(forSongId: songId, serverId: serverId)?.url
+    }
+
+    func cachedEntry(forSongId songId: String, serverId: UUID) async -> CachedAudioEntry? {
+        if let url = await offlineFavorites?.localURL(songID: songId, serverID: serverId) {
+            return CachedAudioEntry(url: url, quality: .unrecorded)
+        }
         let sid = serverId
-        var descriptor = FetchDescriptor<CachedTrack>(
+        let descriptor = FetchDescriptor<CachedTrack>(
             predicate: #Predicate { $0.songId == songId && $0.serverId == sid }
         )
-        descriptor.fetchLimit = 1
         let tracks = (try? modelContext.fetch(descriptor)) ?? []
-        guard let entry = tracks.first else { return nil }
+        // Normally one row per song; prefer the best copy should an older duplicate remain.
+        guard let entry = tracks.max(by: { CachedAudioQuality(fileName: $0.filePath) < CachedAudioQuality(fileName: $1.filePath) })
+        else { return nil }
         let url = cacheDirectory.appendingPathComponent(entry.filePath)
         // Self-healing covers missing, empty, and size-mismatched files — a partial or
         // corrupt cache file must fall through to stream, never reach the player.
@@ -75,17 +83,47 @@ actor AudioStreamCache: AudioStreamCacheProtocol {
         } catch {
             Logger.cache.debug("AudioStreamCache: failed to persist LRU access — \(error)")
         }
-        return url
+        return CachedAudioEntry(url: url, quality: CachedAudioQuality(fileName: entry.filePath))
+    }
+
+    /// Bytes held for `songIDs`, counting complete stream-cache copies only.
+    func cachedBytes(forSongIds songIDs: Set<String>, serverId: UUID) async -> Int64 {
+        guard !songIDs.isEmpty else { return 0 }
+        let sid = serverId
+        let entries = (try? modelContext.fetch(FetchDescriptor<CachedTrack>(predicate: #Predicate { $0.serverId == sid }))) ?? []
+        return entries.filter { songIDs.contains($0.songId) }.reduce(0) { $0 + max(0, $1.fileSize) }
+    }
+
+    // MARK: - Protection
+
+    /// Songs still ahead in the queue, per server. Eviction skips them; the queue's own budget
+    /// (the pre-cacher stops at the size limit) keeps the cache from growing past it.
+    private var protectedSongIDs: [UUID: Set<String>] = [:]
+
+    func setProtectedSongIDs(_ songIDs: Set<String>, serverId: UUID) async {
+        protectedSongIDs[serverId] = songIDs.isEmpty ? nil : songIDs
     }
 
     // MARK: - Storage
 
     func store(fileAt sourceURL: URL, forSongId songId: String, serverId: UUID, mimeType: String) async throws -> URL {
+        try await store(fileAt: sourceURL, forSongId: songId, serverId: serverId, mimeType: mimeType, quality: .unrecorded)
+    }
+
+    func store(
+        fileAt sourceURL: URL, forSongId songId: String, serverId: UUID, mimeType: String,
+        quality: CachedAudioQuality
+    ) async throws -> URL {
+        if let kept = existingCopy(forSongId: songId, serverId: serverId, notReplaceableBy: quality) {
+            try? FileManager.default.removeItem(at: sourceURL)
+            Logger.cache.info("Kept the better cached copy of '\(songId, privacy: .public)' over a \(quality.fileNameTag, privacy: .public) download")
+            return kept
+        }
         defer { Task { @MainActor in postOfflineLibraryChanged() } }
         let ext = AudioContainer.sniff(atPath: sourceURL.path)?.rawValue ?? audioExtension(mimeType: mimeType)
         // Song IDs are server-controlled and may contain path separators. A generated basename keeps
-        // every entry inside the flat cache directory.
-        let relativePath = "\(serverId.uuidString)-\(UUID().uuidString).\(ext)"
+        // every entry inside the flat cache directory. The quality tag sits before the extension.
+        let relativePath = quality.taggedFileName(stem: "\(serverId.uuidString)-\(UUID().uuidString)", extension: ext)
         let fileURL = cacheDirectory.appendingPathComponent(relativePath)
 
         do {
@@ -139,8 +177,25 @@ actor AudioStreamCache: AudioStreamCacheProtocol {
         // Preserve the just-written file so this method never returns a URL it evicted. A single
         // unusually large track may temporarily exceed the soft budget until the next trim.
         await evictToFitBudget(protecting: storedTrackID)
-        Logger.cache.info("Cached '\(songId, privacy: .public)' (\(fileSize) bytes, \(mimeType, privacy: .public))")
+        Logger.cache.info("Cached '\(songId, privacy: .public)' (\(fileSize) bytes, \(mimeType, privacy: .public), \(quality.fileNameTag, privacy: .public))")
         return fileURL
+    }
+
+    /// A complete cached copy that is better than `quality`, refreshed as recently used.
+    private func existingCopy(forSongId songId: String, serverId: UUID, notReplaceableBy quality: CachedAudioQuality) -> URL? {
+        let sid = serverId
+        let rows = (try? modelContext.fetch(FetchDescriptor<CachedTrack>(
+            predicate: #Predicate { $0.songId == songId && $0.serverId == sid }
+        ))) ?? []
+        for row in rows where !CachedAudioQuality(fileName: row.filePath).canBeReplaced(by: quality) {
+            let url = cacheDirectory.appendingPathComponent(row.filePath)
+            let size = (try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? Int64) ?? 0
+            guard size > 0, size == row.fileSize else { continue }
+            row.cachedAt = Date()
+            try? modelContext.save()
+            return url
+        }
+        return nil
     }
 
     private func audioExtension(mimeType: String) -> String {
@@ -167,7 +222,8 @@ actor AudioStreamCache: AudioStreamCacheProtocol {
 
         var toEvict: [(filePath: String, id: UUID, fileSize: Int64)] = []
         for track in allTracks where remainingBytes > maxBytes {
-            guard track.id != protectedID else { continue }
+            guard track.id != protectedID,
+                  protectedSongIDs[track.serverId]?.contains(track.songId) != true else { continue }
             toEvict.append((track.filePath, track.id, track.fileSize))
             remainingBytes -= max(0, track.fileSize)
         }
@@ -191,7 +247,7 @@ actor AudioStreamCache: AudioStreamCacheProtocol {
         Logger.cache.info("Evicted \(toEvict.count) least-recently-used cache entries")
         if remainingBytes > maxBytes {
             Logger.cache.warning(
-                "Newest cached track exceeds the configured byte budget (\(remainingBytes) > \(self.maxBytes))"
+                "Newest or upcoming cached tracks exceed the configured byte budget (\(remainingBytes) > \(self.maxBytes))"
             )
         }
     }

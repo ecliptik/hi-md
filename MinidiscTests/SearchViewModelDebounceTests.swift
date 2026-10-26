@@ -68,7 +68,7 @@ struct SearchViewModelDebounceTests {
         let stub = SearchLibraryStub()
         let state = ServerState()
         state.isOnline = false
-        let vm = SearchViewModel(libraryService: stub, serverState: state)
+        let vm = SearchViewModel(libraryService: stub, serverState: state, debounce: .zero)
 
         await vm.search(query: "minidisc")
 
@@ -85,7 +85,7 @@ struct SearchViewModelDebounceTests {
         stub.behavior = .fail(URLError(.notConnectedToInternet))
         let state = ServerState()
         state.isOnline = false
-        let vm = SearchViewModel(libraryService: stub, serverState: state)
+        let vm = SearchViewModel(libraryService: stub, serverState: state, debounce: .zero)
 
         await vm.search(query: "minidisc")
 
@@ -100,7 +100,7 @@ struct SearchViewModelDebounceTests {
         stub.behavior = .fail(URLError(.notConnectedToInternet))
         let state = ServerState()
         state.isOnline = false
-        let vm = SearchViewModel(libraryService: stub, serverState: state)
+        let vm = SearchViewModel(libraryService: stub, serverState: state, debounce: .zero)
 
         await vm.search(query: "minidisc")
         #expect(vm.isOffline)
@@ -114,7 +114,7 @@ struct SearchViewModelDebounceTests {
         stub.behavior = .fail(URLError(.notConnectedToInternet))
         let state = ServerState()
         state.isOnline = false
-        let vm = SearchViewModel(libraryService: stub, serverState: state)
+        let vm = SearchViewModel(libraryService: stub, serverState: state, debounce: .zero)
 
         await vm.search(query: "minidisc")
         #expect(stub.searchCalls == ["minidisc"])
@@ -130,7 +130,7 @@ struct SearchViewModelDebounceTests {
     @Test("empty or whitespace query clears state without any request")
     func emptyQueryClearsWithoutRequest() async throws {
         let stub = SearchLibraryStub()
-        let vm = SearchViewModel(libraryService: stub, serverState: onlineState())
+        let vm = SearchViewModel(libraryService: stub, serverState: onlineState(), debounce: .zero)
         vm.searchResults = try JSONDecoder().decode(SearchResult3.self, from: Data("{}".utf8))
         vm.searchError = .unexpected
         vm.isSearching = true
@@ -153,7 +153,7 @@ struct SearchViewModelDebounceTests {
         for error in cancellations {
             let stub = SearchLibraryStub()
             stub.behavior = .fail(error)
-            let vm = SearchViewModel(libraryService: stub, serverState: onlineState())
+            let vm = SearchViewModel(libraryService: stub, serverState: onlineState(), debounce: .zero)
 
             await vm.search(query: "minidisc")
 
@@ -166,7 +166,7 @@ struct SearchViewModelDebounceTests {
     func realErrorSurfaces() async throws {
         let stub = SearchLibraryStub()
         stub.behavior = .fail(URLError(.timedOut))
-        let vm = SearchViewModel(libraryService: stub, serverState: onlineState())
+        let vm = SearchViewModel(libraryService: stub, serverState: onlineState(), debounce: .zero)
 
         await vm.search(query: "minidisc")
 

@@ -201,6 +201,9 @@ final class NetworkMonitor {
         if path.usesInterfaceType(.cellular) { interfaces.insert(.cellular) }
         if path.usesInterfaceType(.wiredEthernet) { interfaces.insert(.wiredEthernet) }
         if path.usesInterfaceType(.other) { interfaces.insert(.other) }
+        let available = path.availableInterfaces.reduce(into: NetworkPathDescriptor.Interfaces()) {
+            $0.formUnion(Self.interfaces(for: $1.type))
+        }
 
         return NetworkPathDescriptor(
             isOnline: path.status == .satisfied,
@@ -210,7 +213,28 @@ final class NetworkMonitor {
             supportsIPv4: path.supportsIPv4,
             supportsIPv6: path.supportsIPv6,
             interfaces: interfaces,
-            gateways: path.gateways.map { String(describing: $0) }.sorted()
+            gateways: path.gateways.map { String(describing: $0) }.sorted(),
+            underlyingInterfaces: underlyingInterfaces(path: interfaces, available: available)
         )
+    }
+
+    private nonisolated static func interfaces(for type: NWInterface.InterfaceType) -> NetworkPathDescriptor.Interfaces {
+        switch type {
+        case .wifi: .wifi
+        case .cellular: .cellular
+        case .wiredEthernet: .wiredEthernet
+        case .other: .other
+        default: []
+        }
+    }
+
+    /// A VPN such as Tailscale routes the path through a tunnel whose type is "other". The
+    /// physical interfaces it can run over still tell Wi-Fi apart from cellular data.
+    nonisolated static func underlyingInterfaces(
+        path: NetworkPathDescriptor.Interfaces,
+        available: NetworkPathDescriptor.Interfaces
+    ) -> NetworkPathDescriptor.Interfaces {
+        guard path.contains(.other), path.isDisjoint(with: [.wifi, .cellular, .wiredEthernet]) else { return [] }
+        return available.intersection([.wifi, .cellular, .wiredEthernet])
     }
 }

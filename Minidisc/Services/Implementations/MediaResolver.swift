@@ -79,27 +79,56 @@ actor MediaResolver: MediaResolverProtocol {
         return nil
     }
 
+    func hasLocalCopy(songId: String, serverId: UUID, atLeast quality: CachedAudioQuality) async -> Bool {
+        if await downloadService.downloadedURL(forSongId: songId, serverId: serverId) != nil { return true }
+        return await audioStreamCache.cachedEntry(forSongId: songId, serverId: serverId)?.quality.satisfies(quality) == true
+    }
+
+    /// A download always wins. A cached copy wins unless it is a lower-quality transcode than the
+    /// current network streams (a cellular MP3 heard again on Wi-Fi): then the original streams,
+    /// and saving it as it plays replaces the cached copy. Offline, any copy plays.
     func resolve(songId: String, serverId: UUID) async throws -> MediaSource {
         try await resolve(songId: songId, serverId: serverId, traits: nil)
     }
 
+    /// `traits` are the song's file metadata; the current network's threshold decides from them
+    /// whether the stream is the original or a conversion, and a cached copy is used only when it
+    /// is at least as good as that stream.
     func resolve(songId: String, serverId: UUID, traits: StreamSourceTraits?) async throws -> MediaSource {
-        if let source = await localSource(songId: songId, serverId: serverId) {
-            return source
+        if let url = await downloadService.downloadedURL(forSongId: songId, serverId: serverId) {
+            Logger.resolver.debug("Resolved '\(songId, privacy: .public)' from permanent download.")
+            return .downloaded(url)
+        }
+        let cached = await audioStreamCache.cachedEntry(forSongId: songId, serverId: serverId)
+        if let cached, cached.quality.satisfies(.original) {
+            Logger.resolver.debug("Resolved '\(songId, privacy: .public)' from cache.")
+            return .cached(cached.url)
         }
 
         let isOnline = await MainActor.run { serverState.isOnline }
         guard isOnline else {
+            if let cached { return .cached(cached.url) }
             Logger.resolver.warning("'\(songId, privacy: .public)' not available offline.")
             throw MinidiscError.offlineUnavailable(songId: songId)
         }
 
-        let connection = try await serverService.activeConnection()
+        let connection: ServerConnection
+        do {
+            connection = try await serverService.activeConnection()
+        } catch {
+            if let cached { return .cached(cached.url) }
+            throw error
+        }
         let client = connection.makeSwiftSonicClient()
         let policy = await MainActor.run { streamSettings.currentPolicy }
         let request = policy.request(for: traits)
         guard let streamURL = Self.streamURL(client: client, songId: songId, request: request) else {
+            if let cached { return .cached(cached.url) }
             throw MinidiscError.mediaNotFound(songId: songId)
+        }
+        if let cached, cached.quality.satisfies(CachedAudioQuality(streamURL: streamURL)) {
+            Logger.resolver.debug("Resolved '\(songId, privacy: .public)' from cache.")
+            return .cached(cached.url)
         }
         Logger.resolver.debug(
             "Resolved '\(songId, privacy: .public)' as stream format=\(request.format, privacy: .public) maxBitRate=\(request.maxBitRate ?? 0, privacy: .public)"

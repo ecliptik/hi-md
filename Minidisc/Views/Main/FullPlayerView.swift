@@ -987,6 +987,7 @@ private struct PlaybackControlsView: View {
             .disabled(!isPlaybackAvailable)
             .accessibilityLabel(showsPause ? "Pause" : "Play")
             .accessibilityValue(playerState.playbackStatusMessage ?? "")
+            .accessibilityIdentifier("player.full.playPause")
 
             if !playerState.isLiveStream {
                 Button {

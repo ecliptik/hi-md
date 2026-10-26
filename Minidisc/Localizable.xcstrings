@@ -1319,7 +1319,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zwischenspeicher"
+            "value" : "Zwischenspeichern"
           }
         },
         "el" : {
@@ -2246,6 +2246,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已啟用"
+          }
+        }
+      }
+    },
+    "Entire queue" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gesamte Warteschlange"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ολόκληρη η ουρά"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toda la cola"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toute la file d'attente"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Intera coda"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "キュー全体"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "整个队列"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "整個待播清單"
           }
         }
       }
@@ -3723,7 +3775,7 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "No"
+            "value" : "Desactivado"
           }
         },
         "fr" : {
@@ -3735,7 +3787,7 @@
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "No"
+            "value" : "Disattivato"
           }
         },
         "ja" : {
@@ -3747,7 +3799,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "关"
+            "value" : "关闭"
           }
         },
         "zh-Hant" : {
@@ -3931,7 +3983,7 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sí"
+            "value" : "Activado"
           }
         },
         "fr" : {
@@ -3943,7 +3995,7 @@
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sì"
+            "value" : "Attivato"
           }
         },
         "ja" : {
@@ -3955,13 +4007,117 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "开"
+            "value" : "开启"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "開啟"
+          }
+        }
+      }
+    },
+    "On cellular" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Über Mobilfunk"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Σε δεδομένα κινητής"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Con datos móviles"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En données mobiles"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Con rete cellulare"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モバイル通信時"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "蜂窝网络下"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "行動網路下"
+          }
+        }
+      }
+    },
+    "On Wi-Fi" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Über WLAN"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Σε Wi-Fi"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Con Wi-Fi"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En Wi-Fi"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Con Wi-Fi"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wi-Fi接続時"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wi-Fi 网络下"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wi-Fi 網路下"
           }
         }
       }
@@ -4694,6 +4850,58 @@
         }
       }
     },
+    "Songs coming up in the queue are saved before they play, so the music keeps going through a weak signal. On Wi-Fi this stops at the stream cache size limit. It waits until the playing song has downloaded, and Low Data Mode turns it off." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kommende Titel der Warteschlange werden vor dem Abspielen gespeichert, damit die Musik auch bei schwachem Empfang weiterläuft. Über WLAN endet das beim Größenlimit des Stream-Cache. Es beginnt erst, wenn der laufende Titel geladen ist, und der Modus für geringe Datennutzung schaltet es aus."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Τα επόμενα τραγούδια της ουράς αποθηκεύονται πριν παιχτούν, ώστε η μουσική να συνεχίζει και με αδύναμο σήμα. Σε Wi-Fi σταματά στο όριο μεγέθους της προσωρινής μνήμης ροής. Ξεκινά μόλις ληφθεί το τραγούδι που παίζει, και η λειτουργία χαμηλών δεδομένων το απενεργοποιεί."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Las próximas canciones de la cola se guardan antes de sonar, para que la música siga aunque la señal sea débil. Con Wi-Fi se detiene en el límite de tamaño de la caché de streaming. Espera a que se descargue la canción en curso, y el modo de datos reducidos lo desactiva."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les morceaux à venir dans la file d'attente sont enregistrés avant leur lecture, pour que la musique continue malgré un signal faible. En Wi-Fi, cela s'arrête à la limite de taille du cache de diffusion. Cela attend que le morceau en cours soit téléchargé, et le mode Données réduites le désactive."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I brani in arrivo nella coda vengono salvati prima della riproduzione, così la musica continua anche con segnale debole. Con Wi-Fi si ferma al limite di dimensione della cache di streaming. Attende che il brano in riproduzione sia scaricato, e la modalità Dati ridotti lo disattiva."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "キューの次の曲を再生前に保存し、電波が弱くても音楽が途切れないようにします。Wi-Fi接続時はストリームキャッシュのサイズ上限まで保存します。再生中の曲のダウンロードが終わってから始まり、省データモードではオフになります。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "队列中即将播放的歌曲会在播放前保存，信号弱时音乐也能继续。Wi-Fi 网络下保存到流媒体缓存的大小上限为止。会等正在播放的歌曲下载完成后再开始，低数据模式下会关闭。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "待播清單中即將播放的歌曲會在播放前儲存，訊號弱時音樂也能繼續。Wi-Fi 網路下儲存到串流快取的大小上限為止。會等正在播放的歌曲下載完成後再開始，低數據模式下會關閉。"
+          }
+        }
+      }
+    },
     "Stop After the Album" : {
       "localizations" : {
         "de" : {
@@ -4846,6 +5054,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "專輯播完即結束。播放列表與混音仍會繼續。"
+          }
+        }
+      }
+    },
+    "The playing song downloads in full from its first second, on cellular too. If the connection drops, playback switches to the downloaded copy. Low Data Mode streams only." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der laufende Titel wird ab der ersten Sekunde vollständig geladen, auch über Mobilfunk. Bricht die Verbindung ab, wechselt die Wiedergabe zur geladenen Kopie. Im Modus für geringe Datennutzung wird nur gestreamt."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Το τραγούδι που παίζει λαμβάνεται ολόκληρο από το πρώτο δευτερόλεπτο, και με δεδομένα κινητής. Αν χαθεί η σύνδεση, η αναπαραγωγή περνά στο αντίγραφο που λήφθηκε. Με τη λειτουργία χαμηλών δεδομένων γίνεται μόνο ροή."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La canción en curso se descarga entera desde el primer segundo, también con datos móviles. Si se pierde la conexión, la reproducción pasa a la copia descargada. En modo de datos reducidos solo se reproduce en streaming."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le morceau en cours est téléchargé en entier dès sa première seconde, y compris en données mobiles. Si la connexion tombe, la lecture passe à la copie téléchargée. En mode Données réduites, la lecture reste en diffusion seule."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il brano in riproduzione viene scaricato per intero dal primo secondo, anche con rete cellulare. Se la connessione cade, la riproduzione passa alla copia scaricata. In modalità Dati ridotti si usa solo lo streaming."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "再生中の曲は最初の1秒から全体をダウンロードします（モバイル通信時も）。接続が切れると、ダウンロード済みのコピーで再生を続けます。省データモードではストリーミングのみになります。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在播放的歌曲会从第一秒起完整下载，蜂窝网络下也是如此。连接中断时，会切换到已下载的副本继续播放。低数据模式下仅流式播放。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在播放的歌曲會從第一秒起完整下載，行動網路下也是如此。連線中斷時，會切換到已下載的副本繼續播放。低數據模式下僅串流播放。"
           }
         }
       }
@@ -53194,54 +53454,54 @@
         }
       }
     },
-    "Favorites, the %lld most recently played albums and pinned albums and playlists are saved automatically, outside Downloads and the stream cache limit; turning one off removes only its automatic copies. Upcoming songs go into the stream cache. Uses the stream cache format and cellular data settings." : {
+    "Favorites, the %lld most recently played albums and pinned albums and playlists are saved automatically, outside Downloads and the stream cache limit; turning one off removes only its automatic copies. They use the stream cache format, and cellular data only when turned on here. Upcoming songs go into the stream cache; Caching sets how far ahead." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Favoriten, die %lld zuletzt gespielten Alben sowie angeheftete Alben und Playlists werden automatisch gespeichert, außerhalb der Downloads und des Stream-Cache-Limits; das Ausschalten entfernt nur die jeweiligen automatischen Kopien. Nächste Titel landen im Stream-Cache. Verwendet Format und Mobilfunkeinstellungen des Stream-Cache."
+            "value" : "Favoriten, die %lld zuletzt gespielten Alben sowie angeheftete Alben und Playlists werden automatisch gespeichert, außerhalb der Downloads und des Stream-Cache-Limits; das Ausschalten entfernt nur die jeweiligen automatischen Kopien. Sie verwenden das Format des Stream-Cache und Mobilfunk nur, wenn er hier eingeschaltet ist. Nächste Titel landen im Stream-Cache; unter „Zwischenspeichern“ legst du fest, wie weit im Voraus."
           }
         },
         "el" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Τα αγαπημένα, τα %lld πιο πρόσφατα άλμπουμ και τα καρφιτσωμένα άλμπουμ και λίστες αποθηκεύονται αυτόματα, εκτός Λήψεων και του ορίου της προσωρινής μνήμης· η απενεργοποίηση αφαιρεί μόνο τα αντίστοιχα αυτόματα αντίγραφα. Τα επόμενα τραγούδια μπαίνουν στην προσωρινή μνήμη ροής. Χρησιμοποιεί τη μορφή και τις ρυθμίσεις δεδομένων κινητής της προσωρινής μνήμης ροής."
+            "value" : "Τα αγαπημένα, τα %lld πιο πρόσφατα άλμπουμ και τα καρφιτσωμένα άλμπουμ και λίστες αποθηκεύονται αυτόματα, εκτός Λήψεων και του ορίου της προσωρινής μνήμης· η απενεργοποίηση αφαιρεί μόνο τα αντίστοιχα αυτόματα αντίγραφα. Χρησιμοποιούν τη μορφή της προσωρινής μνήμης ροής και δεδομένα κινητής μόνο όταν είναι ενεργά εδώ. Τα επόμενα τραγούδια μπαίνουν στην προσωρινή μνήμη ροής· η «Προσωρινή αποθήκευση» ορίζει πόσο νωρίτερα."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Los favoritos, los %lld álbumes reproducidos más recientemente y los álbumes y playlists fijados se guardan automáticamente, fuera de Descargas y del límite de la caché; desactivar uno elimina solo sus copias automáticas. Las próximas canciones van a la caché de streaming. Usa el formato y los ajustes de datos móviles de la caché."
+            "value" : "Los favoritos, los %lld álbumes reproducidos más recientemente y los álbumes y playlists fijados se guardan automáticamente, fuera de Descargas y del límite de la caché; desactivar uno elimina solo sus copias automáticas. Usan el formato de la caché de streaming y los datos móviles solo si se activan aquí. Las próximas canciones van a la caché de streaming; Caché define con cuánta antelación."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Les favoris, les %lld albums écoutés le plus récemment et les albums et playlists épinglés sont enregistrés automatiquement, hors Téléchargements et hors limite du cache ; désactiver une option ne supprime que ses copies automatiques. Les morceaux à venir vont dans le cache de diffusion. Utilise le format et les réglages de données cellulaires du cache."
+            "value" : "Les favoris, les %lld albums écoutés le plus récemment et les albums et playlists épinglés sont enregistrés automatiquement, hors Téléchargements et hors limite du cache ; désactiver une option ne supprime que ses copies automatiques. Elles utilisent le format du cache de diffusion, et les données cellulaires seulement si l'option est activée ici. Les morceaux à venir vont dans le cache de diffusion ; Mise en cache règle jusqu'où à l'avance."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "I preferiti, i %lld album ascoltati più di recente e gli album e le playlist fissati vengono salvati automaticamente, fuori dai Download e dal limite della cache; disattivarne uno rimuove solo le sue copie automatiche. I brani successivi vanno nella cache di streaming. Usa il formato e le impostazioni dati cellulari della cache."
+            "value" : "I preferiti, i %lld album ascoltati più di recente e gli album e le playlist fissati vengono salvati automaticamente, fuori dai Download e dal limite della cache; disattivarne uno rimuove solo le sue copie automatiche. Usano il formato della cache di streaming e la rete cellulare solo se attivata qui. I brani successivi vanno nella cache di streaming; Cache stabilisce con quanto anticipo."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "お気に入り、最近再生した%lld枚のアルバム、ピン留めしたアルバムとプレイリストは、ダウンロードやストリームキャッシュの上限とは別に自動で保存されます。オフにするとその自動コピーだけが削除されます。次に再生する曲はストリームキャッシュに入ります。ストリームキャッシュのフォーマットとモバイルデータ設定を使用します。"
+            "value" : "お気に入り、最近再生した%lld枚のアルバム、ピン留めしたアルバムとプレイリストは、ダウンロードやストリームキャッシュの上限とは別に自動で保存されます。オフにするとその自動コピーだけが削除されます。ストリームキャッシュのフォーマットを使い、モバイルデータ通信はここでオンにした場合のみ使います。次に再生する曲はストリームキャッシュに入り、どこまで先に保存するかは「キャッシュ」で設定します。"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "收藏、最近播放的 %lld 张专辑以及置顶的专辑和播放列表会自动保存，不计入下载和流媒体缓存上限；关闭某项只会移除其自动副本。即将播放的歌曲会存入流媒体缓存。使用流媒体缓存的格式和蜂窝数据设置。"
+            "value" : "收藏、最近播放的 %lld 张专辑以及置顶的专辑和播放列表会自动保存，不计入下载和流媒体缓存上限；关闭某项只会移除其自动副本。它们使用流媒体缓存的格式，仅在此处开启时使用蜂窝数据。即将播放的歌曲会存入流媒体缓存；提前多少由“缓存”设置。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "收藏、最近播放的 %lld 張專輯以及釘選的專輯和播放列表會自動儲存，不計入下載和串流快取上限；關閉某項只會移除其自動副本。即將播放的歌曲會存入串流快取。使用串流快取的格式和行動數據設定。"
+            "value" : "收藏、最近播放的 %lld 張專輯以及釘選的專輯和播放列表會自動儲存，不計入下載和串流快取上限；關閉某項只會移除其自動副本。它們使用串流快取的格式，僅在此處開啟時使用行動數據。即將播放的歌曲會存入串流快取；提前多少由「快取」設定。"
           }
         }
       }
