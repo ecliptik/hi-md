@@ -79,7 +79,7 @@ struct MacSongTable: View {
             }
             .width(min: 44, ideal: 52, max: 70)
             .alignment(.trailing)
-            TableColumn(Text("Favorite")) { row in
+            TableColumn(Text(Image(systemName: "heart"))) { row in
                 favoriteCell(row, isFavorite: favorites.contains(row.song.id))
             }
             .width(min: 22, ideal: 26, max: 30)
