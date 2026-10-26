@@ -18,7 +18,7 @@ struct WrappedTopArtistSlide: View {
                 Text("TOP ARTIST")
                     .scaledFont(size: 13, weight: .heavy, design: .rounded)
                     .tracking(2.5)
-                    .foregroundStyle(.white.opacity(0.7))
+                    .foregroundStyle(.white.opacity(WrappedYearPalette.secondaryTextOpacity))
 
                 Spacer()
 
@@ -39,7 +39,7 @@ struct WrappedTopArtistSlide: View {
                 } else {
                     Text("No artist data yet")
                         .font(.system(.title2, design: .rounded, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.6))
+                        .foregroundStyle(.white.opacity(WrappedYearPalette.secondaryTextOpacity))
                 }
 
                 Spacer()
@@ -56,6 +56,6 @@ struct WrappedTopArtistSlide: View {
             .foregroundStyle(.white)
             .padding(.horizontal, MinidiscSpacing.m)
             .padding(.vertical, MinidiscSpacing.s)
-            .background(Color.white.opacity(0.2), in: Capsule())
+            .background(Color.white.opacity(WrappedYearPalette.chipFillOpacity), in: Capsule())
     }
 }

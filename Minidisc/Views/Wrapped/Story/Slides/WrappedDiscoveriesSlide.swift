@@ -16,17 +16,17 @@ struct WrappedDiscoveriesSlide: View {
                 Text("DISCOVERIES")
                     .scaledFont(size: 13, weight: .heavy, design: .rounded)
                     .tracking(2.5)
-                    .foregroundStyle(.white.opacity(0.7))
+                    .foregroundStyle(.white.opacity(WrappedYearPalette.secondaryTextOpacity))
 
                 Spacer()
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text("You explored")
                         .scaledFont(size: 26, weight: .medium, design: .rounded)
-                        .foregroundStyle(.white.opacity(0.8))
+                        .foregroundStyle(.white.opacity(WrappedYearPalette.secondaryTextOpacity))
                     Text("your library.")
                         .scaledFont(size: 26, weight: .medium, design: .rounded)
-                        .foregroundStyle(.white.opacity(0.8))
+                        .foregroundStyle(.white.opacity(WrappedYearPalette.secondaryTextOpacity))
                 }
 
                 Spacer(minLength: MinidiscSpacing.xl)
@@ -53,7 +53,7 @@ struct WrappedDiscoveriesSlide: View {
                 .foregroundStyle(.white)
             Text(label)
                 .scaledFont(size: 20, weight: .medium, design: .rounded)
-                .foregroundStyle(.white.opacity(0.75))
+                .foregroundStyle(.white.opacity(WrappedYearPalette.secondaryTextOpacity))
         }
     }
 }

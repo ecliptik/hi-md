@@ -18,7 +18,7 @@ struct WrappedTopTrackSlide: View {
                 Text("YOUR #1 TRACK")
                     .scaledFont(size: 13, weight: .heavy, design: .rounded)
                     .tracking(2.5)
-                    .foregroundStyle(.white.opacity(0.7))
+                    .foregroundStyle(.white.opacity(WrappedYearPalette.secondaryTextOpacity))
 
                 Spacer()
 
@@ -38,7 +38,7 @@ struct WrappedTopTrackSlide: View {
 
                         Text(track.artistName)
                             .scaledFont(size: 20, weight: .medium, design: .rounded)
-                            .foregroundStyle(.white.opacity(0.8))
+                            .foregroundStyle(.white.opacity(WrappedYearPalette.secondaryTextOpacity))
                             .lineLimit(1)
                     }
                     .padding(.horizontal, MinidiscSpacing.xl)
@@ -50,11 +50,11 @@ struct WrappedTopTrackSlide: View {
                         .foregroundStyle(.white)
                         .padding(.horizontal, MinidiscSpacing.m)
                         .padding(.vertical, MinidiscSpacing.s)
-                        .background(Color.white.opacity(0.2), in: Capsule())
+                        .background(Color.white.opacity(WrappedYearPalette.chipFillOpacity), in: Capsule())
                 } else {
                     Text("No track data yet")
                         .font(.system(.title2, design: .rounded, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.6))
+                        .foregroundStyle(.white.opacity(WrappedYearPalette.secondaryTextOpacity))
                 }
 
                 Spacer()

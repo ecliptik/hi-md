@@ -27,7 +27,7 @@ struct WrappedClosingSlide: View {
 
                     Text("Your \(year) Wrapped")
                         .scaledFont(size: 20, weight: .medium, design: .rounded)
-                        .foregroundStyle(.white.opacity(0.75))
+                        .foregroundStyle(.white.opacity(WrappedYearPalette.secondaryTextOpacity))
                 }
 
                 Spacer(minLength: MinidiscSpacing.xl)
@@ -61,12 +61,14 @@ struct WrappedClosingSlide: View {
                 .foregroundStyle(.white)
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
+            // Full white: the card's white fill already lifts the background, and small text at
+            // 70% white fell to 2.5:1 on it.
             Text(label)
                 .scaledFont(size: 12, weight: .medium, design: .rounded)
-                .foregroundStyle(.white.opacity(0.7))
+                .foregroundStyle(.white)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, MinidiscSpacing.m)
-        .background(Color.white.opacity(0.15), in: RoundedRectangle(cornerRadius: MinidiscCornerRadius.large, style: .continuous))
+        .background(Color.white.opacity(WrappedYearPalette.chipFillOpacity), in: RoundedRectangle(cornerRadius: MinidiscCornerRadius.large, style: .continuous))
     }
 }

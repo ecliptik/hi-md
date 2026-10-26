@@ -27,9 +27,10 @@ struct WrappedYearCard: View {
                     Logger.wrapped.debug("[WRAPPED-YEAR-CARD] tapped year=\(year, privacy: .public) playlistId=\(pid, privacy: .public)")
                 })
             } else {
+                // Unavailable years read as muted through grayscale alone: fading the card to 70%
+                // let the page show through and took its white text to 2.7:1 in light mode.
                 cardContent
-                    .grayscale(0.5)
-                    .opacity(0.7)
+                    .grayscale(0.8)
             }
         }
     }
@@ -55,7 +56,7 @@ struct WrappedYearCard: View {
                 if playlistId != nil {
                     Image(systemName: "chevron.right")
                         .scaledFont(size: 14)
-                        .foregroundStyle(.white.opacity(0.5))
+                        .foregroundStyle(.white.opacity(WrappedYearPalette.secondaryTextOpacity))
                 }
             }
 
@@ -71,7 +72,7 @@ struct WrappedYearCard: View {
 
             subtitleView
                 .scaledFont(size: 14, weight: .medium)
-                .foregroundStyle(.white.opacity(0.7))
+                .foregroundStyle(.white.opacity(WrappedYearPalette.secondaryTextOpacity))
                 .lineLimit(2)
                 .padding(.top, MinidiscSpacing.xs)
         }

@@ -14,13 +14,38 @@ struct WrappedPaletteContrastTests {
         }
     }
 
-    @Test("Secondary white text at 70% opacity still reaches 3:1, the large-text minimum",
-          arguments: years)
-    func translucentLargeText(_ year: Int) {
-        for stop in WrappedYearPalette.legibleStops(for: year) {
-            let text = WCAGContrast.RGB.white.composited(over: stop, opacity: 0.7)
-            let ratio = WCAGContrast.ratio(text, stop)
-            #expect(ratio >= 3, "\(year) \(stop): \(ratio)")
+    /// The stops and every blend of them the mesh can draw, on a 10% grid.
+    private static func blends(for year: Int) -> [WCAGContrast.RGB] {
+        let stops = WrappedYearPalette.legibleStops(for: year)
+        var result: [WCAGContrast.RGB] = []
+        for i in 0...10 {
+            for j in 0...(10 - i) {
+                let (a, b, c) = (Double(i) / 10, Double(j) / 10, Double(10 - i - j) / 10)
+                result.append(WCAGContrast.RGB(
+                    red: stops[0].red * a + stops[1].red * b + stops[2].red * c,
+                    green: stops[0].green * a + stops[1].green * b + stops[2].green * c,
+                    blue: stops[0].blue * a + stops[1].blue * b + stops[2].blue * c))
+            }
+        }
+        return result
+    }
+
+    @Test("Captions reach 4.5:1 on every stop and blend (contrast sweep 2026-10-26)", arguments: years)
+    func captionsReachAA(_ year: Int) {
+        for background in Self.blends(for: year) {
+            let text = WCAGContrast.RGB.white.composited(over: background,
+                                                         opacity: WrappedYearPalette.secondaryTextOpacity)
+            let ratio = WCAGContrast.ratio(text, background)
+            #expect(ratio >= 4.5, "\(year) \(background): \(ratio)")
+        }
+    }
+
+    @Test("White text on a translucent chip reaches 4.5:1", arguments: years)
+    func chipText(_ year: Int) {
+        for background in Self.blends(for: year) {
+            let chip = WCAGContrast.RGB.white.composited(over: background, opacity: WrappedYearPalette.chipFillOpacity)
+            let ratio = WCAGContrast.ratio(.white, chip)
+            #expect(ratio >= 4.5, "\(year) \(chip): \(ratio)")
         }
     }
 

@@ -90,14 +90,16 @@ struct WrappedTopArtistsSection: View {
         return Text("#\(rank)")
             .font(.minidiscCaption2)
             .fontWeight(.bold)
-            .foregroundStyle(isMedal ? Color.black : Color.primary)
+            .foregroundStyle(isMedal ? Color.black : Color.white)
             .padding(.horizontal, 6)
             .padding(.vertical, 3)
             .background {
                 if isMedal {
                     Capsule().fill(medalColor(for: rank))
                 } else {
-                    Capsule().fill(.ultraThinMaterial)
+                    // Over the cover: a dark fill keeps white text at 5.7:1 on a white cover,
+                    // where the thin material's primary text could wash out.
+                    Capsule().fill(Color.black.opacity(0.6))
                 }
             }
     }

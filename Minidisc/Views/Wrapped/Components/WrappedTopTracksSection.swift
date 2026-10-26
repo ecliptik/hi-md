@@ -65,7 +65,7 @@ struct WrappedTopTracksSection: View {
                         .frame(width: 28, height: 28)
                     Text("\(track.rank)")
                         .font(.system(.caption, design: .rounded, weight: .heavy))
-                        .foregroundStyle(track.rank <= 3 ? Color.black : Color.minidiscAccent)
+                        .foregroundStyle(track.rank <= 3 ? Color.black : Color.minidiscTextAccent)
                 }
                 .frame(width: 28)
                 CoverArtCard(id: track.trackId, size: 44)

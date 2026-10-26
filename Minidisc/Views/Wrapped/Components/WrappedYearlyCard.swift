@@ -49,7 +49,7 @@ struct WrappedYearlyCard: View {
                 .lineLimit(1)
             Text("Wrapped")
                 .scaledFont(size: 12, weight: .medium, design: .rounded)
-                .foregroundStyle(.white.opacity(0.75))
+                .foregroundStyle(.white.opacity(WrappedYearPalette.secondaryTextOpacity))
                 .lineLimit(1)
         }
         .frame(maxWidth: .infinity, alignment: .leading)

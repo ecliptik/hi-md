@@ -16,17 +16,17 @@ struct WrappedTopGenreSlide: View {
                 Text("YOUR SOUND")
                     .scaledFont(size: 13, weight: .heavy, design: .rounded)
                     .tracking(2.5)
-                    .foregroundStyle(.white.opacity(0.7))
+                    .foregroundStyle(.white.opacity(WrappedYearPalette.secondaryTextOpacity))
 
                 Spacer()
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Your most-played")
                         .scaledFont(size: 22, weight: .medium, design: .rounded)
-                        .foregroundStyle(.white.opacity(0.8))
+                        .foregroundStyle(.white.opacity(WrappedYearPalette.secondaryTextOpacity))
                     Text("genre was")
                         .scaledFont(size: 22, weight: .medium, design: .rounded)
-                        .foregroundStyle(.white.opacity(0.8))
+                        .foregroundStyle(.white.opacity(WrappedYearPalette.secondaryTextOpacity))
                 }
 
                 Spacer(minLength: MinidiscSpacing.l)

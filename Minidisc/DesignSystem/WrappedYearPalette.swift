@@ -6,10 +6,10 @@ nonisolated enum WrappedYearPalette {
     /// and cover generation.
     ///
     /// White text sits straight on these gradients, so each palette is darkened as a whole
-    /// (the same as a black scrim) until its brightest stop leaves white at 4.5:1 or more.
+    /// (the same as a black scrim) until its brightest stop is at `maxStopLuminance`.
     /// Darkening every stop by the same factor keeps the palette's character, and the cap
     /// sits a little under the limit for the mesh's smoothed blending. Already-dark palettes
-    /// are untouched. White text before → after (audit 2026-10-25, H5): 2024 1.97 → 4.67,
+    /// are untouched. White text before → after the first cap of 0.175 (audit 2026-10-25, H5): 2024 1.97 → 4.67,
     /// 2025 3.76 → 4.71, 2026 2.44 → 4.68, 2027 2.30 → 4.68, 2028 1.87 → 4.70,
     /// 2029 8.63 (unchanged), 2030 2.74 → 4.68, 2031 4.37 → 4.68.
     static func colors(for year: Int) -> [Color] {
@@ -26,8 +26,17 @@ nonisolated enum WrappedYearPalette {
         sourcePalettes[paletteIndex(for: year)].map(WCAGContrast.RGB.init(hex:))
     }
 
-    /// The brightest luminance a stop may keep: a little under the 4.5:1 limit for white.
-    static let maxStopLuminance = 0.175
+    /// The brightest luminance a stop may keep. At 0.175 white text kept 4.5:1 but the captions
+    /// (50–80% white) fell to 2.2–3.5:1; at 0.12 white has 6.2:1 and `secondaryTextOpacity` 4.9:1
+    /// on every palette, blends included (contrast sweep 2026-10-26).
+    static let maxStopLuminance = 0.12
+
+    /// Captions, kickers and units on the gradients.
+    static let secondaryTextOpacity = 0.85
+
+    /// Translucent white chips and cards behind white text (play counts, Share, closing stats).
+    /// At 20% white text fell to 3.2:1 over the brightest blends; at 12% it keeps 4.68:1.
+    static let chipFillOpacity = 0.12
 
     private static func paletteIndex(for year: Int) -> Int {
         ((year % 8) + 8) % 8
