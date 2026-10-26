@@ -11,7 +11,8 @@ import Synchronization
 /// Two AVPlayer decks alternate active and standby roles for gapless playback and crossfades.
 /// A recursive lock protects deck roles and transition state across control calls and callbacks.
 /// ReplayGain boosts use an audio processing tap because AVPlayer.volume cannot exceed 1. The same
-/// tap runs the equalizer, so it is also installed whenever the equalizer is on.
+/// tap runs the equalizer, so it is also installed whenever the equalizer is on, and copies
+/// samples to `VisualizerTap` while a visualiser is attached.
 nonisolated final class AVPlayerEngine: AudioEngine, @unchecked Sendable {
     private enum StandbyPreparationState {
         case idle
@@ -113,6 +114,7 @@ nonisolated final class AVPlayerEngine: AudioEngine, @unchecked Sendable {
 
     private var timeControlObservers: [NSKeyValueObservation] = []
     private var equalizerObserver: (any NSObjectProtocol)?
+    private var visualizerObserver: (any NSObjectProtocol)?
     private var statusObserver: NSKeyValueObservation?
     private var endObserver: NSObjectProtocol?
     private var failObserver: NSObjectProtocol?
@@ -127,6 +129,11 @@ nonisolated final class AVPlayerEngine: AudioEngine, @unchecked Sendable {
         configurePlayers()
         equalizerObserver = NotificationCenter.default.addObserver(
             forName: EqualizerParameters.didChange, object: nil, queue: nil
+        ) { [weak self] _ in
+            self?.equalizerSettingsDidChange()
+        }
+        visualizerObserver = NotificationCenter.default.addObserver(
+            forName: VisualizerTap.attachmentDidChange, object: VisualizerTap.shared, queue: nil
         ) { [weak self] _ in
             self?.equalizerSettingsDidChange()
         }
@@ -180,6 +187,7 @@ nonisolated final class AVPlayerEngine: AudioEngine, @unchecked Sendable {
 
     deinit {
         if let equalizerObserver { NotificationCenter.default.removeObserver(equalizerObserver) }
+        if let visualizerObserver { NotificationCenter.default.removeObserver(visualizerObserver) }
         replayGainTaskA?.cancel()
         replayGainTaskB?.cancel()
         overlapTimer?.cancel()
@@ -1233,17 +1241,18 @@ nonisolated final class AVPlayerEngine: AudioEngine, @unchecked Sendable {
         linearGain > 1
     }
 
-    /// A ReplayGain boost or the equalizer needs the tap.
+    /// A ReplayGain boost, the equalizer or an attached visualiser needs the tap.
     nonisolated static func requiresAudioTap(linearGain: Float,
-                                             equalizerEnabled: Bool = EqualizerParameters.shared.isEnabled) -> Bool {
-        requiresReplayGainTap(linearGain: linearGain) || equalizerEnabled
+                                             equalizerEnabled: Bool = EqualizerParameters.shared.isEnabled,
+                                             visualizerAttached: Bool = VisualizerTap.shared.isAttached) -> Bool {
+        requiresReplayGainTap(linearGain: linearGain) || equalizerEnabled || visualizerAttached
     }
 
-    /// Turning the equalizer on mid-song installs the tap on the playing and preloaded items.
-    /// Turning it off leaves installed taps in place; they pass audio through unchanged.
+    /// Turning the equalizer on, or attaching a visualiser, mid-song installs the tap on the playing
+    /// and preloaded items. Turning it off leaves installed taps in place; they pass audio through unchanged.
     private func equalizerSettingsDidChange() {
         lock.withLock {
-            guard EqualizerParameters.shared.isEnabled else { return }
+            guard EqualizerParameters.shared.isEnabled || VisualizerTap.shared.isAttached else { return }
             if let trackID = currentTrackID, !activeContext.tapInstalled {
                 installReplayGainTapIfNeeded(context: activeContext, trackID: trackID)
             }
@@ -1287,6 +1296,8 @@ nonisolated final class AVPlayerEngine: AudioEngine, @unchecked Sendable {
 private nonisolated final class ReplayGainTapContext: @unchecked Sendable {
     private let gainBits = Atomic<UInt32>(Float(1).bitPattern)
     private let tapInstalledBits = Atomic<UInt8>(0)
+    /// This deck's copy of its tap output for the visualiser. Allocated here, off the render thread.
+    let visualizer = VisualizerTap.shared.makeRing()
 
     var gain: Float {
         get { Float(bitPattern: gainBits.load(ordering: .relaxed)) }
@@ -1338,6 +1349,7 @@ private nonisolated func audioTapPrepare(
         channels: Int(format.mChannelsPerFrame),
         interleaved: format.mFormatFlags & kAudioFormatFlagIsNonInterleaved == 0
     )
+    storage.context.visualizer.sampleRate = format.mSampleRate
 }
 
 private nonisolated func replayGainTapProcess(
@@ -1351,6 +1363,8 @@ private nonisolated func replayGainTapProcess(
     let status = MTAudioProcessingTapGetSourceAudio(tap, numberFrames, bufferListInOut, flagsOut, nil, numberFramesOut)
     guard status == noErr else { return }
     let storage = Unmanaged<AudioTapStorage>.fromOpaque(MTAudioProcessingTapGetStorage(tap)).takeUnretainedValue()
+    // Copies the final post-EQ, post-ReplayGain samples; returns at once with no visualiser attached.
+    defer { storage.context.visualizer.write(UnsafeMutableAudioBufferListPointer(bufferListInOut), frames: Int(numberFramesOut.pointee)) }
     storage.equalizer.process(UnsafeMutableAudioBufferListPointer(bufferListInOut), frames: Int(numberFramesOut.pointee))
     var gain = storage.context.gain
     guard gain != 1.0 else { return }
