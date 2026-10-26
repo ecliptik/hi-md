@@ -214,7 +214,7 @@ struct MinidiscApp: App {
             }
         )
         await newContainer.nowPlayingService.start()
-        AppContainer.invalidateCoverArtCacheIfNeeded(artworkCache: newContainer.artworkImageCache)
+        await AppContainer.invalidateCoverArtCacheIfNeeded(artworkCache: newContainer.artworkImageCache)
         if let sweepTask = AppContainer.sweepLegacyCoverArtFiles() {
             newContainer.retainLifecycleTask(sweepTask)
         }
@@ -254,12 +254,19 @@ struct MinidiscApp: App {
 
     // MARK: - Cover art garbage collection
 
-    @MainActor
     private static func runCoverArtGarbageCollection(
         modelContainer: ModelContainer,
         downloadService: any DownloadServiceProtocol
     ) async {
-        let context = modelContainer.mainContext
+        let referencedIds = await referencedCoverArtIds(in: modelContainer)
+        await downloadService.garbageCollectOrphanedCovers(referencedIds: referencedIds)
+    }
+
+    /// Every cover a download or pin still uses. A large download library makes these fetches
+    /// slow, so they run on a background context rather than the main one.
+    @concurrent
+    private nonisolated static func referencedCoverArtIds(in modelContainer: ModelContainer) async -> Set<String> {
+        let context = ModelContext(modelContainer)
         var referencedIds: Set<String> = []
 
         let albums = (try? context.fetch(FetchDescriptor<DownloadedAlbum>())) ?? []
