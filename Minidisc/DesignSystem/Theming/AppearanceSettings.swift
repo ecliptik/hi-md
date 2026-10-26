@@ -47,6 +47,30 @@ nonisolated enum AccentChoice: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
+    /// Text-only shades, for accent-coloured labels on tinted buttons, grouped and raised rows
+    /// and toasts, where the fill shade falls below 4.5:1. Darker than the fill in light mode,
+    /// brighter in dark mode. Each reaches 4.5:1 on the system backgrounds and on a 20% accent
+    /// tint over them (`AccentContrastTests`). Gold as text was 3.4:1 (light) and 2.5:1 (dark)
+    /// at worst; its text shades measure 4.67:1 and 4.76:1 (audit 2026-10-25, H2).
+    var textHex: (light: UInt32, dark: UInt32) {
+        switch self {
+        case .gold: (0x755302, 0xE9B337)
+        case .coral: (0xA32A1F, 0xFE9E8C)
+        case .red: (0xAC021B, 0xFF9D92)
+        case .orange: (0x924102, 0xFEA15A)
+        case .pink: (0xA81057, 0xFE96CA)
+        case .purple: (0x7635BA, 0xD0A6FF)
+        case .blue: (0x1254B8, 0x88BCFE)
+        case .teal: (0x01655D, 0x2DD4BF)
+        case .green: (0x14671C, 0x4ADE80)
+        }
+    }
+
+    /// The accent for text and small glyphs on tinted or raised surfaces. Not for fills.
+    var textColor: Color {
+        Color(uiColor: Self.dynamicColor(light: textHex.light, dark: textHex.dark))
+    }
+
     @MainActor var color: Color {
         // Gold keeps the asset catalog colour the brand was tuned with.
         if self == .gold { return Color(.minidiscBrandGold) }
@@ -114,10 +138,16 @@ final class AppearanceSettings {
 extension Color {
     /// The accent colour chosen in Settings > Appearance.
     static var minidiscAccent: Color { AppearanceSettings.shared.accent.color }
+
+    /// The chosen accent's text shade: use it for accent-coloured text on tinted buttons,
+    /// grouped or raised rows and materials, and keep `minidiscAccent` for fills. (Not to be
+    /// confused with `minidiscAccentText`, the white label that sits on an accent fill.)
+    static var minidiscTextAccent: Color { AppearanceSettings.shared.accent.textColor }
 }
 
 extension ShapeStyle where Self == Color {
     static var minidiscAccent: Color { Color.minidiscAccent }
+    static var minidiscTextAccent: Color { Color.minidiscTextAccent }
 }
 
 private extension Color {
