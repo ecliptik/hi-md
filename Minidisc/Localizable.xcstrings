@@ -56,6 +56,58 @@
         }
       }
     },
+    "%@ decibels" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ Dezibel"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ ντεσιμπέλ"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ decibelios"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ décibels"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ decibel"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@デシベル"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 分贝"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 分貝"
+          }
+        }
+      }
+    },
     "%lld kbps" : {
       "localizations" : {
         "de" : {
@@ -1210,6 +1262,58 @@
         }
       }
     },
+    "Every song at a similar volume, without clipping." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jeder Song in ähnlicher Lautstärke, ohne Übersteuerung."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Κάθε τραγούδι σε παρόμοια ένταση, χωρίς clipping."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cada canción a un volumen parecido, sin saturación."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chaque morceau à un volume semblable, sans saturation."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ogni brano a un volume simile, senza clipping."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "どの曲も同じくらいの音量で、クリッピングなし。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每首歌音量相近，且不会削波。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每首歌音量相近，且不會削峰失真。"
+          }
+        }
+      }
+    },
     "Favorite tracks and albums are saved automatically, outside Downloads and the stream cache limit. Turning this off removes only these automatic copies. Uses the stream cache format and cellular data settings." : {
       "localizations" : {
         "de" : {
@@ -1418,6 +1522,58 @@
         }
       }
     },
+    "Holds peaks below full scale, so the preamp, ReplayGain and the equalizer never clip." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hält Spitzen unter Vollaussteuerung, damit Vorverstärkung, ReplayGain und Equalizer nie übersteuern."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Κρατά τις κορυφές κάτω από την πλήρη κλίμακα, ώστε η προενίσχυση, το ReplayGain και ο ισοσταθμιστής να μην προκαλούν ποτέ clipping."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mantiene los picos por debajo de la escala completa para que el preamplificador, ReplayGain y el ecualizador nunca saturen."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maintient les crêtes sous la pleine échelle, pour que le préampli, ReplayGain et l’égaliseur ne saturent jamais."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tiene i picchi sotto il fondo scala, così preamplificatore, ReplayGain ed equalizzatore non vanno mai in clipping."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ピークをフルスケール未満に保ち、プリアンプ、ReplayGain、イコライザでクリッピングしないようにします。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将峰值保持在满刻度以下，让前置放大、ReplayGain 和均衡器都不会削波。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "將峰值維持在滿刻度以下，讓前置放大、ReplayGain 和等化器都不會削峰失真。"
+          }
+        }
+      }
+    },
     "Keep Favorites Offline" : {
       "localizations" : {
         "de" : {
@@ -1570,6 +1726,110 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "淺色"
+          }
+        }
+      }
+    },
+    "Limiter" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Limiter"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Περιοριστής"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Limitador"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Limiteur"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Limitatore"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リミッター"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "限幅器"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "限幅器"
+          }
+        }
+      }
+    },
+    "Loudness Leveling" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lautstärkeangleichung"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Εξισορρόπηση έντασης"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nivelación de volumen"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Égalisation du volume"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Livellamento del volume"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ラウドネス調整"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "响度均衡"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "響度平衡"
           }
         }
       }
@@ -2302,6 +2562,110 @@
         }
       }
     },
+    "Plays every song at a similar volume, using its ReplayGain tags." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spielt jeden Song in ähnlicher Lautstärke ab, anhand seiner ReplayGain-Tags."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Αναπαράγει κάθε τραγούδι σε παρόμοια ένταση, με βάση τις ετικέτες ReplayGain του."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reproduce cada canción a un volumen parecido usando sus etiquetas ReplayGain."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lit chaque morceau à un volume semblable grâce à ses balises ReplayGain."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Riproduce ogni brano a un volume simile usando i suoi tag ReplayGain."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ReplayGainタグを使って、どの曲も同じくらいの音量で再生します。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "根据 ReplayGain 标签，让每首歌以相近的音量播放。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "依據 ReplayGain 標籤，讓每首歌以相近的音量播放。"
+          }
+        }
+      }
+    },
+    "Raises or lowers everything from the ReplayGain reference of -18 LUFS." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hebt oder senkt alles gegenüber dem ReplayGain-Bezugspegel von -18 LUFS."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Αυξάνει ή μειώνει τα πάντα σε σχέση με την αναφορά ReplayGain των -18 LUFS."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sube o baja todo respecto a la referencia de ReplayGain de -18 LUFS."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Monte ou baisse tout par rapport à la référence ReplayGain de -18 LUFS."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alza o abbassa tutto rispetto al riferimento ReplayGain di -18 LUFS."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ReplayGainの基準値 -18 LUFS から全体を上げ下げします。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "以 ReplayGain 的 -18 LUFS 基准整体调高或调低。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "以 ReplayGain 的 -18 LUFS 基準整體調高或調低。"
+          }
+        }
+      }
+    },
     "Recommended" : {
       "localizations" : {
         "de" : {
@@ -3026,6 +3390,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wi-Fi"
+          }
+        }
+      }
+    },
+    "With the limiter off, ReplayGain stops at each song's peak instead, which can leave quiet songs quieter." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ohne Limiter hört ReplayGain stattdessen an der Spitze jedes Songs auf, wodurch leise Songs leiser bleiben können."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Με τον περιοριστή απενεργοποιημένο, το ReplayGain σταματά στην κορυφή κάθε τραγουδιού, κάτι που μπορεί να αφήσει τα ήσυχα τραγούδια πιο σιγανά."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Con el limitador desactivado, ReplayGain se detiene en el pico de cada canción, lo que puede dejar más bajas las canciones suaves."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sans limiteur, ReplayGain s’arrête au pic de chaque morceau, ce qui peut laisser les morceaux calmes plus faibles."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Con il limitatore spento, ReplayGain si ferma al picco di ogni brano, e i brani tranquilli possono restare più bassi."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リミッターをオフにすると、ReplayGainは各曲のピークで止まるため、静かな曲は小さいままになることがあります。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "关闭限幅器后，ReplayGain 会止于每首歌的峰值，安静的歌可能因此偏小声。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "關閉限幅器後，ReplayGain 會止於每首歌的峰值，安靜的歌可能因此偏小聲。"
           }
         }
       }
@@ -29705,58 +30121,6 @@
         }
       }
     },
-    "Pre-amp" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Vorverstärkung"
-          }
-        },
-        "el" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pre-amp"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Preamplificación"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Préampli"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pre-amplificazione"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "プリアンプ"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "前置放大"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "前級增益"
-          }
-        }
-      }
-    },
     "Preparing…" : {
       "localizations" : {
         "de" : {
@@ -29805,58 +30169,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "準備中…"
-          }
-        }
-      }
-    },
-    "Prevent clipping" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Übersteuerung verhindern"
-          }
-        },
-        "el" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Αποτροπή clipping"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Evitar la saturación"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Éviter la saturation"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Previeni il clipping"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "クリッピングを防止"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "防止削波"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "避免削峰失真"
           }
         }
       }
@@ -32287,58 +32599,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "取代 token"
-          }
-        }
-      }
-    },
-    "ReplayGain" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ReplayGain"
-          }
-        },
-        "el" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ReplayGain"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ReplayGain"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ReplayGain"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ReplayGain"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ReplayGain"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ReplayGain"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ReplayGain"
           }
         }
       }

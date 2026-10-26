@@ -785,7 +785,15 @@ private struct PlaybackSettingsView: View {
             if let lyrics = container?.lyricsSettings {
                 LyricsSettingsSection(settings: lyrics)
             }
-            ReplayGainSettingsSection()
+            if let replayGain = container?.replayGainSettings {
+                Section {
+                    NavigationLink {
+                        LoudnessLevelingView(settings: replayGain)
+                    } label: {
+                        SettingsRowLabel(title: "Loudness Leveling", subtitle: "Every song at a similar volume, without clipping.")
+                    }
+                }
+            }
             CrossfadeSettingsSection()
         }
         .formStyle(.grouped)

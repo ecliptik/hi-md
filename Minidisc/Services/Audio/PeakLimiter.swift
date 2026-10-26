@@ -94,8 +94,9 @@ nonisolated final class PeakLimiter: @unchecked Sendable {
             gain = target
         } else {
             gain += (target - gain) * releaseCoefficient
-            // Snap home so an idle limiter multiplies by exactly 1 and leaves samples bit-identical.
-            if target == 1, gain > 0.99999 { gain = 1 }
+            // Snap home (within 0.01 dB) so an idle limiter leaves samples bit-identical. Float
+            // steps this small would otherwise stall just short of 1.
+            if target == 1, gain > 0.999 { gain = 1 }
         }
         return gain
     }
