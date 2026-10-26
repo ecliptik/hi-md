@@ -267,6 +267,8 @@ final class WinampMainWindowController: NSObject, NSWindowDelegate, WinampMainVi
         state.isPlaylistOn = host?.isVisible(.playlist) == true
         let mode = preferences.visualizerMode
         state.visualizer = mode == .off ? .off : (visualizer == nil ? WinampVisualizerPicture(mode: mode) : picture)
+        // Read under the player's observation, so starring anywhere redraws the heart.
+        state.favorite = host?.favorites.current ?? .unavailable
         return state
     }
 
@@ -404,6 +406,9 @@ final class WinampMainWindowController: NSObject, NSWindowDelegate, WinampMainVi
         case .visualizer:
             setVisualizerMode(preferences.visualizerMode.next)
         case .songTitle:
+            break
+        case .favorite where host?.favorites.current.canToggle != true:
+            // No heart is shown (radio, a local file, nothing playing), or the server is offline.
             break
         default:
             trackedButton = control
@@ -564,6 +569,8 @@ final class WinampMainWindowController: NSObject, NSWindowDelegate, WinampMainVi
             host?.toggle(.equalizer)
         case .playlist:
             host?.toggle(.playlist)
+        case .favorite:
+            host?.favorites.toggleCurrent()
         case .clutter(.info):
             break
         case .titleBar, .time, .visualizer, .songTitle, .volume, .balance, .seek:
@@ -618,6 +625,15 @@ final class WinampMainWindowController: NSObject, NSWindowDelegate, WinampMainVi
 
     func contextMenu(for view: WinampMainView) -> NSMenu? {
         let menu = NSMenu()
+        if let favorite = host?.favorites.current {
+            menu.autoenablesItems = false
+            let heart = item(String(localized: favorite.menuTitle)) { $0.host?.favorites.toggleCurrent() }
+            heart.keyEquivalent = "h"
+            heart.keyEquivalentModifierMask = [.command, .shift]
+            heart.isEnabled = favorite.canToggle
+            menu.addItem(heart)
+            menu.addItem(.separator())
+        }
         menu.addItem(item(String(localized: "Load Skin…")) { $0.host?.chooseSkin() })
         menu.addItem(item(String(localized: "Default Skin"), isOn: host?.isUsingDefaultSkin ?? true) { $0.host?.useDefaultSkin() })
         menu.addItem(.separator())

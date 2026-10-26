@@ -65,12 +65,7 @@ struct MacArtistMenu: View {
         Button("Shuffle", systemImage: "shuffle") { playback.playArtist(id: artistID, action: .shuffle) }
         Button("Add to Queue", systemImage: "text.append") { playback.playArtist(id: artistID, action: .addToQueue) }
         Divider()
-        let isFavorite = playback.isFavorite(.artist, id: artistID)
-        Button(isFavorite ? "Remove from Favorites" : "Add to Favorites",
-               systemImage: isFavorite ? "heart.slash" : "heart") {
-            playback.setFavorite(!isFavorite, itemType: .artist, id: artistID)
-        }
-        .disabled(!playback.container.serverState.isOnline)
+        MacFavoriteMenuItem(itemType: .artist, itemID: artistID)
     }
 }
 
@@ -160,7 +155,9 @@ struct MacArtistDetailView: View {
                             .frame(minWidth: 72)
                     }
                     .buttonStyle(.bordered)
+                    MacFavoriteButton(itemType: .artist, itemID: artistID)
                 }
+                .fixedSize()
                 .controlSize(.large)
             }
             Spacer(minLength: 0)

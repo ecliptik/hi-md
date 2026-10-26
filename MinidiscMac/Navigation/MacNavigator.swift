@@ -54,15 +54,27 @@ final class MacNavigator {
     var path: [MacDestination] = []
     var searchText = ""
     var inspector: MacInspectorPane?
+    /// The large Now Playing view covering the window, opened from the player bar's artwork or
+    /// View > Now Playing.
+    var isNowPlayingShown = false
 
     /// Shows a pane, or hides the inspector when that pane is already showing.
     func toggleInspector(_ pane: MacInspectorPane) {
         inspector = inspector == pane ? nil : pane
     }
 
+    func showNowPlaying() {
+        isNowPlayingShown = true
+    }
+
+    func closeNowPlaying() {
+        isNowPlayingShown = false
+    }
+
     /// Opens a page above the current section. An album or artist already open in the stack is
-    /// brought back instead of being opened twice.
+    /// brought back instead of being opened twice. Now Playing closes to show it.
     func show(_ destination: MacDestination) {
+        isNowPlayingShown = false
         if selection == nil { selection = .albums }
         if let index = path.firstIndex(where: { $0.opensSamePage(as: destination) }) {
             path.removeSubrange(index...)

@@ -159,10 +159,6 @@ final class MacPlayback {
         }
     }
 
-    func isFavorite(_ itemType: FavoriteType, id: String) -> Bool {
-        container.favoritesService.isFavorite(itemType: itemType, itemId: id)
-    }
-
     /// Saves songs to this Mac for offline listening.
     func download(_ songs: [DisplayableSong]) {
         guard let serverID = container.serverState.activeServer?.id else { return }

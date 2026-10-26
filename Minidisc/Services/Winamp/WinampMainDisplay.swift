@@ -311,4 +311,6 @@ nonisolated struct WinampMainDisplayState: Sendable, Hashable {
     /// Windowshade: only the 275×14 bar with the time, position and small transport.
     var isShaded = false
     var visualizer: WinampVisualizerPicture = .off
+    /// The playing song's heart; hidden for radio, local files and an empty player.
+    var favorite: WinampFavoriteStatus = .unavailable
 }

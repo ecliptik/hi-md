@@ -26,12 +26,14 @@ nonisolated enum WinampMainControl: Sendable, Hashable {
     case eject
     case shuffle
     case repeatToggle
+    /// The heart beside kHz: stars or unstars the playing song.
+    case favorite
 
     /// Controls that act on release and draw pressed while held.
     var isButton: Bool {
         switch self {
         case .options, .minimize, .shade, .close, .clutter, .equalizer, .playlist,
-             .previous, .play, .pause, .stop, .next, .eject, .shuffle, .repeatToggle:
+             .previous, .play, .pause, .stop, .next, .eject, .shuffle, .repeatToggle, .favorite:
             true
         case .titleBar, .time, .visualizer, .songTitle, .volume, .balance, .seek:
             false
@@ -110,6 +112,7 @@ nonisolated struct WinampMainHitMap: Sendable {
                                                 width: lastDigit.x + 9 - firstDigit, height: 13)),
             Region(control: .visualizer, rect: Layout.visualizer),
             Region(control: .songTitle, rect: Layout.title.insetBy(dx: 0, dy: -3)),
+            Region(control: .favorite, rect: WinampHeart.hitArea),
             Region(control: .volume, rect: Layout.volume),
             Region(control: .balance, rect: Layout.balance),
             Region(control: .equalizer, rect: at(Layout.equalizerToggle, WinampSprites.equalizerToggle.off.normal)),

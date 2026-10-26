@@ -51,6 +51,7 @@ nonisolated enum WinampMainRenderer {
         }
         drawVisualizer(state.visualizer, colors: skin.visColors, canvas: &canvas)
         drawText(state, canvas: &canvas)
+        drawHeart(state, skin: skin, canvas: &canvas)
         canvas.draw(state.channels == .mono ? WinampSprites.monoOn : WinampSprites.monoOff, at: Layout.mono)
         canvas.draw(state.channels == .stereo ? WinampSprites.stereoOn : WinampSprites.stereoOff, at: Layout.stereo)
         drawSliders(state, canvas: &canvas)
@@ -141,6 +142,18 @@ nonisolated enum WinampMainRenderer {
             guard let text else { continue }
             let width = CGFloat(text.count * WinampSprites.glyphWidth)
             canvas.drawText(text, at: CGPoint(x: box.maxX - width, y: box.minY))
+        }
+    }
+
+    /// The playing song's heart in the skin's text colour: hollow, or solid once it's a favourite.
+    /// Held down, it moves a pixel down and right, as Winamp's buttons do.
+    private static func drawHeart(_ state: WinampMainDisplayState, skin: WinampSkin, canvas: inout Canvas) {
+        // Without a readable text.bmp, the top colour of the spectrum bars.
+        guard state.favorite.isShown, let color = canvas.sprites.textColor ?? skin.visColors.dropFirst(2).first else { return }
+        let offset: CGFloat = state.pressed == .favorite ? 1 : 0
+        let origin = CGPoint(x: WinampHeart.origin.x + offset, y: WinampHeart.origin.y + offset)
+        for pixel in WinampHeart.pixels(filled: state.favorite.isFavorite) {
+            canvas.fill(CGRect(x: origin.x + pixel.x, y: origin.y + pixel.y, width: 1, height: 1), color: color)
         }
     }
 
@@ -294,6 +307,9 @@ nonisolated final class WinampSpriteCache {
     let skin: WinampSkin
     private var images: [WinampSprite: CGImage] = [:]
     private var missing: Set<WinampSprite> = []
+
+    /// The skin's text colour, worked out from `text.bmp` once.
+    private(set) lazy var textColor: WinampColor? = WinampTextColor.of(skin)
 
     init(skin: WinampSkin) {
         self.skin = skin

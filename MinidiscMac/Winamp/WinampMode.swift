@@ -13,6 +13,8 @@ protocol WinampWindowHost: AnyObject {
     var playlistFiles: WinampPlaylistFiles? { get }
     /// ADD > FILE and ADD > DIR: local audio files and folders.
     var localFiles: WinampLocalFiles? { get }
+    /// The playing song's heart, and starring the playlist's selection.
+    var favorites: WinampFavoritesModel { get }
 
     /// A drag of the window's title bar: the main window brings its docked windows; another
     /// window moves alone, which undocks it.
@@ -58,6 +60,7 @@ final class WinampMode: WinampWindowHost {
     static let shared = WinampMode()
 
     let preferences = WinampPreferences()
+    let favorites = WinampFavoritesModel()
     private lazy var skins = WinampSkinStore(preferences: preferences)
     private var skin: WinampSkin?
     private var container: AppContainer?
@@ -92,6 +95,7 @@ final class WinampMode: WinampWindowHost {
         self.container = container
         playlistFiles = WinampPlaylistFiles(container: container)
         localFiles = WinampLocalFiles(container: container)
+        favorites.attach(container)
         if preferences.isOpen { show() }
     }
 
@@ -475,10 +479,11 @@ func winampZoomMenuItem(host: WinampWindowHost?) -> NSMenuItem {
     return item
 }
 
-/// View > Winamp Mode, plus the skin and window items while it's on.
+/// View > Winamp Mode, plus the skin, window and current-song heart items while it's on.
 struct WinampCommands: Commands {
     @AppStorage(WinampPreferences.Key.isOpen) private var isOpen = false
     @AppStorage(WinampPreferences.Key.zoom) private var zoom = 1
+    private let favorites = WinampMode.shared.favorites
 
     var body: some Commands {
         CommandGroup(after: .toolbar) {
@@ -490,6 +495,14 @@ struct WinampCommands: Commands {
                     .keyboardShortcut("g", modifiers: [.command, .option])
                 Button("Winamp Playlist") { WinampMode.shared.toggle(.playlist) }
                     .keyboardShortcut("e", modifiers: [.command, .option])
+                // The playing song's heart, as in the main window: ⌘⇧H for "heart".
+                Button {
+                    favorites.toggleCurrent()
+                } label: {
+                    Text(favorites.current.menuTitle)
+                }
+                .keyboardShortcut("h", modifiers: [.command, .shift])
+                .disabled(!favorites.current.canToggle)
                 Menu("Winamp Zoom") {
                     ForEach(Array(WinampZoom.levels), id: \.self) { level in
                         Toggle(WinampZoom.title(level), isOn: Binding(

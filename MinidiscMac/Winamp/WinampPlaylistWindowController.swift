@@ -349,9 +349,26 @@ final class WinampPlaylistWindowController: NSObject, NSWindowDelegate, WinampSu
             self?.removeSelected()
         })
         menu.addItem(winampMenuItem(String(localized: "File Info…"), isEnabled: hasSelection) { [weak self] in self?.showInfo() })
+        menu.addItem(favoriteSelectionItem())
         menu.addItem(.separator())
         addFileItems(to: menu)
         return menu
+    }
+
+    private var selectedSongs: [DisplayableSong] {
+        let queue = player.queue
+        return selection.rows.sorted().compactMap { queue.indices.contains($0) ? queue[$0] : nil }
+    }
+
+    /// Add to or Remove from Favorites for the selected songs: all removed when every one is a
+    /// favourite already, otherwise the rest are added. Local files are left out.
+    private func favoriteSelectionItem() -> NSMenuItem {
+        let favorites = host?.favorites
+        let action = favorites?.action(for: selectedSongs)
+        return winampMenuItem(String(localized: WinampFavoriteSelection.title(for: action)),
+                              isEnabled: action != nil && favorites?.canChange == true) {
+            if let action { favorites?.apply(action) }
+        }
     }
 
     private func listMouseDown(at point: CGPoint, event: NSEvent) {
@@ -593,6 +610,9 @@ final class WinampPlaylistWindowController: NSObject, NSWindowDelegate, WinampSu
 
     private func optionsMenu() -> NSMenu {
         let menu = NSMenu()
+        menu.autoenablesItems = false
+        menu.addItem(favoriteSelectionItem())
+        menu.addItem(.separator())
         menu.addItem(winampMenuItem(String(localized: "Windowshade"), isOn: isShaded) { [weak self] in self?.toggleShade() })
         menu.addItem(winampZoomMenuItem(host: host))
         menu.addItem(winampMenuItem(String(localized: "Always on Top"), isOn: preferences.isAlwaysOnTop) { [weak self] in

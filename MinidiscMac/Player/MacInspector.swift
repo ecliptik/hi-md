@@ -30,7 +30,7 @@ struct MacInspector: View {
 
 /// Time-synced lyrics for the playing song, through the shared lyrics view and view model. The
 /// lyrics stay loaded while the song plays, so switching panes doesn't fetch them again.
-private struct MacLyricsPane: View {
+struct MacLyricsPane: View {
     let container: AppContainer
 
     @State private var viewModel: LyricsViewModel?
@@ -81,7 +81,11 @@ private struct MacLyricsPane: View {
 }
 
 /// The song playing now, then Up Next: drag to reorder, double-click to jump, Delete to remove.
-private struct MacQueuePane: View {
+struct MacQueuePane: View {
+    /// The Now Playing views show the song beside the queue already, and their own backdrop
+    /// behind the list.
+    var isOnBackdrop = false
+
     @Environment(MacPlayback.self) private var playback
     @State private var selection: Set<MacQueueEntry.ID> = []
 
@@ -89,7 +93,7 @@ private struct MacQueuePane: View {
         let state = playback.state
         let entries = MacQueueEntry.upcoming(in: state)
         VStack(spacing: 0) {
-            if let current = state.currentTrack {
+            if !isOnBackdrop, let current = state.currentTrack {
                 HStack(spacing: 10) {
                     CoverArtView(id: current.coverArtId ?? current.id, size: 96, cornerRadius: 4)
                         .frame(width: 44, height: 44)
@@ -140,6 +144,7 @@ private struct MacQueuePane: View {
                     }
                 }
                 .listStyle(.inset)
+                .scrollContentBackground(isOnBackdrop ? .hidden : .automatic)
                 .contextMenu(forSelectionType: MacQueueEntry.ID.self) { ids in
                     let chosen = entries.filter { ids.contains($0.id) }
                     if !chosen.isEmpty {

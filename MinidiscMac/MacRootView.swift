@@ -8,6 +8,7 @@ struct MacRootView: View {
     let interface: MacInterface
 
     @AppStorage("minidisc.appTheme") private var theme: AppTheme = .system
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         let navigator = interface.navigator
@@ -35,6 +36,15 @@ struct MacRootView: View {
             Divider()
             MacPlayerBar()
         }
+        .overlay {
+            // The large player covers the whole window, player bar included, like the Music app's.
+            if navigator.isNowPlayingShown {
+                MacNowPlayingView(container: container)
+                    .transition(reduceMotion ? .opacity : .move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .animation(reduceMotion ? nil : .smooth(duration: 0.3), value: navigator.isNowPlayingShown)
+        .toolbar(navigator.isNowPlayingShown ? .hidden : .automatic, for: .windowToolbar)
         .frame(minWidth: 900, minHeight: 560)
         .environment(navigator)
         .environment(playback)
