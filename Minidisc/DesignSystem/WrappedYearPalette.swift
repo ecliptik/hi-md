@@ -4,63 +4,63 @@ nonisolated enum WrappedYearPalette {
     /// Returns 3 deterministic colors derived from the given year, cycling every 8 years.
     /// Used as source palette for mesh gradient backgrounds in Wrapped hero, year card,
     /// and cover generation.
+    ///
+    /// White text sits straight on these gradients, so each palette is darkened as a whole
+    /// (the same as a black scrim) until its brightest stop leaves white at 4.5:1 or more.
+    /// Darkening every stop by the same factor keeps the palette's character, and the cap
+    /// sits a little under the limit for the mesh's smoothed blending. Already-dark palettes
+    /// are untouched. White text before → after (audit 2026-10-25, H5): 2024 1.97 → 4.67,
+    /// 2025 3.76 → 4.71, 2026 2.44 → 4.68, 2027 2.30 → 4.68, 2028 1.87 → 4.70,
+    /// 2029 8.63 (unchanged), 2030 2.74 → 4.68, 2031 4.37 → 4.68.
     static func colors(for year: Int) -> [Color] {
-        switch year % 8 {
-        case 0: // 2024 — warm sunset
-            return [
-                Color(red: 1.000, green: 0.549, blue: 0.259), // #FF8C42 warm orange
-                Color(red: 0.776, green: 0.157, blue: 0.157), // #C62828 deep red
-                Color(red: 0.976, green: 0.659, blue: 0.145), // #F9A825 golden yellow
-            ]
-        case 1: // 2025 — electric dusk
-            return [
-                Color(red: 0.671, green: 0.278, blue: 0.737), // #AB47BC magenta purple
-                Color(red: 0.925, green: 0.251, blue: 0.478), // #EC407A hot pink
-                Color(red: 0.157, green: 0.208, blue: 0.576), // #283593 deep indigo
-            ]
-        case 2: // 2026 — Minidisc identity (gold brand)
-            return [
-                Color(red: 0.573, green: 0.416, blue: 0.047), // #926A0C brand gold
-                Color(red: 0.384, green: 0.275, blue: 0.020), // #624605 deep bronze
-                Color(red: 0.835, green: 0.612, blue: 0.094), // #D59C18 bright gold
-            ]
-        case 3: // 2027 — oceanic
-            return [
-                Color(red: 0.000, green: 0.737, blue: 0.831), // #00BCD4 cyan
-                Color(red: 0.000, green: 0.588, blue: 0.533), // #009688 teal
-                Color(red: 0.161, green: 0.475, blue: 1.000), // #2979FF electric blue
-            ]
-        case 4: // 2028 — botanical
-            return [
-                Color(red: 0.180, green: 0.490, blue: 0.196), // #2E7D32 forest green
-                Color(red: 0.976, green: 0.659, blue: 0.145), // #F9A825 sunny yellow
-                Color(red: 0.502, green: 0.796, blue: 0.769), // #80CBC4 mint
-            ]
-        case 5: // 2029 — midnight
-            return [
-                Color(red: 0.102, green: 0.137, blue: 0.494), // #1A237E midnight indigo
-                Color(red: 0.416, green: 0.106, blue: 0.604), // #6A1BA9 royal purple
-                Color(red: 0.051, green: 0.278, blue: 0.631), // #0D47A1 deep blue
-            ]
-        case 6: // 2030 — flamingo
-            return [
-                Color(red: 1.000, green: 0.420, blue: 0.420), // #FF6B6B coral pink
-                Color(red: 0.914, green: 0.118, blue: 0.388), // #E91E63 rose red
-                Color(red: 1.000, green: 0.439, blue: 0.263), // #FF7043 sunset orange
-            ]
-        case 7: // 2031 — storm
-            return [
-                Color(red: 0.376, green: 0.490, blue: 0.545), // #607D8B stone gray
-                Color(red: 0.361, green: 0.420, blue: 0.753), // #5C6BC0 slate blue
-                Color(red: 0.157, green: 0.208, blue: 0.576), // #283593 deep indigo
-            ]
-        default:
-            return [
-                Color(red: 0.573, green: 0.416, blue: 0.047),
-                Color(red: 0.384, green: 0.275, blue: 0.020),
-                Color(red: 0.835, green: 0.612, blue: 0.094),
-            ]
+        legibleStops(for: year).map { Color(red: $0.red, green: $0.green, blue: $0.blue) }
+    }
+
+    /// The stops `colors(for:)` draws, after darkening for white text.
+    static func legibleStops(for year: Int) -> [WCAGContrast.RGB] {
+        legiblePalettes[paletteIndex(for: year)]
+    }
+
+    /// The brand stops before darkening.
+    static func sourceStops(for year: Int) -> [WCAGContrast.RGB] {
+        sourcePalettes[paletteIndex(for: year)].map(WCAGContrast.RGB.init(hex:))
+    }
+
+    /// The brightest luminance a stop may keep: a little under the 4.5:1 limit for white.
+    static let maxStopLuminance = 0.175
+
+    private static func paletteIndex(for year: Int) -> Int {
+        ((year % 8) + 8) % 8
+    }
+
+    private static let sourcePalettes: [[UInt32]] = [
+        [0xFF8C42, 0xC62828, 0xF9A825], // 2024, warm sunset: warm orange, deep red, golden yellow
+        [0xAB47BC, 0xEC407A, 0x283593], // 2025, electric dusk: magenta purple, hot pink, deep indigo
+        [0x926A0C, 0x624605, 0xD59C18], // 2026, Minidisc identity: brand gold, deep bronze, bright gold
+        [0x00BCD4, 0x009688, 0x2979FF], // 2027, oceanic: cyan, teal, electric blue
+        [0x2E7D32, 0xF9A825, 0x80CBC4], // 2028, botanical: forest green, sunny yellow, mint
+        [0x1A237E, 0x6A1BA9, 0x0D47A1], // 2029, midnight: midnight indigo, royal purple, deep blue
+        [0xFF6B6B, 0xE91E63, 0xFF7043], // 2030, flamingo: coral pink, rose red, sunset orange
+        [0x607D8B, 0x5C6BC0, 0x283593], // 2031, storm: stone gray, slate blue, deep indigo
+    ]
+
+    private static let legiblePalettes: [[WCAGContrast.RGB]] = sourcePalettes.map { hexes in
+        let stops = hexes.map(WCAGContrast.RGB.init(hex:))
+        return stops.map { $0.scaled(by: legibilityFactor(for: stops)) }
+    }
+
+    /// The largest factor (at most 1) that brings every stop to `maxStopLuminance` or below.
+    private static func legibilityFactor(for stops: [WCAGContrast.RGB]) -> Double {
+        var low = 0.0, high = 1.0
+        func fits(_ factor: Double) -> Bool {
+            stops.allSatisfy { WCAGContrast.luminance($0.scaled(by: factor)) <= maxStopLuminance }
         }
+        if fits(high) { return high }
+        for _ in 0..<30 {
+            let mid = (low + high) / 2
+            if fits(mid) { low = mid } else { high = mid }
+        }
+        return low
     }
 
     // MARK: - Medal colors
