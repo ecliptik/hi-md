@@ -44,7 +44,7 @@ struct LyricsView: View {
     @ViewBuilder
     private func loadedContent(_ structured: StructuredLyrics) -> some View {
         VStack(spacing: 0) {
-            header
+            if showsHeader { header }
             lyricsScroll(structured)
                 .mask {
                     VStack(spacing: 0) {
@@ -135,29 +135,37 @@ struct LyricsView: View {
 
             Spacer()
 
-            Button {
-                showsKaraoke = true
-            } label: {
-                Image(systemName: "arrow.up.left.and.arrow.down.right")
-                    .font(.title3)
-                    .foregroundStyle(.white.opacity(0.8))
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Full Screen Lyrics")
+            if typography.showsHeaderButtons {
+                Button {
+                    showsKaraoke = true
+                } label: {
+                    Image(systemName: "arrow.up.left.and.arrow.down.right")
+                        .font(.title3)
+                        .foregroundStyle(.white.opacity(0.8))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Full Screen Lyrics")
 
-            Button {
-                viewModel.autoScrollEnabled.toggle()
-            } label: {
-                Image(systemName: viewModel.autoScrollEnabled
-                    ? "arrow.up.arrow.down.circle.fill"
-                    : "arrow.up.arrow.down.circle")
-                    .font(.title3)
-                    .foregroundStyle(.white.opacity(0.8))
+                Button {
+                    viewModel.autoScrollEnabled.toggle()
+                } label: {
+                    Image(systemName: viewModel.autoScrollEnabled
+                        ? "arrow.up.arrow.down.circle.fill"
+                        : "arrow.up.arrow.down.circle")
+                        .font(.title3)
+                        .foregroundStyle(.white.opacity(0.8))
+                }
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
         }
         .padding(.horizontal, typography.headerInset)
         .padding(.vertical, 12)
+    }
+
+    /// Without its buttons the header has nothing to show unless there's a language to pick, so
+    /// the lines start at the top.
+    private var showsHeader: Bool {
+        typography.showsHeaderButtons || viewModel.availableLanguages.count > 1
     }
 
     // MARK: - Empty states

@@ -11,8 +11,28 @@ nonisolated struct LyricsTypography: Equatable, Sendable {
     /// The inset of the lines and of the buttons above them.
     var horizontalInset: Double = 8
     var headerInset: Double = 32
+    /// The full-screen and follow-along buttons above the lines. The Mac MiniPlayer leaves them
+    /// out: full screen means nothing there, and the lines start right under its tabs.
+    var showsHeaderButtons = true
+    /// The full-screen lines' point size, or nil for the iPhone karaoke view's large title.
+    var karaokeLineSize: Double?
 
     static let iPhone = LyricsTypography()
+
+    /// The Mac's full-screen lyrics: huge centred lines for a window `width` points wide, from
+    /// 48 pt in the smallest window to 72 pt on a large screen.
+    static func karaoke(forWidth width: Double) -> LyricsTypography {
+        let size = min(max((width / 20).rounded(), 48), 72)
+        return LyricsTypography(lineSize: nil, lineSpacing: (size * 0.75).rounded(), horizontalInset: 48,
+                                headerInset: 4, showsHeaderButtons: false, karaokeLineSize: size)
+    }
+
+    /// The same lines without the buttons above them.
+    func withoutHeaderButtons() -> LyricsTypography {
+        var copy = self
+        copy.showsHeaderButtons = false
+        return copy
+    }
 
     /// Large bold lines for a pane `width` points wide: about 30 pt beside the player in a
     /// 1,000-point window, up to `maximum` in a full-screen one, and never under `minimum`.

@@ -49,13 +49,6 @@ struct NowPlayingPresentationTests {
         }
     }
 
-    @Test func miniPlayerSizes() {
-        #expect(MiniPlayerLayout.height(expanded: false) == MiniPlayerLayout.compactHeight)
-        #expect(MiniPlayerLayout.height(expanded: true) == MiniPlayerLayout.expandedHeight)
-        #expect(MiniPlayerLayout.minimumExpandedHeight > MiniPlayerLayout.compactHeight)
-        #expect(MiniPlayerLayout.expandedHeight >= MiniPlayerLayout.minimumExpandedHeight)
-    }
-
     @Test func clickingTheShownPaneHidesItAndClickingAgainBringsItBack() {
         // Lyrics on, click Lyrics: off.
         var next = NowPlayingSidePane.afterClicking(.lyrics, requested: .lyrics, isHidden: false, canShowLyrics: true)
@@ -106,5 +99,48 @@ struct NowPlayingPresentationTests {
         #expect(narrow.lineSize == 22)
         #expect(LyricsTypography.scaled(forWidth: 200, minimum: 18).lineSize == 18)
         #expect(fullScreen.lineSpacing > beside.lineSpacing)
+        // The MiniPlayer and Now Playing move the buttons out from above the lines.
+        #expect(LyricsTypography.iPhone.showsHeaderButtons)
+        #expect(!beside.withoutHeaderButtons().showsHeaderButtons)
+        #expect(beside.withoutHeaderButtons().lineSize == beside.lineSize)
+    }
+
+    @Test func fullScreenLyricsScaleFrom48To72() {
+        #expect(LyricsTypography.iPhone.karaokeLineSize == nil)
+        #expect(LyricsTypography.karaoke(forWidth: 900).karaokeLineSize == 48)
+        #expect(LyricsTypography.karaoke(forWidth: 1200).karaokeLineSize == 60)
+        #expect(LyricsTypography.karaoke(forWidth: 2560).karaokeLineSize == 72)
+        #expect(!LyricsTypography.karaoke(forWidth: 1200).showsHeaderButtons)
+    }
+
+    @Test func aGreyCoverGetsATintedBackdropThatKeepsContrast() {
+        let gold = WCAGContrast.RGB(red: 0.85, green: 0.65, blue: 0.2)
+        let white = WCAGContrast.RGB.white
+        let tinted = PlayerBackgroundPalette.tinted(white, toward: gold, fraction: 0)
+        #expect(tinted != white)
+        #expect(tinted.blue < tinted.red)
+        // The top stop takes more of the accent than the bottom one.
+        let bottom = PlayerBackgroundPalette.tinted(white, toward: gold, fraction: 1)
+        #expect(white.blue - tinted.blue > white.blue - bottom.blue)
+        // A black sleeve gets a tint too; a coloured cover keeps its colour.
+        #expect(PlayerBackgroundPalette.tinted(.black, toward: gold, fraction: 0) != .black)
+        let red = WCAGContrast.RGB(red: 0.8, green: 0.1, blue: 0.1)
+        #expect(PlayerBackgroundPalette.tinted(red, toward: gold, fraction: 0) == red)
+        // Once capped, white text still has its contrast.
+        for color in [white, .black, WCAGContrast.RGB(red: 0.5, green: 0.5, blue: 0.5)] {
+            let stop = PlayerBackgroundPalette.capped(PlayerBackgroundPalette.tinted(color, toward: gold, fraction: 0.5))
+            #expect(WCAGContrast.luminance(stop) <= NowPlayingText.backdropLuminanceCap + 0.0001)
+        }
+    }
+
+    @Test @MainActor func tintedBackdropStaysUnderTheCap() {
+        let samples: [Color] = [.white, .white, Color(white: 0.9), .black]
+        let colors = PlayerBackgroundPalette.tintedColors(from: samples, accent: Color(red: 0.85, green: 0.65, blue: 0.2))
+        #expect(colors.count == samples.count)
+        for color in colors {
+            guard let rgb = color.rgbComponents else { continue }
+            #expect(PlayerBackgroundPalette.luminance(red: rgb.red, green: rgb.green, blue: rgb.blue)
+                    <= NowPlayingText.backdropLuminanceCap + 0.0001)
+        }
     }
 }

@@ -56,7 +56,10 @@ struct LyricsLineView: View {
     }
 
     private var lineFont: Font {
-        if isKaraoke { return .system(.largeTitle, design: .rounded, weight: .heavy) }
+        if isKaraoke {
+            if let size = typography.karaokeLineSize { return .system(size: size, weight: .heavy, design: .rounded) }
+            return .system(.largeTitle, design: .rounded, weight: .heavy)
+        }
         if let size = typography.lineSize { return .system(size: size, weight: .bold, design: .rounded) }
         return .system(.title2, design: .rounded, weight: .bold)
     }
