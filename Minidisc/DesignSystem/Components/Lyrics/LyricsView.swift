@@ -7,6 +7,7 @@ struct LyricsView: View {
     private static let secondary = Color.white.opacity(PlayerBackgroundPalette.secondaryOpacity)
     @State private var showsKaraoke = false
     @State private var visibility = LyricsVisibilityHandoff()
+    @Environment(\.lyricsTypography) private var typography
 
     var body: some View {
         Group {
@@ -61,7 +62,7 @@ struct LyricsView: View {
     private func lyricsScroll(_ structured: StructuredLyrics) -> some View {
         ScrollViewReader { proxy in
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: 32) {
+                LazyVStack(alignment: .leading, spacing: typography.lineSpacing) {
                     ForEach(Array(structured.line.enumerated()), id: \.offset) { index, line in
                         LyricsLineView(
                             value: line.value,
@@ -74,7 +75,7 @@ struct LyricsView: View {
                         .id(index)
                     }
                 }
-                .padding(.horizontal, 8)
+                .padding(.horizontal, typography.horizontalInset)
                 .padding(.vertical, 200)
             }
             .scrollIndicators(.hidden)
@@ -155,7 +156,7 @@ struct LyricsView: View {
             }
             .buttonStyle(.plain)
         }
-        .padding(.horizontal, 32)
+        .padding(.horizontal, typography.headerInset)
         .padding(.vertical, 12)
     }
 

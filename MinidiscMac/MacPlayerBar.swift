@@ -60,13 +60,16 @@ struct MacTransportControls: View {
     var showsModes = true
     /// The Now Playing view's bigger buttons.
     var isLarge = false
+    /// The Now Playing view's glyph and play-button sizes, which grow with the window.
+    var largeGlyphSize: Double = 22
+    var largePlaySize: Double = 40
 
     @Environment(MacPlayback.self) private var playback
     @Environment(\.minidiscPlayingAccent) private var playingAccent
 
     var body: some View {
         let state = playback.state
-        HStack(spacing: isLarge ? 32 : 16) {
+        HStack(spacing: isLarge ? largeGlyphSize * 1.4 : 16) {
             if showsModes {
                 Button {
                     playback.toggleShuffle()
@@ -89,8 +92,8 @@ struct MacTransportControls: View {
 
             Button(action: playback.togglePlayPause) {
                 Image(systemName: state.wantsPlayback ? "pause.fill" : "play.fill")
-                    .font(isLarge ? .system(size: 40) : .title)
-                    .frame(width: isLarge ? 48 : 28)
+                    .font(isLarge ? .system(size: largePlaySize) : .title)
+                    .frame(width: isLarge ? largePlaySize * 1.2 : 28)
                     .contentTransition(.symbolEffect(.replace))
             }
             .disabled(!commands.canTogglePlayback)
@@ -115,7 +118,7 @@ struct MacTransportControls: View {
                 .help("Repeat")
             }
         }
-        .font(isLarge ? .title : .title3)
+        .font(isLarge ? .system(size: largeGlyphSize) : .title3)
         .buttonStyle(.borderless)
     }
 
@@ -210,6 +213,9 @@ private struct MacNowPlayingDisplay: View {
 struct MacScrubber: View {
     /// The times' colour; secondary unless the Now Playing backdrop needs its own for contrast.
     var timeStyle: AnyShapeStyle = AnyShapeStyle(.secondary)
+    var timeFont: Font = .caption2
+    /// Room for "00:00", so the slider doesn't move as the time changes.
+    var timeWidth: Double = 40
 
     @Environment(MacPlayback.self) private var playback
     @State private var dragPosition: TimeInterval?
@@ -220,7 +226,7 @@ struct MacScrubber: View {
         let shown = dragPosition ?? state.position
         HStack(spacing: 6) {
             Text(Duration.seconds(shown).formatted(.time(pattern: .minuteSecond)))
-                .frame(width: 40, alignment: .trailing)
+                .frame(width: timeWidth, alignment: .trailing)
             Slider(
                 value: Binding(
                     get: { min(dragPosition ?? state.position, max(duration, 0)) },
@@ -239,9 +245,9 @@ struct MacScrubber: View {
             .accessibilityLabel("Playback position")
             .accessibilityValue(Duration.seconds(shown).formatted(.time(pattern: .minuteSecond)))
             Text(verbatim: "-\(Duration.seconds(max(duration - shown, 0)).formatted(.time(pattern: .minuteSecond)))")
-                .frame(width: 44, alignment: .leading)
+                .frame(width: timeWidth * 1.1, alignment: .leading)
         }
-        .font(.caption2)
+        .font(timeFont)
         .monospacedDigit()
         .foregroundStyle(timeStyle)
     }

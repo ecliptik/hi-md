@@ -12,6 +12,7 @@ struct LyricsLineView: View {
 
     @Environment(\.colorSchemeContrast) private var colorSchemeContrast
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.lyricsTypography) private var typography
 
     /// Increase Contrast or Reduce Transparency: no depth-of-field blur, and far lines no dimmer
     /// than the near ones.
@@ -55,7 +56,9 @@ struct LyricsLineView: View {
     }
 
     private var lineFont: Font {
-        isKaraoke ? .system(.largeTitle, design: .rounded, weight: .heavy) : .system(.title2, design: .rounded, weight: .bold)
+        if isKaraoke { return .system(.largeTitle, design: .rounded, weight: .heavy) }
+        if let size = typography.lineSize { return .system(size: size, weight: .bold, design: .rounded) }
+        return .system(.title2, design: .rounded, weight: .bold)
     }
 
     var body: some View {

@@ -55,4 +55,56 @@ struct NowPlayingPresentationTests {
         #expect(MiniPlayerLayout.minimumExpandedHeight > MiniPlayerLayout.compactHeight)
         #expect(MiniPlayerLayout.expandedHeight >= MiniPlayerLayout.minimumExpandedHeight)
     }
+
+    @Test func clickingTheShownPaneHidesItAndClickingAgainBringsItBack() {
+        // Lyrics on, click Lyrics: off.
+        var next = NowPlayingSidePane.afterClicking(.lyrics, requested: .lyrics, isHidden: false, canShowLyrics: true)
+        #expect(next.requested == .lyrics && next.isHidden)
+        // Click Lyrics again: on.
+        next = NowPlayingSidePane.afterClicking(.lyrics, requested: next.requested, isHidden: next.isHidden, canShowLyrics: true)
+        #expect(next.requested == .lyrics && !next.isHidden)
+        // Lyrics on, click Playing Next: switches without hiding.
+        next = NowPlayingSidePane.afterClicking(.queue, requested: .lyrics, isHidden: false, canShowLyrics: true)
+        #expect(next.requested == .queue && !next.isHidden)
+        // Hidden, click Playing Next: shows the queue.
+        next = NowPlayingSidePane.afterClicking(.queue, requested: .lyrics, isHidden: true, canShowLyrics: true)
+        #expect(next.requested == .queue && !next.isHidden)
+        // Lyrics asked for but the song has none, so the queue shows: clicking Playing Next hides it.
+        next = NowPlayingSidePane.afterClicking(.queue, requested: .lyrics, isHidden: false, canShowLyrics: false)
+        #expect(next.isHidden)
+    }
+
+    @Test func nowPlayingGrowsWithTheWindow() {
+        let small = NowPlayingMetrics(width: 900, height: 640, showsPane: true)
+        let medium = NowPlayingMetrics(width: 1000, height: 760, showsPane: true)
+        let large = NowPlayingMetrics(width: 1728, height: 1080, showsPane: true)
+        #expect(small.scale >= 1 && small.scale < 1.1)
+        #expect(medium.scale > 1)
+        #expect(large.scale > medium.scale && large.scale <= 1.6)
+        #expect(large.artworkSide > medium.artworkSide)
+        #expect(large.titleSize > medium.titleSize)
+        #expect(large.playSize > medium.playSize)
+        // The artwork never runs past its half or below the controls.
+        for metrics in [small, medium, large] {
+            #expect(metrics.artworkSide <= metrics.paneWidth + 0.001)
+        }
+        #expect(large.artworkSide + NowPlayingMetrics.controlsHeight(scale: large.scale)
+                + 2 * NowPlayingMetrics.verticalInset <= 1080 + 0.001)
+        // Without the side pane the player takes the middle and has no pane.
+        let alone = NowPlayingMetrics(width: 1000, height: 900, showsPane: false)
+        #expect(alone.paneWidth == 0)
+        #expect(alone.artworkSide > medium.artworkSide)
+    }
+
+    @Test func macLyricsAreLargeAndScaleWithThePane() {
+        #expect(LyricsTypography.iPhone.lineSize == nil)
+        let beside = LyricsTypography.scaled(forWidth: 424)
+        let fullScreen = LyricsTypography.scaled(forWidth: 800)
+        let narrow = LyricsTypography.scaled(forWidth: 200)
+        #expect((28...32).contains(beside.lineSize ?? 0))
+        #expect(fullScreen.lineSize == 40)
+        #expect(narrow.lineSize == 22)
+        #expect(LyricsTypography.scaled(forWidth: 200, minimum: 18).lineSize == 18)
+        #expect(fullScreen.lineSpacing > beside.lineSpacing)
+    }
 }
