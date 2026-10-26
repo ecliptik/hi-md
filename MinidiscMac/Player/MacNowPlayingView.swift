@@ -81,6 +81,14 @@ struct MacNowPlayingView: View {
             titleBarChange?.restore()
             titleBarChange = nil
         }
+        .onChange(of: navigator.opensFullScreenLyrics, initial: true) { _, opens in
+            // The inspector's full-screen button: open with the lyrics pane, already full screen.
+            guard opens else { return }
+            navigator.opensFullScreenLyrics = false
+            requestedPane = .lyrics
+            isPaneHidden = false
+            isLyricsFullScreen = true
+        }
         .onChange(of: pane) { _, newPane in
             if newPane != .lyrics, isLyricsFullScreen { setLyricsFullScreen(false) }
         }

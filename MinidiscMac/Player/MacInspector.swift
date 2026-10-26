@@ -5,26 +5,53 @@ struct MacInspector: View {
     let container: AppContainer
 
     @Environment(MacNavigator.self) private var navigator
+    @State private var lyrics = MacLyricsSession()
 
     var body: some View {
         @Bindable var navigator = navigator
+        let pane = navigator.inspector ?? .queue
         VStack(spacing: 0) {
-            Picker("Show", selection: Binding(get: { navigator.inspector ?? .queue }, set: { navigator.inspector = $0 })) {
-                Text("Lyrics").tag(MacInspectorPane.lyrics)
-                Text("Playing Next").tag(MacInspectorPane.queue)
+            HStack(spacing: 8) {
+                Picker("Show", selection: Binding(get: { navigator.inspector ?? .queue }, set: { navigator.inspector = $0 })) {
+                    Text("Lyrics").tag(MacInspectorPane.lyrics)
+                    Text("Playing Next").tag(MacInspectorPane.queue)
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                if pane == .lyrics, lyrics.hasLyrics, let viewModel = lyrics.viewModel {
+                    lyricsButtons(viewModel)
+                }
             }
-            .pickerStyle(.segmented)
-            .labelsHidden()
             .padding(12)
             Divider()
-            switch navigator.inspector ?? .queue {
+            switch pane {
             case .lyrics:
-                MacLyricsPane(container: container)
+                MacLyricsPane(container: container, session: lyrics)
             case .queue:
                 MacQueuePane()
             }
         }
         .background(.background)
+    }
+
+    /// Follow Lyrics, and Full Screen Lyrics, which opens Now Playing straight into the Mac's
+    /// full-screen lyrics rather than the iPhone's karaoke sheet.
+    private func lyricsButtons(_ viewModel: LyricsViewModel) -> some View {
+        HStack(spacing: 2) {
+            Toggle(isOn: Binding(get: { viewModel.autoScrollEnabled }, set: { viewModel.autoScrollEnabled = $0 })) {
+                Label("Follow Lyrics", systemImage: "arrow.up.arrow.down")
+            }
+            .toggleStyle(.button)
+            .help("Follow Lyrics")
+            Button {
+                navigator.showNowPlaying(fullScreenLyrics: true)
+            } label: {
+                Label("Full Screen Lyrics", systemImage: "arrow.up.left.and.arrow.down.right")
+            }
+            .help("Full Screen Lyrics")
+        }
+        .labelStyle(.iconOnly)
+        .buttonStyle(.borderless)
     }
 }
 
@@ -64,6 +91,9 @@ struct MacLyricsPane: View {
                                        description: Text("Lyrics appear here for the song that's playing."))
             }
         }
+        // The shared view's own full-screen button opens the iPhone's phone-sized karaoke sheet,
+        // so on the Mac the views around the pane offer their own buttons instead.
+        .transformEnvironment(\.lyricsTypography) { $0.showsHeaderButtons = false }
         .task(id: LyricsKey(trackID: trackID, source: container.lyricsSettings.source)) {
             await loadLyrics()
         }

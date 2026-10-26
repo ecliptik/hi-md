@@ -78,12 +78,18 @@ final class MacNavigator {
         inspector = inspector == pane ? nil : pane
     }
 
-    func showNowPlaying() {
+    /// Set when Now Playing should open straight into its full-screen lyrics (the inspector's
+    /// full-screen button); Now Playing clears it once it has.
+    var opensFullScreenLyrics = false
+
+    func showNowPlaying(fullScreenLyrics: Bool = false) {
+        opensFullScreenLyrics = fullScreenLyrics
         isNowPlayingShown = true
     }
 
     func closeNowPlaying() {
         isNowPlayingShown = false
+        opensFullScreenLyrics = false
     }
 
     /// Opens a page above the current section. An album or artist already open in the stack is
