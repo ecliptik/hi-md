@@ -397,18 +397,29 @@ struct FullPlayerView: View {
                 Task { await container?.playerService.toggleShuffle() }
             }
             queuePill(systemImage: playerState.repeatMode.systemImage, isActive: playerState.repeatMode != .off,
-                      label: "Repeat") {
+                      label: "Repeat", value: repeatValue(playerState.repeatMode)) {
                 Task { await container?.playerService.setRepeatMode(playerState.repeatMode.next) }
             }
-            queuePill(systemImage: "infinity", isActive: playerState.isAutoExtendEnabled && playerState.currentTrack?.isLocalFile != true,
-                      label: "Auto-extend with Smart Shuffle") {
+            let autoExtendOn = playerState.isAutoExtendEnabled && playerState.currentTrack?.isLocalFile != true
+            queuePill(systemImage: "infinity", isActive: autoExtendOn,
+                      label: "Auto-extend with Smart Shuffle", value: autoExtendOn ? "On" : "Off") {
                 Task { await container?.playerService.setAutoExtendEnabled(!playerState.isAutoExtendEnabled) }
             }
             .disabled(playerState.currentTrack?.isLocalFile == true)
         }
     }
 
-    private func queuePill(systemImage: String, isActive: Bool, label: LocalizedStringKey, action: @escaping () -> Void) -> some View {
+    /// VoiceOver's value for the Repeat pill, so it says the mode rather than just "Repeat".
+    private func repeatValue(_ mode: RepeatMode) -> LocalizedStringKey {
+        switch mode {
+        case .off: "Off"
+        case .all: "All"
+        case .one: "Song"
+        }
+    }
+
+    private func queuePill(systemImage: String, isActive: Bool, label: LocalizedStringKey,
+                           value: LocalizedStringKey? = nil, action: @escaping () -> Void) -> some View {
         // The fixed active color keeps 4.7:1 contrast with its white glyph.
         return Button {
             HapticFeedback.light.trigger()
@@ -426,6 +437,8 @@ struct FullPlayerView: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(label)
+        .accessibilityValue(value.map { Text($0) } ?? Text(verbatim: ""))
+        .accessibilityAddTraits(isActive ? .isSelected : [])
     }
 
     private var topBar: some View {
@@ -1025,11 +1038,13 @@ private struct BottomToolbar: View {
                 } label: {
                     Image(systemName: "quote.bubble")
                         .font(.title3)
-                        .foregroundStyle(showLyrics && surface == .player ? accentColor : secondaryContentColor)
+                        .foregroundStyle(isLyricsActive ? accentColor : secondaryContentColor)
                         .frame(width: 44, height: 44)
+                        .background { activeIndicator(isLyricsActive) }
                 }
                 .buttonStyle(.borderless)
                 .accessibilityLabel("Lyrics")
+                .accessibilityAddTraits(isLyricsActive ? .isSelected : [])
                 .disabled(playerState.currentTrack?.isLocalFile == true)
             }
 
@@ -1047,7 +1062,7 @@ private struct BottomToolbar: View {
                 } label: {
                     Image(systemName: "list.bullet")
                         .font(.title3)
-                        .foregroundStyle(surface == .queue ? accentColor : secondaryContentColor)
+                        .foregroundStyle(isQueueActive ? accentColor : secondaryContentColor)
                         .overlay(alignment: .topTrailing) {
                             if let badge = playerState.queueModeBadge {
                                 Image(systemName: badge)
@@ -1062,10 +1077,26 @@ private struct BottomToolbar: View {
                         }
                         .animation(.smooth(duration: 0.2), value: playerState.queueModeBadge)
                         .frame(width: 44, height: 44)
+                        .background { activeIndicator(isQueueActive) }
                 }
                 .buttonStyle(.borderless)
                 .accessibilityLabel("Queue")
+                .accessibilityAddTraits(isQueueActive ? .isSelected : [])
             }
+        }
+    }
+
+    private var isLyricsActive: Bool { showLyrics && surface == .player }
+    private var isQueueActive: Bool { surface == .queue }
+
+    /// A filled disc behind the active button, so its state doesn't rest on the accent colour
+    /// alone: gold over a bright cover can be dimmer than the inactive icons.
+    @ViewBuilder
+    private func activeIndicator(_ isActive: Bool) -> some View {
+        if isActive {
+            Circle()
+                .fill(secondaryContentColor.opacity(0.22))
+                .frame(width: 40, height: 40)
         }
     }
 }
