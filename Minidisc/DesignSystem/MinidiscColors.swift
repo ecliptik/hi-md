@@ -28,6 +28,8 @@ public enum MinidiscColors {
 
     public static let textSecondary = Color("MinidiscTextSecondary")
 
+    /// Glyphs and decorative marks only: 3.1:1 or more on the Minidisc backgrounds, under the
+    /// 4.5:1 text needs. Text uses `textSecondary`, which reaches 4.75:1 (contrast sweep 2026-10-26).
     public static let textTertiary = Color("MinidiscTextTertiary")
 
     /// Accent-coloured text on tinted or raised surfaces; see `Color.minidiscTextAccent`.

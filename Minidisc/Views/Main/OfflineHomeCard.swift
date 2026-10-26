@@ -28,7 +28,7 @@ struct OfflineHomeCard: View {
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .foregroundStyle(Color.minidiscAccent)
+                .foregroundStyle(Color.minidiscTextAccent)
                 .padding(.horizontal, MinidiscSpacing.l)
                 .padding(.vertical, MinidiscSpacing.xs)
                 .accessibilityIdentifier("home.offline.disable")

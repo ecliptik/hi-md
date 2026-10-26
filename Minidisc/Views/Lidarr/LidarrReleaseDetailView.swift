@@ -88,7 +88,7 @@ struct LidarrReleaseDetailView: View {
                         Text(flag)
                             .font(.minidiscCaption)
                             .fontWeight(.bold)
-                            .foregroundStyle(Color.minidiscAccent)
+                            .foregroundStyle(Color.minidiscTextAccent)
                     }
                     Text(release.title)
                         .font(.minidiscDetailTitle)
@@ -185,7 +185,7 @@ struct LidarrReleaseDetailView: View {
             .disabled(isGrabbing)
         }
         .buttonStyle(.bordered)
-        .tint(.minidiscAccent)
+        .tint(.minidiscTextAccent)
     }
 
     // MARK: - Information

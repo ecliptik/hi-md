@@ -100,7 +100,7 @@ struct LidarrAlbumDetailView: View {
             }
         }
         .buttonStyle(.bordered)
-        .tint(.minidiscAccent)
+        .tint(.minidiscTextAccent)
     }
 
     @ViewBuilder

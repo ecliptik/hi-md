@@ -10,12 +10,12 @@ struct CopyableCodeLabel: View {
         HStack(spacing: MinidiscSpacing.xs) {
             Text(code)
                 .font(.system(.caption, design: .monospaced))
-                .foregroundStyle(isCopied ? MinidiscColors.accent : MinidiscColors.textTertiary)
+                .foregroundStyle(isCopied ? MinidiscColors.textAccent : MinidiscColors.textSecondary)
 
             if isCopied {
                 Image(systemName: "checkmark.circle.fill")
                     .font(.caption)
-                    .foregroundStyle(MinidiscColors.accent)
+                    .foregroundStyle(MinidiscColors.textAccent)
                     .transition(.scale(scale: 0.6).combined(with: .opacity))
             }
         }

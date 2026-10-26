@@ -28,7 +28,7 @@ struct AlbumRow: View {
                 if let year {
                     Text(String(year))
                         .font(.minidiscCaption)
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(.secondary)
                 }
             }
 

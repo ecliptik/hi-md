@@ -42,7 +42,7 @@ struct OnboardingCompleteView: View {
 
                     Text("You can adjust everything anytime in Settings.")
                         .font(.system(.footnote, design: .rounded))
-                        .foregroundStyle(MinidiscColors.textTertiary)
+                        .foregroundStyle(MinidiscColors.textSecondary)
                         .multilineTextAlignment(.center)
                         .opacity(appeared ? 1 : 0)
                         .offset(y: appeared ? 0 : 24)

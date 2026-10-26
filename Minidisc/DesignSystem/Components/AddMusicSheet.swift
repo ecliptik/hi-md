@@ -245,9 +245,10 @@ private struct AddMusicSongRow: View {
     @ViewBuilder
     private var trailingIcon: some View {
         if selection.isExisting(song) {
+            // Already in the playlist: a state, so 3:1 at least (tertiary was 1.7:1).
             Image(systemName: "checkmark.circle.fill")
                 .font(.system(size: 18))
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(.secondary)
         } else if selection.isSelected(song) {
             Image(systemName: "checkmark.circle.fill")
                 .font(.system(size: 18))

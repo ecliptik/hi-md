@@ -104,7 +104,7 @@ private struct SearchResultsHeader: View {
             if let onSelectSongs {
                 Button("Select", action: onSelectSongs)
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Color.minidiscAccent)
+                    .foregroundStyle(Color.minidiscTextAccent)
                     .fixedSize(horizontal: true, vertical: false)
                     .frame(minWidth: 44, minHeight: 44)
                     .buttonStyle(.plain)

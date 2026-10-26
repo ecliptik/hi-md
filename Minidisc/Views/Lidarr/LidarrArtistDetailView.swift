@@ -130,7 +130,7 @@ struct LidarrArtistDetailView: View {
             }
         }
         .buttonStyle(.bordered)
-        .tint(.minidiscAccent)
+        .tint(.minidiscTextAccent)
     }
 
     private var albumGroups: [(title: String, albums: [LidarrAlbum])] {
