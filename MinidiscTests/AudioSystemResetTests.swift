@@ -56,7 +56,8 @@ struct AudioSystemResetTests {
         let firstToken = engine.play(trackID: "first", url: url, headers: [:])
         engine.preloadNext(
             trackID: "next", url: url, headers: [:],
-            crossfadeDuration: 0, leadInTrim: 0, replayGainDB: -3
+            crossfadeDuration: 0, leadInTrim: 0, replayGainDB: -3,
+            expectedCurrentTrackID: "first"
         )
         let originals = factory.players
         #expect(originals.count == 2)
@@ -95,6 +96,29 @@ struct AudioSystemResetTests {
         #expect(factory.players[2].currentItem != nil)
         #expect(nextToken.rawValue > oldToken.rawValue)
         #expect(!engine.isReady)
+    }
+
+    @Test func preloadForATrackThatIsNoLongerCurrentIsIgnored() throws {
+        let factory = ResetTestPlayerFactory()
+        let engine = AVPlayerEngine(playerFactory: factory.makePlayer)
+        let url = try silentWave()
+        defer { engine.stop(); try? FileManager.default.removeItem(at: url) }
+        engine.play(trackID: "second", url: url, headers: [:])
+        // Resolved while "first" was still playing: loading it now would put "second" on both decks.
+        engine.preloadNext(
+            trackID: "second", url: url, headers: [:],
+            crossfadeDuration: 0, leadInTrim: 0, replayGainDB: 0,
+            expectedCurrentTrackID: "first"
+        )
+        #expect(factory.players.filter { $0.currentItem != nil }.count == 1)
+
+        engine.preloadNext(
+            trackID: "third", url: url, headers: [:],
+            crossfadeDuration: 0, leadInTrim: 0, replayGainDB: 0,
+            expectedCurrentTrackID: "second"
+        )
+        #expect(factory.players.count == 2)
+        #expect(factory.players.allSatisfy { $0.currentItem != nil })
     }
 
     private func silentWave() throws -> URL {

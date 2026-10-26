@@ -256,10 +256,10 @@ nonisolated final class AVPlayerEngine: AudioEngine, @unchecked Sendable {
         return playbackToken
     }
 
-    func setTrackEndTrim(_ seconds: Double) {
+    func setTrackEndTrim(_ seconds: Double, expectedCurrentTrackID: String) {
         lock.lock()
         defer { lock.unlock() }
-        guard let item = currentItem else { return }
+        guard let item = currentItem, isCurrentTrackForPreload(expectedCurrentTrackID) else { return }
         guard seconds > 0 else {
             item.forwardPlaybackEndTime = .invalid
             return
@@ -277,11 +277,18 @@ nonisolated final class AVPlayerEngine: AudioEngine, @unchecked Sendable {
         headers: [String: String],
         crossfadeDuration: Double,
         leadInTrim: Double,
-        replayGainDB: Float
+        replayGainDB: Float,
+        expectedCurrentTrackID: String
     ) {
         lock.lock()
         defer { lock.unlock() }
         guard currentItem != nil else { return }
+        guard isCurrentTrackForPreload(expectedCurrentTrackID) else {
+            Logger.player.debug(
+                "[ENGINE] ignored stale preload track='\(trackID, privacy: .public)' expectedCurrent='\(expectedCurrentTrackID, privacy: .public)'"
+            )
+            return
+        }
         if trackID == preloadedTrackID {
             pendingOverlap = crossfadeDuration
             if crossfadeDuration > 0 {
@@ -349,6 +356,13 @@ nonisolated final class AVPlayerEngine: AudioEngine, @unchecked Sendable {
                 self.prerollStandby(item)
             }
         }
+    }
+
+    /// A preload belongs to the track it follows. After a hand-off the engine has already promoted
+    /// that standby deck, so until PlayerService adopts it every preload for the old track is stale.
+    /// Caller holds `lock`.
+    private func isCurrentTrackForPreload(_ expectedCurrentTrackID: String) -> Bool {
+        currentTrackID == expectedCurrentTrackID && handedOffTrackID == nil
     }
 
     /// `readyToPlay` only means that the item can begin loading. A standby deck becomes eligible

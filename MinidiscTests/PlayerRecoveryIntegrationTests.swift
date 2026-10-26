@@ -19,6 +19,7 @@ private nonisolated final class RecoveryTestEngine: AudioEngine, Sendable {
         var position: Double = 0
         var failNextSeek = false
         var sourceURL: URL?
+        var preloads: [(trackID: String, expectedCurrentTrackID: String)] = []
     }
     private let storage = Mutex(Storage())
     var delegate: AudioEngineDelegate? {
@@ -77,9 +78,21 @@ private nonisolated final class RecoveryTestEngine: AudioEngine, Sendable {
     var isReady: Bool { storage.withLock { !$0.active } }
     func applyReplayGain(dB: Float) {}
     func cancelPreload() {}
-    func setTrackEndTrim(_ seconds: Double) {}
+    func setTrackEndTrim(_ seconds: Double, expectedCurrentTrackID: String) {}
     func setTrackDuration(_ seconds: Double) {}
-    func preloadNext(trackID: String, url: URL, headers: [String: String], crossfadeDuration: Double, leadInTrim: Double, replayGainDB: Float) {}
+    /// Standby preloads requested so far, as (track, track it follows).
+    var preloads: [(trackID: String, expectedCurrentTrackID: String)] { storage.withLock { $0.preloads } }
+    func preloadNext(
+        trackID: String,
+        url: URL,
+        headers: [String: String],
+        crossfadeDuration: Double,
+        leadInTrim: Double,
+        replayGainDB: Float,
+        expectedCurrentTrackID: String
+    ) {
+        storage.withLock { $0.preloads.append((trackID, expectedCurrentTrackID)) }
+    }
 }
 
 private nonisolated final class RecoveryTestAudioSession: AudioSessionControlling {
@@ -138,7 +151,16 @@ private actor RecoveryTestResolver: MediaResolverProtocol {
         missingIDs = missing
         blockAvailability = block
     }
+    private(set) var resolveCalls: [String: Int] = [:]
+    private var failuresRemaining: [String: Int] = [:]
+    /// The next `count` resolutions of `trackID` throw a transient network error.
+    func failResolutions(of trackID: String, count: Int) { failuresRemaining[trackID] = count }
     func resolve(songId: String, serverId: UUID) async throws -> MediaSource {
+        resolveCalls[songId, default: 0] += 1
+        if let remaining = failuresRemaining[songId], remaining > 0 {
+            failuresRemaining[songId] = remaining - 1
+            throw URLError(.timedOut)
+        }
         if songId == blockedResolutionID {
             await withCheckedContinuation { pendingResolution = $0 }
         }
@@ -193,6 +215,7 @@ private struct RecoveryHarness {
         startupGrace: Duration = .milliseconds(600),
         audioStartupGrace: Duration = .milliseconds(800),
         audioRetryDelay: Duration = .milliseconds(40),
+        prefetchRetryDelay: Duration = .milliseconds(50),
         localMusicStore: LocalMusicStore? = nil,
         configureServer: Bool = true
     ) throws {
@@ -236,7 +259,8 @@ private struct RecoveryHarness {
             engine: engine,
             networkRecoveryTiming: .init(
                 startupGrace: startupGrace, stallGrace: .milliseconds(100),
-                retryDelay: .milliseconds(40), validationDelay: .milliseconds(200)
+                retryDelay: .milliseconds(40), validationDelay: .milliseconds(200),
+                prefetchRetryDelay: prefetchRetryDelay
             ),
             audioSession: audioSession,
             audioRecoveryTiming: .init(
@@ -854,6 +878,74 @@ private actor PlaylistPreparationGate {
     func release() { continuation?.resume(); continuation = nil }
 }
 
+
+@Suite("Gapless standby preload", .serialized, .timeLimit(.minutes(1)))
+@MainActor
+struct GaplessStandbyPreloadTests {
+    /// Starts a three-track queue with 10 s left of the first track, inside the 15 s preload window.
+    private func playNearTheEnd(_ h: RecoveryHarness) async throws {
+        try await h.play(["a", "b", "c"])
+        h.engine.startAdvancing()
+        await h.player.handleEngineState(.playing, playbackToken: h.engine.token)
+        _ = await h.engine.seek(to: 110)
+    }
+
+    @Test func failedResolveIsRetriedAndLeavesAStandbyDeckReady() async throws {
+        let h = try RecoveryHarness(startupGrace: .seconds(10))
+        await h.resolver.failResolutions(of: "b", count: 1)
+        try await playNearTheEnd(h)
+        try await h.waitUntil { !h.engine.preloads.isEmpty }
+        #expect(await h.resolver.resolveCalls["b"] == 2)
+        #expect(h.engine.preloads.map { $0.trackID } == ["b"])
+        #expect(h.engine.preloads.first?.expectedCurrentTrackID == "a")
+        // The natural hand-off adopts the prepared source rather than resolving the song again.
+        await h.player.handleEndOfTrack(AudioEngineTrackEnd(
+            endedPlaybackToken: h.engine.token, endedPosition: 120, promotedPlayback: nil
+        ))
+        #expect(h.state.currentTrack?.id == "b")
+        #expect(h.engine.playCount == 2)
+        #expect(await h.resolver.resolveCalls["b"] == 2, "\(h.report)")
+        await h.player.stop()
+    }
+
+    @Test func cancelWhileARetryIsPendingStartsAFreshPreloadForTheNewNextTrack() async throws {
+        let h = try RecoveryHarness(startupGrace: .seconds(10), prefetchRetryDelay: .milliseconds(500))
+        await h.resolver.failResolutions(of: "b", count: 1)
+        try await playNearTheEnd(h)
+        try await h.waitUntil { await h.resolver.resolveCalls["b"] == 1 }
+        // The retry for "b" is now waiting out its backoff. Removing "b" changes the next track.
+        let selection = try #require(QueueTrackSelection(playerState: h.state, destinationIndex: 1, destinationTrackID: "b"))
+        _ = try #require(await h.player.removeQueueTrack(selection))
+        try await h.waitUntil { !h.engine.preloads.isEmpty }
+        try await Task.sleep(for: .milliseconds(700))
+        #expect(await h.resolver.resolveCalls["b"] == 1, "\(h.report)")
+        #expect(h.engine.preloads.map { $0.trackID } == ["c"])
+        #expect(h.engine.preloads.first?.expectedCurrentTrackID == "a")
+        await h.player.stop()
+    }
+
+    @Test func exhaustedRetryBudgetStopsResolvingUntilTheContextChanges() async throws {
+        let h = try RecoveryHarness(startupGrace: .seconds(10))
+        await h.resolver.failResolutions(of: "b", count: 10)
+        try await playNearTheEnd(h)
+        try await h.waitUntil { await h.resolver.resolveCalls["b"] == PlayerService.maximumPrefetchAttempts }
+        // Several more progress ticks: none of them may start another round of attempts.
+        try await Task.sleep(for: .milliseconds(1_200))
+        #expect(await h.resolver.resolveCalls["b"] == PlayerService.maximumPrefetchAttempts, "\(h.report)")
+        #expect(h.engine.preloads.isEmpty)
+        await h.player.stop()
+    }
+
+    @Test func retryBackoffGrowsWithEachAttempt() {
+        #expect(PlayerService.prefetchRetryDelay(base: .seconds(1), retry: 1) == .seconds(1))
+        #expect(PlayerService.prefetchRetryDelay(base: .seconds(1), retry: 2) == .seconds(2))
+        // Two retries after a 15 s preload window opens still leave the transition 12 s.
+        let total = (1..<PlayerService.maximumPrefetchAttempts)
+            .map { PlayerService.prefetchRetryDelay(base: .seconds(1), retry: $0) }
+            .reduce(Duration.zero, +)
+        #expect(total <= .seconds(3))
+    }
+}
 
 @Suite(.timeLimit(.minutes(1))) @MainActor
 struct LocalMusicPlaybackTests {
