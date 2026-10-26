@@ -1,7 +1,7 @@
 import Foundation
 
 /// AudioMuse CLAP queries remain in English; only the user-facing titles are localized.
-nonisolated enum Mood: String, CaseIterable, Sendable, Identifiable {
+nonisolated enum Mood: String, CaseIterable, Sendable, Identifiable, Codable {
     case night
     case energetic
     case workout

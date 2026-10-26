@@ -27,6 +27,7 @@ actor PlaybackSessionService {
             currentTrack: playerState.currentTrack,
             repeatMode: playerState.repeatMode
         )
+        saveContext(playerState.context)
         do {
             try modelContext.save()
             savedQueueRevision = playerState.queueRevision
@@ -70,14 +71,18 @@ actor PlaybackSessionService {
             currentIndex: safeIndex,
             currentPosition: safePosition,
             currentTrackDuration: safeDuration,
-            repeatMode: session.decodedRepeatMode()
+            repeatMode: session.decodedRepeatMode(),
+            context: fetchContext()?.decodedContext()
         )
     }
 
     func clear() {
         savedQueueRevision = nil
-        guard let session = fetchSession() else { return }
-        modelContext.delete(session)
+        let context = fetchContext()
+        let session = fetchSession()
+        guard context != nil || session != nil else { return }
+        if let context { modelContext.delete(context) }
+        if let session { modelContext.delete(session) }
         do {
             try modelContext.save()
         } catch {
@@ -112,6 +117,27 @@ actor PlaybackSessionService {
         )
         return try? modelContext.fetch(descriptor).first
     }
+
+    /// A session saved before the playing-from context existed has no row, and restores as nil.
+    private func fetchContext() -> PlaybackSessionContext? {
+        let descriptor = FetchDescriptor<PlaybackSessionContext>(
+            predicate: #Predicate { $0.id == "current" }
+        )
+        return try? modelContext.fetch(descriptor).first
+    }
+
+    private func saveContext(_ context: PlaybackContext?) {
+        let existing = fetchContext()
+        guard let context, let data = try? encoder.encode(context) else {
+            if let existing { modelContext.delete(existing) }
+            return
+        }
+        if let existing {
+            if existing.contextData != data { existing.contextData = data }
+        } else {
+            modelContext.insert(PlaybackSessionContext(contextData: data))
+        }
+    }
 }
 
 // MARK: - SessionPayload
@@ -125,6 +151,8 @@ nonisolated struct SessionPayload: Sendable {
     /// `PlayerState.queueRevision` when the queue was read. A save with the revision already stored
     /// keeps the stored queue instead of encoding it again; nil always encodes.
     var queueRevision: UInt64? = nil
+    /// Where the queue came from, for "Playing from …".
+    var context: PlaybackContext? = nil
 }
 
 // MARK: - RestoredSession
@@ -135,4 +163,5 @@ nonisolated struct RestoredSession: Sendable {
     let currentPosition: TimeInterval
     let currentTrackDuration: TimeInterval
     let repeatMode: RepeatMode
+    var context: PlaybackContext? = nil
 }
