@@ -140,6 +140,18 @@ private struct MacDestinationView: View {
                 .id(id)
         case .homeShelf(let shelf):
             MacHomeShelfView(container: container, shelf: shelf)
+        case .recommendations:
+            MacRecommendationsView(container: container)
+        case .freshReleases:
+            MacFreshReleasesView(container: container)
+        case .freshRelease(let release):
+            MacFreshReleaseDetailView(container: container, release: release)
+        case .wrapped:
+            MacWrappedView(container: container)
+        case .wrappedRecap(let period):
+            MacWrappedRecapView(container: container, period: period)
+        case .radio:
+            MacRadioView(container: container)
         }
     }
 }

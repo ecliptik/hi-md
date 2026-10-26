@@ -29,6 +29,7 @@ final class MacInterface {
     }
 
     @ObservationIgnored private var homeCache: MacHomeFeed?
+    @ObservationIgnored private var discoverCache: MacDiscoverModel?
 
     /// Home's feed for the active server, kept while the window shows other sections so going back
     /// to Home doesn't start over. Nil without a server.
@@ -38,6 +39,15 @@ final class MacInterface {
         let feed = MacHomeFeed(container: container, serverID: serverID)
         homeCache = feed
         return feed
+    }
+
+    /// Discover's shelves for the active server, kept like Home's.
+    func discover(for container: AppContainer) -> MacDiscoverModel? {
+        guard let serverID = container.serverState.activeServer?.id else { return nil }
+        if let discoverCache, discoverCache.serverID == serverID, discoverCache.container === container { return discoverCache }
+        let model = MacDiscoverModel(container: container, serverID: serverID)
+        discoverCache = model
+        return model
     }
 
     /// The Settings > Appearance switch for the menu bar player.

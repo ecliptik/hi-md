@@ -25,6 +25,17 @@ enum MacDestination: Hashable {
     case playlist(id: String)
     /// A Home shelf's full list.
     case homeShelf(HomeShelf)
+    /// Recommended for You: albums suggested by the chosen AI provider.
+    case recommendations
+    /// Fresh Releases from the past 90 days, by month.
+    case freshReleases
+    case freshRelease(AlbumRecommendation)
+    /// The Wrapped playlists and recaps.
+    case wrapped
+    /// A month's or a year's listening recap.
+    case wrappedRecap(WrappedPeriod)
+    /// The server's internet radio stations.
+    case radio
 }
 
 extension MacDestination {
