@@ -58,7 +58,9 @@ struct MacAlbumTile: View {
         .onHover { hovering in
             withAnimation(.easeOut(duration: 0.15)) { isHovering = hovering }
         }
-        .contextMenu { MacAlbumMenu(albumID: album.id, artistID: album.artistId, artistName: album.artist) }
+        .contextMenu {
+            MacAlbumMenu(albumID: album.id, albumName: album.name, artistID: album.artistId, artistName: album.artist)
+        }
         .accessibilityElement(children: .combine)
         .accessibilityHint("Opens the album")
     }
@@ -81,6 +83,8 @@ struct MacAlbumTile: View {
 /// The context menu for an album, wherever it appears.
 struct MacAlbumMenu: View {
     let albumID: String
+    /// Names the Instant Mix it offers; without it the menu has none.
+    var albumName: String?
     var artistID: String?
     var artistName: String?
 
@@ -94,6 +98,10 @@ struct MacAlbumMenu: View {
             playback.playAlbum(id: albumID, action: .playNext)
         }
         Button("Add to Queue", systemImage: "text.append") { playback.playAlbum(id: albumID, action: .addToQueue) }
+        if let albumName {
+            Button("Instant Mix", systemImage: instantMixSymbol) { playback.playInstantMix(albumID: albumID, name: albumName) }
+                .disabled(!playback.container.serverState.isOnline)
+        }
 
         Divider()
 

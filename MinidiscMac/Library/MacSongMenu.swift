@@ -18,6 +18,10 @@ struct MacSongMenu: View {
         Button("Play", systemImage: "play") { playback.play(songs) }
         Button("Play Next", systemImage: "text.line.first.and.arrowtriangle.forward") { playback.playNext(songs) }
         Button("Add to Queue", systemImage: "text.append") { playback.addToQueue(songs) }
+        if songs.count == 1, let song = songs.first, !song.isLocalFile {
+            Button("Instant Mix", systemImage: instantMixSymbol) { playback.playInstantMix(from: song) }
+                .disabled(!playback.container.serverState.isOnline)
+        }
 
         Divider()
 

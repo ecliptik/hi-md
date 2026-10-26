@@ -66,10 +66,81 @@ final class MacPlayback {
 
     // MARK: - Queueing songs
 
-    /// Starts `songs` at `index`, replacing the queue.
-    func play(_ songs: [DisplayableSong], from index: Int = 0) {
+    /// Starts `songs` at `index`, replacing the queue. `context` is where they came from, for
+    /// "Playing from"; without one the new queue has none.
+    func play(_ songs: [DisplayableSong], from index: Int = 0, context: PlaybackContext? = nil) {
         guard songs.indices.contains(index) else { return }
-        Task { await container.toastService.perform { try await self.player.play(tracks: songs, startIndex: index) } }
+        Task {
+            await container.toastService.perform {
+                try await self.player.play(tracks: songs, startIndex: index, context: context)
+            }
+        }
+    }
+
+    /// Loads a playlist's songs, then plays or shuffles them, playing from that playlist (or its
+    /// mood or Wrapped year).
+    func playPlaylist(id playlistID: String, shuffled: Bool = false) {
+        Task {
+            let playlist: PlaylistWithSongs
+            do {
+                playlist = try await container.playlistService.getPlaylist(id: playlistID)
+            } catch {
+                guard !UserFacingError.isCancellation(error) else { return }
+                container.toastService.showError(UserFacingError.from(error).displayMessage)
+                return
+            }
+            let songs = playlist.entry?.map { DisplayableSong(from: $0) } ?? []
+            let context = PlaybackContext.forPlaylist(id: playlistID, name: playlist.name, coverArtId: playlist.coverArt)
+            play(shuffled ? songs.shuffled() : songs, context: context)
+        }
+    }
+
+    /// An Instant Mix of songs like this one.
+    func playInstantMix(from song: DisplayableSong) {
+        startInstantMix(from: .song(id: song.id), using: container, startingWith: song, context: songMixContext(song))
+    }
+
+    /// An Instant Mix of songs like this album's.
+    func playInstantMix(albumID: String, name: String) {
+        startInstantMix(from: .album(id: albumID), using: container,
+                        context: .instantMix(seed: .album, id: albumID, name: name))
+    }
+
+    /// An artist and similar artists, from Discover's Stations for You.
+    func playStation(_ station: ArtistStation) async {
+        await container.toastService.perform {
+            try await self.player.playInstantMix(
+                from: .artist(id: station.id),
+                startingWith: station.starter,
+                context: .artistStation(artistId: station.id, artistName: station.artist.name)
+            )
+        }
+    }
+
+    /// Rediscover Your Library: a new mix from the whole library, or offline from the downloads.
+    func playSmartShuffle() async {
+        do {
+            try await player.playSmartShuffle()
+        } catch {
+            guard !UserFacingError.isCancellation(error) else { return }
+            if case MinidiscError.smartShuffleEmpty = error {
+                container.toastService.showError(String(localized: "Smart Shuffle unavailable — try playing some tracks first or download more music for offline use."))
+            } else {
+                container.toastService.showError(String(localized: "Smart Shuffle failed. Please try again."))
+            }
+        }
+    }
+
+    func playRadio(_ station: InternetRadioStation) {
+        Task {
+            do {
+                try await player.playRadio(station)
+            } catch {
+                guard !UserFacingError.isCancellation(error) else { return }
+                container.toastService.showError(String(localized: "Unable to play this radio station."))
+                Logger.player.error("[RADIO] play failed: \(error, privacy: .public)")
+            }
+        }
     }
 
     func shuffle(_ songs: [DisplayableSong]) {
