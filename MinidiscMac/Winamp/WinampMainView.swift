@@ -34,7 +34,8 @@ final class WinampWindow: NSWindow {
     }
 }
 
-/// What the main window's view reports to its controller, in 275×116 window pixels.
+/// What the main window's view reports to its controller, in window pixels: 275×116, or 275×14
+/// in windowshade.
 protocol WinampMainViewDelegate: AnyObject {
     func mainView(_ view: WinampMainView, mouseDownAt point: CGPoint, event: NSEvent)
     func mainView(_ view: WinampMainView, mouseDraggedTo point: CGPoint)
@@ -62,6 +63,11 @@ final class WinampMainView: NSView {
         didSet {
             if state != oldValue { needsDisplay = true }
         }
+    }
+
+    /// 275×116, or the shade bar's 275×14.
+    var logicalSize = WinampMainLayout.size {
+        didSet { if logicalSize != oldValue { needsDisplay = true } }
     }
 
     private var sprites: WinampSpriteCache
@@ -112,7 +118,7 @@ final class WinampMainView: NSView {
     override func hitTest(_ point: NSPoint) -> NSView? {
         guard let superview else { return super.hitTest(point) }
         let local = convert(point, from: superview)
-        guard bounds.contains(local), shape.contains(winampPoint(local)) else { return nil }
+        guard bounds.contains(local), state.isShaded || shape.contains(winampPoint(local)) else { return nil }
         return super.hitTest(point)
     }
 
@@ -142,8 +148,8 @@ final class WinampMainView: NSView {
     /// A point in the view, in window pixels from the top left.
     private func winampPoint(_ local: NSPoint) -> CGPoint {
         guard bounds.width > 0, bounds.height > 0 else { return .zero }
-        return CGPoint(x: local.x * WinampMainLayout.size.width / bounds.width,
-                       y: (bounds.height - local.y) * WinampMainLayout.size.height / bounds.height)
+        return CGPoint(x: local.x * logicalSize.width / bounds.width,
+                       y: (bounds.height - local.y) * logicalSize.height / bounds.height)
     }
 
     private func winampPoint(_ event: NSEvent) -> CGPoint {

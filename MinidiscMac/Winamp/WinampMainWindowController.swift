@@ -6,16 +6,7 @@ import SwiftSonic
 /// Drives the Winamp main window: renders PlayerState through the skin, turns clicks and drags
 /// into PlayerService calls, and runs the marquee, the paused blink and the visualiser only
 /// while the window is on screen.
-final class WinampMainWindowController: NSObject, NSWindowDelegate, WinampMainViewDelegate {
-    /// What the window asks of Winamp mode as a whole.
-    struct Actions {
-        var close: () -> Void
-        var chooseSkin: () -> Void
-        var useDefaultSkin: () -> Void
-        var isUsingDefaultSkin: () -> Bool
-        var showFolderBrowser: () -> Void
-    }
-
+final class WinampMainWindowController: NSObject, NSWindowDelegate, WinampMainViewDelegate, WinampManagedWindow {
     private struct SliderDrag {
         let control: WinampMainControl
         let grabOffset: Double
@@ -28,13 +19,17 @@ final class WinampMainWindowController: NSObject, NSWindowDelegate, WinampMainVi
         let channelCount: Int?
     }
 
+    let kind = WinampPreferences.Window.main
     let window: WinampWindow
     private let view: WinampMainView
     private let container: AppContainer
+    private weak var host: WinampWindowHost?
     private let preferences: WinampPreferences
-    private let actions: Actions
-    private let hitMap = WinampMainHitMap.classic
     private let songSource: WinampSubsonicSource
+    private var isShaded: Bool
+    private var isDraggingWindow = false
+    private var hitMap: WinampMainHitMap { isShaded ? .shade : .classic }
+    private var seekGeometry: WinampSliderGeometry { isShaded ? .shadeSeek : .seek }
 
     private var player: PlayerState { container.playerState }
 
@@ -73,10 +68,11 @@ final class WinampMainWindowController: NSObject, NSWindowDelegate, WinampMainVi
     private var pendingVolume: Float?
     private var volumeTask: Task<Void, Never>?
 
-    init(container: AppContainer, skin: WinampSkin, preferences: WinampPreferences, actions: Actions) {
+    init(container: AppContainer, skin: WinampSkin, host: WinampWindowHost) {
         self.container = container
-        self.preferences = preferences
-        self.actions = actions
+        self.host = host
+        preferences = host.preferences
+        isShaded = host.preferences.isShaded(.main)
         songSource = WinampSubsonicSource(serverService: container.serverService)
         volume = Double(container.playbackPreferences.restoredVolume)
         view = WinampMainView(skin: skin)
@@ -84,15 +80,19 @@ final class WinampMainWindowController: NSObject, NSWindowDelegate, WinampMainVi
         super.init()
         window.contentView = view
         window.delegate = self
-        window.closeHandler = actions.close
+        window.closeHandler = { [weak host] in host?.close(.main) }
         view.delegate = self
+        view.logicalSize = logicalSize
         applyWindowOptions()
     }
 
+    var logicalSize: CGSize { isShaded ? WinampMainShadeLayout.size : WinampMainLayout.size }
+
     // MARK: Lifecycle
 
-    func show() {
-        placeWindow()
+    func show(at topLeft: CGPoint) {
+        let size = CGSize(width: logicalSize.width * scale, height: logicalSize.height * scale)
+        window.setFrame(CGRect(x: topLeft.x, y: topLeft.y - size.height, width: size.width, height: size.height), display: true)
         isObserving = true
         lastWantsPlayback = player.wantsPlayback
         updateTrackInfo()
@@ -120,42 +120,20 @@ final class WinampMainWindowController: NSObject, NSWindowDelegate, WinampMainVi
 
     // MARK: Window options
 
-    private var scale: CGFloat { preferences.isDoubleSize ? 2 : 1 }
+    private var scale: CGFloat { host?.scale ?? 1 }
 
     private func applyWindowOptions() {
         window.level = preferences.isAlwaysOnTop ? .floating : .normal
     }
 
-    /// The saved spot, or centred on the main screen when it's new or no longer on any screen.
-    private func placeWindow() {
-        let size = CGSize(width: WinampMainLayout.size.width * scale, height: WinampMainLayout.size.height * scale)
-        var topLeft = preferences.windowTopLeft
-        if let saved = topLeft {
-            let titleBar = CGRect(x: saved.x, y: saved.y - 14 * scale, width: size.width, height: 14 * scale)
-            if !NSScreen.screens.contains(where: { $0.visibleFrame.intersects(titleBar) }) { topLeft = nil }
-        }
-        let origin: CGPoint
-        if let topLeft {
-            origin = CGPoint(x: topLeft.x, y: topLeft.y - size.height)
-        } else {
-            let screen = (NSScreen.main ?? NSScreen.screens.first)?.visibleFrame ?? .zero
-            origin = CGPoint(x: screen.midX - size.width / 2, y: screen.midY - size.height / 2)
-        }
-        window.setFrame(CGRect(origin: origin, size: size), display: true)
-    }
-
-    private func toggleDoubleSize() {
-        let topLeft = CGPoint(x: window.frame.minX, y: window.frame.maxY)
-        preferences.isDoubleSize.toggle()
-        let size = CGSize(width: WinampMainLayout.size.width * scale, height: WinampMainLayout.size.height * scale)
-        window.setFrame(CGRect(x: topLeft.x, y: topLeft.y - size.height, width: size.width, height: size.height), display: true)
+    /// Windowshade: the 275×14 bar with the time, position and small transport.
+    func toggleShade() {
+        isShaded.toggle()
+        preferences.setShaded(isShaded, .main)
+        view.logicalSize = logicalSize
+        slider = nil
+        host?.resize(.main, to: CGSize(width: logicalSize.width * scale, height: logicalSize.height * scale))
         window.invalidateShadow()
-        refresh()
-    }
-
-    private func toggleAlwaysOnTop() {
-        preferences.isAlwaysOnTop.toggle()
-        applyWindowOptions()
         refresh()
     }
 
@@ -166,10 +144,6 @@ final class WinampMainWindowController: NSObject, NSWindowDelegate, WinampMainVi
     }
 
     // MARK: NSWindowDelegate
-
-    func windowDidMove(_ notification: Notification) {
-        preferences.windowTopLeft = CGPoint(x: window.frame.minX, y: window.frame.maxY)
-    }
 
     func windowDidBecomeKey(_ notification: Notification) {
         isActive = true
@@ -236,7 +210,7 @@ final class WinampMainWindowController: NSObject, NSWindowDelegate, WinampMainVi
 
     // MARK: Rendering
 
-    private func refresh() {
+    func refresh() {
         let fullTitle = titleText()
         if fullTitle != lastTitle {
             lastTitle = fullTitle
@@ -285,6 +259,9 @@ final class WinampMainWindowController: NSObject, NSWindowDelegate, WinampMainVi
         state.isRepeatOn = player.repeatMode != .off
         state.isAlwaysOnTop = preferences.isAlwaysOnTop
         state.isDoubleSize = preferences.isDoubleSize
+        state.isShaded = isShaded
+        state.isEqualizerOn = host?.isVisible(.equalizer) == true
+        state.isPlaylistOn = host?.isVisible(.playlist) == true
         let mode = preferences.visualizerMode
         state.visualizer = mode == .off ? .off : (visualizer == nil ? WinampVisualizerPicture(mode: mode) : picture)
         return state
@@ -405,10 +382,15 @@ final class WinampMainWindowController: NSObject, NSWindowDelegate, WinampMainVi
         guard let control = hitMap.control(at: point) else { return }
         switch control {
         case .titleBar:
-            window.performDrag(with: event)
+            if event.clickCount == 2 {
+                toggleShade()
+            } else {
+                isDraggingWindow = true
+                host?.beginDrag(.main)
+            }
         case .seek:
             guard displayedPlayback != .stopped, !player.isLiveStream, player.duration > 0 else { return }
-            beginSlider(.seek, geometry: .seek, current: WinampSliderGeometry.clamp(player.position / player.duration), at: point)
+            beginSlider(.seek, geometry: seekGeometry, current: WinampSliderGeometry.clamp(player.position / player.duration), at: point)
         case .volume:
             beginSlider(.volume, geometry: .volume, current: volume, at: point)
         case .balance:
@@ -428,7 +410,9 @@ final class WinampMainWindowController: NSObject, NSWindowDelegate, WinampMainVi
     }
 
     func mainView(_ view: WinampMainView, mouseDraggedTo point: CGPoint) {
-        if var drag = slider, let geometry = geometry(for: drag.control) {
+        if isDraggingWindow {
+            host?.continueDrag()
+        } else if var drag = slider, let geometry = geometry(for: drag.control) {
             drag.fraction = geometry.fraction(pointerX: point.x, grabOffset: drag.grabOffset)
             slider = drag
             if drag.control == .volume { sendVolume(drag.fraction) }
@@ -443,7 +427,10 @@ final class WinampMainWindowController: NSObject, NSWindowDelegate, WinampMainVi
     }
 
     func mainView(_ view: WinampMainView, mouseUpAt point: CGPoint) {
-        if let drag = slider {
+        if isDraggingWindow {
+            isDraggingWindow = false
+            host?.endDrag()
+        } else if let drag = slider {
             slider = nil
             pressed = nil
             finishSlider(drag)
@@ -478,7 +465,7 @@ final class WinampMainWindowController: NSObject, NSWindowDelegate, WinampMainVi
 
     private func geometry(for control: WinampMainControl) -> WinampSliderGeometry? {
         switch control {
-        case .seek: .seek
+        case .seek: seekGeometry
         case .volume: .volume
         case .balance: .balance
         default: nil
@@ -525,6 +512,11 @@ final class WinampMainWindowController: NSObject, NSWindowDelegate, WinampMainVi
 
     // MARK: Actions
 
+    /// The playlist window's small transport and keys.
+    func performTransport(_ control: WinampMainControl) {
+        perform(control, at: .zero)
+    }
+
     private func perform(_ control: WinampMainControl, at point: CGPoint) {
         let service = container.playerService
         let toasts = container.toastService
@@ -545,26 +537,31 @@ final class WinampMainWindowController: NSObject, NSWindowDelegate, WinampMainVi
         case .stop:
             stop()
         case .eject:
-            actions.showFolderBrowser()
+            host?.showFolderBrowser()
         case .shuffle:
             Task { await service.toggleShuffle() }
         case .repeatToggle:
             let mode: RepeatMode = player.repeatMode == .off ? .all : .off
             Task { await service.setRepeatMode(mode) }
         case .close:
-            actions.close()
+            host?.close(.main)
         case .minimize:
             window.miniaturize(nil)
         case .options, .clutter(.options):
             showMenu(contextMenu(for: view), at: point)
         case .clutter(.alwaysOnTop):
-            toggleAlwaysOnTop()
+            host?.toggleAlwaysOnTop()
         case .clutter(.doubleSize):
-            toggleDoubleSize()
+            host?.toggleDoubleSize()
         case .clutter(.visualizer):
             showMenu(visualizerMenu(), at: point)
-        case .shade, .equalizer, .playlist, .clutter(.info):
-            // Windowshade, the equaliser and the playlist window come in later phases.
+        case .shade:
+            toggleShade()
+        case .equalizer:
+            host?.toggle(.equalizer)
+        case .playlist:
+            host?.toggle(.playlist)
+        case .clutter(.info):
             break
         case .titleBar, .time, .visualizer, .songTitle, .volume, .balance, .seek:
             break
@@ -583,7 +580,7 @@ final class WinampMainWindowController: NSObject, NSWindowDelegate, WinampMainVi
         refresh()
         if player.currentTrack == nil || isErrorState {
             guard !queue.isEmpty else {
-                actions.showFolderBrowser()
+                host?.showFolderBrowser()
                 return
             }
             Task { await toasts.perform { try await service.play(tracks: queue, startIndex: startIndex) } }
@@ -618,16 +615,20 @@ final class WinampMainWindowController: NSObject, NSWindowDelegate, WinampMainVi
 
     func contextMenu(for view: WinampMainView) -> NSMenu? {
         let menu = NSMenu()
-        menu.addItem(item(String(localized: "Load Skin…")) { $0.actions.chooseSkin() })
-        menu.addItem(item(String(localized: "Default Skin"), isOn: actions.isUsingDefaultSkin()) { $0.actions.useDefaultSkin() })
+        menu.addItem(item(String(localized: "Load Skin…")) { $0.host?.chooseSkin() })
+        menu.addItem(item(String(localized: "Default Skin"), isOn: host?.isUsingDefaultSkin ?? true) { $0.host?.useDefaultSkin() })
         menu.addItem(.separator())
-        menu.addItem(item(String(localized: "Always on Top"), isOn: preferences.isAlwaysOnTop) { $0.toggleAlwaysOnTop() })
-        menu.addItem(item(String(localized: "Double Size"), isOn: preferences.isDoubleSize) { $0.toggleDoubleSize() })
+        menu.addItem(item(String(localized: "Winamp Equalizer"), isOn: host?.isVisible(.equalizer) == true) { $0.host?.toggle(.equalizer) })
+        menu.addItem(item(String(localized: "Winamp Playlist"), isOn: host?.isVisible(.playlist) == true) { $0.host?.toggle(.playlist) })
+        menu.addItem(item(String(localized: "Windowshade"), isOn: isShaded) { $0.toggleShade() })
+        menu.addItem(.separator())
+        menu.addItem(item(String(localized: "Always on Top"), isOn: preferences.isAlwaysOnTop) { $0.host?.toggleAlwaysOnTop() })
+        menu.addItem(item(String(localized: "Double Size"), isOn: preferences.isDoubleSize) { $0.host?.toggleDoubleSize() })
         let visualizer = NSMenuItem(title: String(localized: "Visualizer"), action: nil, keyEquivalent: "")
         visualizer.submenu = visualizerMenu()
         menu.addItem(visualizer)
         menu.addItem(.separator())
-        menu.addItem(item(String(localized: "Close")) { $0.actions.close() })
+        menu.addItem(item(String(localized: "Close")) { $0.host?.close(.main) })
         return menu
     }
 
@@ -643,8 +644,8 @@ final class WinampMainWindowController: NSObject, NSWindowDelegate, WinampMainVi
 
     private func showMenu(_ menu: NSMenu?, at point: CGPoint) {
         guard let menu else { return }
-        let location = NSPoint(x: point.x * view.bounds.width / WinampMainLayout.size.width,
-                               y: view.bounds.height - point.y * view.bounds.height / WinampMainLayout.size.height)
+        let location = NSPoint(x: point.x * view.bounds.width / logicalSize.width,
+                               y: view.bounds.height - point.y * view.bounds.height / logicalSize.height)
         menu.popUp(positioning: nil, at: location, in: view)
     }
 
