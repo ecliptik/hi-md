@@ -151,6 +151,9 @@ nonisolated protocol AudioEngine: AnyObject, Sendable {
     var isSeekable: Bool { get }
     /// True when idle and ready to start a source (the cold-restore path checks this).
     var isReady: Bool { get }
+    /// Seconds of the active item that are loaded. Growth while playback waits means data is
+    /// still arriving, so a stall is worth waiting out rather than rebuilding.
+    var bufferedDuration: TimeInterval { get }
 
     /// Applies a ReplayGain loudness adjustment in dB for the current track (0 = no change).
     func applyReplayGain(dB: Float)
@@ -184,4 +187,9 @@ nonisolated protocol AudioEngine: AnyObject, Sendable {
     /// The authoritative length of the current track from library metadata, for engines whose own
     /// duration estimate drifts (transcoded/VBR streams) and would mistime transitions.
     func setTrackDuration(_ seconds: Double)
+}
+
+nonisolated extension AudioEngine {
+    /// Engines that cannot report loading never delay a rebuild.
+    var bufferedDuration: TimeInterval { 0 }
 }

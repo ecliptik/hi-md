@@ -63,6 +63,17 @@ nonisolated struct PlaybackNetworkRecoveryTiming: Sendable {
     /// First wait before re-resolving a failed standby preload; later attempts wait longer.
     /// Preloading starts 15 s before the transition, so all attempts fit well inside that window.
     var prefetchRetryDelay: Duration = .seconds(1)
+    /// First wait before the playing song's full download is retried; it doubles each attempt.
+    var downloadRetryDelay: Duration = .seconds(2)
+    /// How long a stall may last while data keeps arriving before the item is rebuilt anyway.
+    var dataFlowingGrace: Duration = .seconds(15)
+    /// How often a stall with data arriving is checked again.
+    var dataFlowRecheck: Duration = .seconds(2)
+}
+
+nonisolated enum StallRecoveryDecision: Equatable, Sendable {
+    case keepWaiting
+    case rebuild
 }
 
 /// Bounds automatic stream rebuilds without permanently wedging recovery after one early failure.
@@ -169,11 +180,30 @@ actor PlayerService: PlayerServiceProtocol {
     /// Last position sent to the system Now Playing center. The system extrapolates elapsed time
     /// from it, so the progress loop only pushes again when playback drifts from that prediction.
     private var nowPlayingAnchor: NowPlayingPositionAnchor?
+    /// True after Now Playing was told rate 0 because AVPlayer is waiting for data, so the car's
+    /// and Lock Screen's clocks stop with the music. The matching `.playing` sets rate 1 again.
+    private var nowPlayingShowsBuffering = false
     /// Set from the scene phase; the progress loop slows down while the app is hidden.
     private var isAppVisible = true
     private var subsonicPlayingNowTask: Task<Void, Never>?
     private var playingNowTask: Task<Void, Never>?
     private var cacheDownloadTask: Task<Void, Never>?
+    /// The full download of the streaming song, kept so a network change can restart it.
+    private struct CurrentSongDownload: Sendable {
+        let songId: String
+        let serverId: UUID
+        let url: URL
+        let headers: [String: String]
+        let playbackGeneration: UInt64
+        var isComplete = false
+        /// The network path on which Low Data Mode skipped it; a later path may allow it again.
+        var skippedOnPathGeneration: UInt64?
+    }
+    private var currentSongDownload: CurrentSongDownload?
+    private var cacheDownloadTaskGeneration: UInt64 = 0
+    /// Mirrors `PlayerState.isNearTrackTransition`: background downloads stay off the network
+    /// while the standby deck prepares the next song.
+    private var isNearTrackTransition = false
     private let cacheSession: URLSession
     private var prefetchScheduled = false
     /// The standby preload runs here rather than inside the progress tick, so a slow resolve
@@ -209,6 +239,11 @@ actor PlayerService: PlayerServiceProtocol {
     private var networkRecoveryValidationGeneration: UInt64 = 0
     private var networkRecoveryTask: Task<Void, Never>?
     private var networkRecoveryTaskGeneration: UInt64 = 0
+    /// True while the armed probe is still sleeping, before it starts any rebuild work.
+    private var networkRecoveryProbeIsWaiting = false
+    /// The playback generation whose song has rendered audio. A later buffering stall of that song
+    /// is a connection problem; a song that never started may have been deleted on the server.
+    private var audioStartedPlaybackGeneration: UInt64?
     /// Automatic retries are bounded per track/path. Manual Play resets the budget and remains
     /// available even after all background attempts were consumed.
     private var networkRecoveryAttemptBudget = PlaybackNetworkRecoveryAttemptBudget()
@@ -283,7 +318,8 @@ actor PlayerService: PlayerServiceProtocol {
         networkRecoveryTiming: PlaybackNetworkRecoveryTiming = PlaybackNetworkRecoveryTiming(),
         audioSession: any AudioSessionControlling = SystemAudioSessionController(),
         audioRecoveryTiming: PlaybackAudioRecoveryTiming = PlaybackAudioRecoveryTiming(),
-        localMusicStore: LocalMusicStore? = nil
+        localMusicStore: LocalMusicStore? = nil,
+        cacheSession: URLSession? = nil
     ) {
         self.localMusicStore = localMusicStore
         self.state = state
@@ -308,10 +344,13 @@ actor PlayerService: PlayerServiceProtocol {
         self.audioRecoveryTiming = audioRecoveryTiming
         let cacheConfig = URLSessionConfiguration.default
         cacheConfig.timeoutIntervalForRequest = 30
-        cacheConfig.timeoutIntervalForResource = 300
-        cacheConfig.networkServiceType = .background
+        // A lossless original on a slow connection can take longer than five minutes.
+        cacheConfig.timeoutIntervalForResource = 1800
+        cacheConfig.networkServiceType = .avStreaming
+        // Cellular is allowed; Low Data Mode is respected by never using a constrained path.
+        cacheConfig.allowsExpensiveNetworkAccess = true
         cacheConfig.allowsConstrainedNetworkAccess = false
-        self.cacheSession = URLSession(configuration: cacheConfig)
+        self.cacheSession = cacheSession ?? URLSession(configuration: cacheConfig)
 
         self.engine = engine
         let bridge = AudioEngineBridge()
@@ -688,6 +727,7 @@ actor PlayerService: PlayerServiceProtocol {
         cancelNetworkRecoveryValidation()
         networkReloadRequiredTrackID = nil
         nowPlayingAnchor = nil
+        nowPlayingShowsBuffering = false
         networkRecoveryAttemptBudget.reset()
         pendingRestoreInfo = nil
         // Starting a new track can interrupt a muted parking play (end-of-queue rewind)
@@ -727,12 +767,16 @@ actor PlayerService: PlayerServiceProtocol {
         } else {
             playbackProgressTracker.startTrack()
         }
+        let isRemoteStream = if case .stream = source { true } else { false }
         await MainActor.run {
             state.currentTrack = song
             state.duration = duration
             state.position = initialPosition
             state.playbackState = .playing
             state.isPlaybackAvailable = true
+            // Set with the track itself, so pre-caching never starts in the gap before the
+            // playing song's own download begins.
+            state.currentSongNeedsNetwork = isRemoteStream && cacheSettings.cacheWhilePlaying
         }
         playbackDiagnostics.record(.playbackStateChanged(.playing))
         guard generation == playbackGeneration,
@@ -771,11 +815,11 @@ actor PlayerService: PlayerServiceProtocol {
             await listenBrainzService.notifyTrackStarted(song: song)
         }
 
+        currentSongDownload = nil
+        await setNearTrackTransition(false)
         if case .stream(let streamURL, let customHeaders) = source, let serverId,
            await MainActor.run(body: { cacheSettings.cacheWhilePlaying }) {
-            let (allowCellular, cacheFormat) = await MainActor.run {
-                (cacheSettings.cacheOverCellular, cacheSettings.cacheFormat)
-            }
+            let cacheFormat = await MainActor.run { cacheSettings.cacheFormat }
             guard isCurrentPlaybackIntent(
                 playbackGeneration: generation,
                 transportIntentGeneration: transportGeneration
@@ -797,20 +841,18 @@ actor PlayerService: PlayerServiceProtocol {
             }
 
             if let cacheStreamURL {
-                playbackDiagnostics.record(.cache(.scheduled(format: cacheFormat, allowsCellular: allowCellular)))
-                cacheDownloadTask = Task { [weak self] in
-                    await self?.cacheStreamAfterDelay(
-                        songId: songId,
-                        serverId: serverId,
-                        streamURL: cacheStreamURL,
-                        customHeaders: customHeaders,
-                        allowCellular: allowCellular,
-                        generation: generation
-                    )
-                }
+                playbackDiagnostics.record(.cache(.scheduled(format: cacheFormat, allowsCellular: true)))
+                currentSongDownload = CurrentSongDownload(
+                    songId: songId, serverId: serverId, url: cacheStreamURL,
+                    headers: customHeaders, playbackGeneration: generation
+                )
+                startCurrentSongDownload()
             } else {
                 Logger.player.debug("Cache: no URL for '\(songId, privacy: .public)' in \(cacheFormat.rawValue) — skipping")
             }
+        }
+        if currentSongDownload == nil {
+            await publishCurrentSongNeedsNetwork(false)
         }
 
         let artworkURL = await resolveArtworkURL(for: song)
@@ -836,7 +878,8 @@ actor PlayerService: PlayerServiceProtocol {
             album: song.albumName,
             duration: duration,
             position: snapshotPosition,
-            playbackRate: 1.0,
+            // A stream still opening already told Now Playing it is waiting; keep its clock stopped.
+            playbackRate: nowPlayingShowsBuffering ? 0 : 1.0,
             artworkURL: artworkURL,
             artworkHeaders: artworkHeaders,
             coverArtId: song.coverArtId,
@@ -874,6 +917,7 @@ actor PlayerService: PlayerServiceProtocol {
         pendingSystemResume = nil
         networkReloadRequiredTrackID = nil
         nowPlayingAnchor = nil
+        nowPlayingShowsBuffering = false
         networkRecoveryAttemptBudget.reset()
         let previousEnginePlayback = activeEnginePlayback
         defer {
@@ -1740,6 +1784,11 @@ actor PlayerService: PlayerServiceProtocol {
         guard transportGeneration == transportIntentGeneration, !Task.isCancelled else { return }
         startProgressTimer()
         startPositionSaveTimer()
+        await resumeCurrentSongDownloadIfNeeded()
+        if currentSongDownload?.playbackGeneration != playbackGeneration {
+            // A pause during startup skipped the download; nothing holds pre-caching back.
+            await publishCurrentSongNeedsNetwork(false)
+        }
     }
 
     /// Fresh download > cache > stream resolution for the cold-start resume path.
@@ -1806,6 +1855,8 @@ actor PlayerService: PlayerServiceProtocol {
         ) else { return }
         cancelPendingScrobble()
         cancelPendingCacheDownload()
+        currentSongDownload = nil
+        isNearTrackTransition = false
         cancelPendingPrefetch()
         cancelPendingInstantMix()
         stopProgressTimer()
@@ -1844,6 +1895,8 @@ actor PlayerService: PlayerServiceProtocol {
             state.queue = []
             state.position = 0
             state.duration = 0
+            state.currentSongNeedsNetwork = false
+            state.isNearTrackTransition = false
         }
     }
 
@@ -2535,6 +2588,8 @@ actor PlayerService: PlayerServiceProtocol {
         // Drop the standby item immediately. It may be `.readyToPlay` while its HTTP connection is
         // still tied to the previous interface, and manual Next would otherwise promote it.
         engine.cancelPreload()
+        // The cancelled full download was tied to the old interface; start it again on the new one.
+        await resumeCurrentSongDownloadIfNeeded()
 
         let generation = playbackGeneration
         let transportGeneration = transportIntentGeneration
@@ -2599,7 +2654,7 @@ actor PlayerService: PlayerServiceProtocol {
         guard action == .armAutomaticRecovery else { return }
         switch snapshot.playbackState {
         case .error:
-            await armNetworkRecoveryProbe(trackID: track.id, delay: .seconds(1), requireStall: false)
+            await armNetworkRecoveryProbe(trackID: track.id, delay: .seconds(1), requireStall: false, afterItemFailure: true)
         case .playing:
             // The engine may have emitted `.paused` while the path was offline. NWPath returning
             // online does not guarantee another KVO callback, so explicitly reassert the still-live
@@ -2633,6 +2688,7 @@ actor PlayerService: PlayerServiceProtocol {
         networkRecoveryTask?.cancel()
         networkRecoveryTask = nil
         networkRecoveryTaskGeneration &+= 1
+        networkRecoveryProbeIsWaiting = false
     }
 
     private func cancelNetworkRecoveryValidation() {
@@ -2759,10 +2815,16 @@ actor PlayerService: PlayerServiceProtocol {
         await armNetworkRecoveryProbe(trackID: trackID, delay: .milliseconds(250), requireStall: false)
     }
 
+    /// `afterItemFailure` marks a probe for a failed item: only then, or when the song never
+    /// started, is the server asked whether the song still exists. `stallStartedAt` carries the
+    /// original stall time across rechecks while data is still arriving.
     private func armNetworkRecoveryProbe(
         trackID: String,
         delay: Duration,
-        requireStall: Bool
+        requireStall: Bool,
+        afterItemFailure: Bool = false,
+        stallStartedAt: ContinuousClock.Instant? = nil,
+        ignoresStartupGrace: Bool = false
     ) async {
         // Keep one deadline per stalled item. KVO emits several paused/buffering callbacks
         // during a load: they must neither shorten the startup grace nor cancel a rebuild
@@ -2773,10 +2835,14 @@ actor PlayerService: PlayerServiceProtocol {
         let expectedPlaybackGeneration = playbackGeneration
         let expectedTransportGeneration = transportIntentGeneration
         let baselineProgress = engine.progress
+        let baselineBuffered = engine.bufferedDuration
+        let stallStartedAt = stallStartedAt ?? .now
         let remainingStartupGrace = activeEnginePlayback == nil ? Duration.zero
             : networkRecoveryTiming.startupGrace - activeEngineStartedAt.duration(to: .now)
-        let probeDelay = max(delay, remainingStartupGrace)
+        // The startup grace gives a slow stream time to open; a complete local copy needs none.
+        let probeDelay = ignoresStartupGrace ? delay : max(delay, remainingStartupGrace)
 
+        networkRecoveryProbeIsWaiting = true
         networkRecoveryTask = Task { [weak self] in
             do {
                 try await Task.sleep(for: probeDelay)
@@ -2791,9 +2857,23 @@ actor PlayerService: PlayerServiceProtocol {
                 expectedTransportGeneration: expectedTransportGeneration,
                 requestGeneration: requestGeneration,
                 baselineProgress: baselineProgress,
-                requireStall: requireStall
+                baselineBuffered: baselineBuffered,
+                stallStartedAt: stallStartedAt,
+                requireStall: requireStall,
+                afterItemFailure: afterItemFailure
             )
         }
+    }
+
+    /// While AVPlayer waits but its loaded range keeps growing, data is still arriving: the
+    /// buffered item recovers by itself, and a rebuild would throw that data away. A stall with
+    /// nothing arriving is rebuilt after the shorter stall grace that armed the probe.
+    nonisolated static func stallRecoveryDecision(
+        bufferedGrowth: TimeInterval,
+        stalledFor: Duration,
+        dataFlowingGrace: Duration
+    ) -> StallRecoveryDecision {
+        bufferedGrowth > 0.25 && stalledFor < dataFlowingGrace ? .keepWaiting : .rebuild
     }
 
     private func performNetworkRecoveryProbe(
@@ -2803,13 +2883,17 @@ actor PlayerService: PlayerServiceProtocol {
         expectedTransportGeneration: UInt64,
         requestGeneration: UInt64,
         baselineProgress: TimeInterval,
-        requireStall: Bool
+        baselineBuffered: TimeInterval,
+        stallStartedAt: ContinuousClock.Instant,
+        requireStall: Bool,
+        afterItemFailure: Bool
     ) async {
         defer {
             if requestGeneration == networkRecoveryTaskGeneration {
                 networkRecoveryTask = nil
             }
         }
+        if requestGeneration == networkRecoveryTaskGeneration { networkRecoveryProbeIsWaiting = false }
         guard !Task.isCancelled,
               requestGeneration == networkRecoveryTaskGeneration,
               pathGeneration == latestNetworkPathEvent.generation,
@@ -2870,15 +2954,43 @@ actor PlayerService: PlayerServiceProtocol {
         // A copy may have completed after this stream started. It can take over without
         // waiting for a server probe, including when the cellular path has gone offline.
         guard localSource != nil || latestNetworkPathEvent.isOnline else { return }
+        let localCopyMatchesStream = if localSource != nil {
+            await hasLocalCopyMatchingStream(trackID: trackID, serverID: serverID)
+        } else { false }
+        guard !Task.isCancelled, requestGeneration == networkRecoveryTaskGeneration else { return }
+        if requireStall, !localCopyMatchesStream,
+           Self.stallRecoveryDecision(
+               bufferedGrowth: engine.bufferedDuration - baselineBuffered,
+               stalledFor: stallStartedAt.duration(to: .now),
+               dataFlowingGrace: networkRecoveryTiming.dataFlowingGrace
+           ) == .keepWaiting {
+            Logger.player.info(
+                "[NETWORK-RECOVERY] data still arriving — keeping the buffered item track='\(trackID, privacy: .public)'"
+            )
+            networkRecoveryTask = nil
+            networkRecoveryTaskGeneration &+= 1
+            await armNetworkRecoveryProbe(
+                trackID: trackID, delay: networkRecoveryTiming.dataFlowRecheck,
+                requireStall: true, stallStartedAt: stallStartedAt
+            )
+            return
+        }
+        // A plain buffering stall of a song that has already played is a connection problem, not a
+        // deleted song: skip the server lookup (up to 8 s) and rebuild straight away.
+        let checksServer = localSource == nil
+            && (afterItemFailure || audioStartedPlaybackGeneration != expectedPlaybackGeneration)
         let availability = if localSource != nil { MediaAvailability.available }
-            else { await mediaResolver.availability(songId: trackID, serverId: serverID) }
+            else if checksServer { await mediaResolver.availability(songId: trackID, serverId: serverID) }
+            else { MediaAvailability.unknown }
         guard !Task.isCancelled,
               requestGeneration == networkRecoveryTaskGeneration,
               pathGeneration == latestNetworkPathEvent.generation,
               expectedPlaybackGeneration == playbackGeneration,
               expectedTransportGeneration == transportIntentGeneration,
               networkReloadRequiredTrackID == trackID else { return }
-        playbackDiagnostics.record(.mediaAvailabilityChecked(availability, playbackGeneration: expectedPlaybackGeneration))
+        if localSource != nil || checksServer {
+            playbackDiagnostics.record(.mediaAvailabilityChecked(availability, playbackGeneration: expectedPlaybackGeneration))
+        }
 
         // The server lookup itself may take time. Do not replace audio that recovered meanwhile.
         if activeEngineState == .playing, engine.progress > currentProgress + 0.1 {
@@ -2950,7 +3062,10 @@ actor PlayerService: PlayerServiceProtocol {
             )
             networkRecoveryTask = nil
             networkRecoveryTaskGeneration &+= 1
-            await armNetworkRecoveryProbe(trackID: trackID, delay: networkRecoveryTiming.retryDelay, requireStall: false)
+            await armNetworkRecoveryProbe(
+                trackID: trackID, delay: networkRecoveryTiming.retryDelay,
+                requireStall: false, afterItemFailure: afterItemFailure
+            )
             return
         }
         guard !Task.isCancelled,
@@ -3019,6 +3134,7 @@ actor PlayerService: PlayerServiceProtocol {
         startPositionSaveTimer()
         endTransitionCommit()
         ownsTransitionCommit = false
+        await resumeCurrentSongDownloadIfNeeded()
         await pushPositionSnapshot(rate: 1.0)
         playbackDiagnostics.record(
             .networkRecovery(
@@ -3233,6 +3349,28 @@ actor PlayerService: PlayerServiceProtocol {
         await periodicNowPlayingPush(elapsed: progress)
         await checkScrobbleThreshold()
         await checkPrefetchThreshold()
+        await updateTransitionWindow(progress: progress, duration: durationSnapshot.duration)
+    }
+
+    /// Publishes the window before a transition in which background downloads must stay off the
+    /// network (the same window that cancels the playing song's download for the standby preload).
+    private func updateTransitionWindow(progress: TimeInterval, duration: TimeInterval) async {
+        let isNear = duration > 0 && Self.shouldProtectTransitionFromCaching(
+            crossfadeDuration: crossfadeConfig.duration,
+            remaining: duration - progress
+        )
+        await setNearTrackTransition(isNear)
+        // Every cancellation path (network change, item error, audio-system reset) ends up here
+        // while the song plays, so an interrupted download always gets going again.
+        if !isNear { await resumeCurrentSongDownloadIfNeeded() }
+    }
+
+    private func setNearTrackTransition(_ isNear: Bool) async {
+        guard isNear != isNearTrackTransition else { return }
+        isNearTrackTransition = isNear
+        await MainActor.run { state.isNearTrackTransition = isNear }
+        // Seeking back out of the window lets an interrupted download finish.
+        if !isNear { await resumeCurrentSongDownloadIfNeeded() }
     }
 
     private func stopProgressTimer() {
@@ -3853,6 +3991,9 @@ actor PlayerService: PlayerServiceProtocol {
         guard isCurrentEngineEvent(playbackToken) else { return }
         switch newState {
         case .playing:
+            audioStartedPlaybackGeneration = playbackGeneration
+            await presentBufferingToNowPlaying(false, playbackToken: playbackToken)
+            guard isCurrentEngineEvent(playbackToken) else { return }
             if let info = pendingRestoreInfo {
                 pendingRestoreInfo = nil
                 // Seek while the engine is running. AVPlayer may still accept the request while its
@@ -3928,6 +4069,7 @@ actor PlayerService: PlayerServiceProtocol {
             }
         case .buffering, .paused:
             playbackProgressTracker.breakContinuity()
+            await presentBufferingToNowPlaying(true, playbackToken: playbackToken)
             await armRecoveryForUnexpectedEngineStall(playbackToken: playbackToken)
             if newState == .paused {
                 await resumeAfterNetworkPauseIfNeeded(playbackToken: playbackToken)
@@ -3937,6 +4079,28 @@ actor PlayerService: PlayerServiceProtocol {
         case .error:
             await handleEngineError(AudioEngineFailure(error: nil), playbackToken: playbackToken)
         }
+    }
+
+    /// While the listener wants playback but AVPlayer waits for data, Now Playing shows rate 0 at
+    /// the true position; when audio resumes it shows rate 1 again. A deliberate pause, which
+    /// pushes its own snapshot, never reaches this.
+    private func presentBufferingToNowPlaying(_ isBuffering: Bool, playbackToken: AudioEnginePlaybackToken) async {
+        guard isBuffering != nowPlayingShowsBuffering else { return }
+        let snapshot = await MainActor.run {
+            (wantsPlayback: state.wantsPlayback, isLiveStream: state.isLiveStream,
+             position: state.position, duration: state.duration, songId: state.currentTrack?.id)
+        }
+        guard isCurrentEngineEvent(playbackToken), isBuffering != nowPlayingShowsBuffering,
+              snapshot.wantsPlayback, !snapshot.isLiveStream, let songId = snapshot.songId else { return }
+        nowPlayingShowsBuffering = isBuffering
+        // A replacement item starts at zero until its restore seek lands; the checkpoint is the truth.
+        let usesCheckpoint = pendingRestoreInfo != nil || isMutedForRestore
+        let elapsed = max(0, usesCheckpoint ? snapshot.position : engine.progress)
+        let rate: Float = isBuffering ? 0 : 1
+        nowPlayingAnchor = isBuffering ? nil : NowPlayingPositionAnchor(
+            elapsed: elapsed, duration: snapshot.duration, uptime: ProcessInfo.processInfo.systemUptime
+        )
+        await nowPlayingService?.pushPosition(elapsed: elapsed, rate: rate, duration: snapshot.duration, songId: songId)
     }
 
     /// Reasserts Play after an unexpected network pause. Explicit user pauses remain authoritative.
@@ -4007,11 +4171,38 @@ actor PlayerService: PlayerServiceProtocol {
             cancelNetworkRecoveryValidation()
         }
         networkRecoveryValidationToken = playbackToken
+        // A complete copy as good as the stream takes over at once: no grace, no server check. A
+        // probe still sleeping out a stream's grace is replaced; one already rebuilding is left to
+        // finish. A lower-quality copy (a cellular transcode heard on Wi-Fi) waits like the stream
+        // and is used only if the stall persists.
+        let switchesAtOnce = if localSource != nil {
+            await hasLocalCopyMatchingStream(trackID: trackID, serverID: serverID)
+        } else { false }
+        guard isCurrentEngineEvent(playbackToken), audioSystemRecovery == nil else { return }
+        if switchesAtOnce, networkRecoveryProbeIsWaiting {
+            cancelNetworkRecoveryProbe()
+        }
         await armNetworkRecoveryProbe(
             trackID: trackID,
-            delay: localSource == nil ? networkRecoveryTiming.stallGrace : .zero,
-            requireStall: true
+            delay: switchesAtOnce ? .zero : networkRecoveryTiming.stallGrace,
+            requireStall: true,
+            ignoresStartupGrace: switchesAtOnce
         )
+    }
+
+    /// Whether a complete local copy is at least as good as the stream that is playing.
+    private func hasLocalCopyMatchingStream(trackID: String, serverID: UUID) async -> Bool {
+        guard case .stream(let url, _) = currentSource else { return false }
+        return await mediaResolver.hasLocalCopy(songId: trackID, serverId: serverID, atLeast: CachedAudioQuality(streamURL: url))
+    }
+
+    /// The playing song's download finished while AVPlayer was waiting for the stream: switch to
+    /// the complete copy now rather than after the stall grace.
+    private func switchToCompleteCopyIfStalled() async {
+        guard let playback = activeEnginePlayback,
+              activeEngineState == .buffering || activeEngineState == .paused,
+              currentSourceIsRemoteStream else { return }
+        await armRecoveryForUnexpectedEngineStall(playbackToken: playback.token)
     }
 
     func handleEngineError(
@@ -4057,7 +4248,8 @@ actor PlayerService: PlayerServiceProtocol {
             await armNetworkRecoveryProbe(
                 trackID: trackID,
                 delay: networkRecoveryTiming.retryDelay,
-                requireStall: false
+                requireStall: false,
+                afterItemFailure: true
             )
         } else {
             await MainActor.run { state.playbackState = .error(.timeout) }
@@ -4092,67 +4284,115 @@ actor PlayerService: PlayerServiceProtocol {
 
     // MARK: - Cache download helpers
 
-    private func cacheStreamAfterDelay(
-        songId: String,
-        serverId: UUID,
-        streamURL: URL,
-        customHeaders: [String: String],
-        allowCellular: Bool,
-        generation: UInt64
-    ) async {
+    /// Downloads the streaming song in full from its first second, on cellular too, so a later
+    /// stall can switch to the complete copy. Low Data Mode keeps it to the stream alone.
+    private func startCurrentSongDownload() {
+        guard let download = currentSongDownload, !download.isComplete,
+              download.playbackGeneration == playbackGeneration, cacheDownloadTask == nil else { return }
+        cacheDownloadTaskGeneration &+= 1
+        let taskGeneration = cacheDownloadTaskGeneration
+        cacheDownloadTask = Task { [weak self] in
+            await self?.downloadCurrentSong(download, taskGeneration: taskGeneration)
+        }
+    }
+
+    private func downloadCurrentSong(_ download: CurrentSongDownload, taskGeneration: UInt64) async {
+        let generation = download.playbackGeneration
+        let songId = download.songId
         defer {
-            if generation == playbackGeneration {
+            // A cancelled attempt finishes after its replacement started; leave that one in place.
+            if taskGeneration == cacheDownloadTaskGeneration {
                 cacheDownloadTask = nil
             }
         }
-
-        do {
-            try await Task.sleep(for: .seconds(30))
-        } catch {
-            playbackDiagnostics.record(.cache(.cancelled))
-            return
-        }
         guard !Task.isCancelled, generation == playbackGeneration else { return }
-        if await mediaResolver.localSource(songId: songId, serverId: serverId) != nil {
+        await publishCurrentSongNeedsNetwork(true)
+        guard !Task.isCancelled, generation == playbackGeneration else { return }
+        if await mediaResolver.hasLocalCopy(songId: songId, serverId: download.serverId, atLeast: CachedAudioQuality(streamURL: download.url)) {
             playbackDiagnostics.record(.cache(.alreadyLocal))
+            await finishCurrentSongDownload(generation: generation, stored: true)
             return
         }
 
-        let (isExpensive, isConstrained) = await MainActor.run {
-            (serverService.state.isExpensive, serverService.state.networkPathEvent.descriptor.isConstrained)
-        }
-        if isExpensive && !allowCellular {
-            playbackDiagnostics.record(.cache(.skippedCellular))
-            Logger.player.debug("Cache skipped — cellular for '\(songId, privacy: .public)'")
-            return
-        }
-        // The song is already streaming; a second full download is a luxury Low Power Mode and
-        // Low Data Mode should not pay for.
-        if isConstrained || ProcessInfo.processInfo.isLowPowerModeEnabled {
+        let isConstrained = await MainActor.run { serverService.state.networkPathEvent.descriptor.isConstrained }
+        if !Self.allowsFullDownload(pathIsConstrained: isConstrained, lowPowerMode: ProcessInfo.processInfo.isLowPowerModeEnabled) {
             playbackDiagnostics.record(.cache(.skippedPowerOrData))
-            Logger.player.debug("Cache skipped — Low Power or Low Data Mode for '\(songId, privacy: .public)'")
+            Logger.player.debug("Cache skipped — Low Data Mode for '\(songId, privacy: .public)'")
+            if generation == playbackGeneration {
+                currentSongDownload?.skippedOnPathGeneration = latestNetworkPathEvent.generation
+            }
+            await finishCurrentSongDownload(generation: generation, stored: false)
             return
         }
 
-        do {
-            try Task.checkCancellation()
-            playbackDiagnostics.record(.cache(.started))
-            try await downloadAndCache(
-                songId: songId,
-                serverId: serverId,
-                streamURL: streamURL,
-                customHeaders: customHeaders,
-                allowCellular: allowCellular,
-                using: cacheSession
-            )
-        } catch {
-            if Task.isCancelled {
-                playbackDiagnostics.record(.cache(.cancelled))
-                Logger.player.debug("Cache download cancelled for '\(songId, privacy: .public)'")
-            } else {
+        for attempt in 1...Self.currentSongDownloadAttempts {
+            do {
+                try Task.checkCancellation()
+                playbackDiagnostics.record(.cache(.started))
+                try await downloadAndCache(
+                    songId: songId,
+                    serverId: download.serverId,
+                    streamURL: download.url,
+                    customHeaders: download.headers,
+                    using: cacheSession
+                )
+                await finishCurrentSongDownload(generation: generation, stored: true)
+                return
+            } catch {
+                if Task.isCancelled {
+                    playbackDiagnostics.record(.cache(.cancelled))
+                    Logger.player.debug("Cache download cancelled for '\(songId, privacy: .public)'")
+                    return
+                }
                 playbackDiagnostics.record(.cache(.failed(code: (error as NSError).code)))
-                Logger.player.debug("Cache download failed for '\(songId, privacy: .public)': \(error.logSafe, privacy: .public)")
+                Logger.player.debug("Cache download attempt \(attempt, privacy: .public) failed for '\(songId, privacy: .public)': \(error.logSafe, privacy: .public)")
+                guard attempt < Self.currentSongDownloadAttempts, CacheDownloadRetry.isRetryable(error) else { break }
+                do {
+                    try await Task.sleep(for: CacheDownloadRetry.delay(afterAttempt: attempt, base: networkRecoveryTiming.downloadRetryDelay))
+                } catch {
+                    return
+                }
             }
+        }
+        // Out of attempts: stop holding pre-caching back, and do not start over on every tick.
+        await finishCurrentSongDownload(generation: generation, stored: false)
+        if generation == playbackGeneration { currentSongDownload = nil }
+    }
+
+    private nonisolated static let currentSongDownloadAttempts = 4
+
+    /// Low Data Mode is respected: songs keep streaming with their large buffer only. Low Power
+    /// Mode is not, because the full download is what keeps the music going through a dead zone.
+    nonisolated static func allowsFullDownload(pathIsConstrained: Bool, lowPowerMode: Bool) -> Bool {
+        !pathIsConstrained
+    }
+
+    private func finishCurrentSongDownload(generation: UInt64, stored: Bool) async {
+        guard generation == playbackGeneration else { return }
+        if stored { currentSongDownload?.isComplete = true }
+        await publishCurrentSongNeedsNetwork(false)
+        if stored { await switchToCompleteCopyIfStalled() }
+    }
+
+    /// Restarts a full download that was cancelled before it finished, outside the transition window.
+    private func resumeCurrentSongDownloadIfNeeded() async {
+        guard let download = currentSongDownload, download.playbackGeneration == playbackGeneration,
+              !download.isComplete, cacheDownloadTask == nil,
+              download.skippedOnPathGeneration != latestNetworkPathEvent.generation else { return }
+        guard currentSourceIsRemoteStream else {
+            // A rebuild moved the song to a complete local copy; nothing is left to download.
+            currentSongDownload = nil
+            await publishCurrentSongNeedsNetwork(false)
+            return
+        }
+        guard latestNetworkPathEvent.isOnline, !latestNetworkPathEvent.descriptor.isConstrained,
+              !isNearTrackTransition else { return }
+        startCurrentSongDownload()
+    }
+
+    private func publishCurrentSongNeedsNetwork(_ needsNetwork: Bool) async {
+        await MainActor.run {
+            if state.currentSongNeedsNetwork != needsNetwork { state.currentSongNeedsNetwork = needsNetwork }
         }
     }
 
@@ -4161,20 +4401,15 @@ actor PlayerService: PlayerServiceProtocol {
         serverId: UUID,
         streamURL: URL,
         customHeaders: [String: String],
-        allowCellular: Bool,
         using session: URLSession
     ) async throws {
-        let request = Self.cacheDownloadRequest(
-            url: streamURL, headers: customHeaders, allowCellular: allowCellular
-        )
+        let request = Self.cacheDownloadRequest(url: streamURL, headers: customHeaders, serviceType: .avStreaming)
 
         let (tempURL, response) = try await session.download(for: request, delegate: OriginScopedRedirectDelegate())
         defer { try? FileManager.default.removeItem(at: tempURL) }
 
         guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
-            struct CacheDownloadError: Error, Sendable { let statusCode: Int }
-            let code = (response as? HTTPURLResponse)?.statusCode ?? -1
-            throw CacheDownloadError(statusCode: code)
+            throw CacheDownloadStatusError(statusCode: (response as? HTTPURLResponse)?.statusCode ?? -1)
         }
 
         // Reject error envelopes and incomplete audio before committing cache files.
@@ -4188,7 +4423,8 @@ actor PlayerService: PlayerServiceProtocol {
             fileAt: tempURL,
             forSongId: songId,
             serverId: serverId,
-            mimeType: mimeType
+            mimeType: mimeType,
+            quality: CachedAudioQuality(streamURL: streamURL)
         )
 
         playbackDiagnostics.record(.cache(.stored))
@@ -4197,9 +4433,11 @@ actor PlayerService: PlayerServiceProtocol {
 
     /// A cache download needs the actual response length. A stream URL may request an
     /// estimated Content-Length for AVPlayer; inheriting that can truncate a transcode
-    /// or make URLSession/validation reject a complete file as incomplete.
+    /// or make URLSession/validation reject a complete file as incomplete. Playback caching allows
+    /// cellular (it decides per network how much to fetch); Low Data Mode is always refused.
     nonisolated static func cacheDownloadRequest(
-        url: URL, headers: [String: String], allowCellular: Bool
+        url: URL, headers: [String: String], allowCellular: Bool = true,
+        serviceType: URLRequest.NetworkServiceType = .default
     ) -> URLRequest {
         var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
         // Preserve encoded IDs and authentication parameters byte-for-byte (notably %2B).
@@ -4211,7 +4449,8 @@ actor PlayerService: PlayerServiceProtocol {
         components?.percentEncodedQuery = query.joined(separator: "&")
         var request = URLRequest(url: components?.url ?? url)
         request.allowsCellularAccess = allowCellular
-        request.networkServiceType = .background
+        request.allowsConstrainedNetworkAccess = false
+        request.networkServiceType = serviceType
         for (key, value) in headers { request.setValue(value, forHTTPHeaderField: key) }
         return request
     }
@@ -4247,6 +4486,7 @@ actor PlayerService: PlayerServiceProtocol {
             radioStationName: nil,
             songId: track.id
         )
+        nowPlayingShowsBuffering = false
         nowPlayingAnchor = resolvedRate > 0
             ? NowPlayingPositionAnchor(
                 elapsed: snapshot.position, duration: duration, uptime: ProcessInfo.processInfo.systemUptime
@@ -4265,7 +4505,8 @@ actor PlayerService: PlayerServiceProtocol {
             (state.playbackState, state.duration, state.isLiveStream, state.currentTrack?.id)
         }
         guard case .playing = playbackState, !isLiveStream, let songId else { return }
-        guard elapsed >= 0, duration > 0 else { return }
+        // Rate 0 stays until AVPlayer renders again; a rate-1 push here would restart the clock.
+        guard elapsed >= 0, duration > 0, !nowPlayingShowsBuffering else { return }
         let now = ProcessInfo.processInfo.systemUptime
         guard Self.nowPlayingNeedsPositionPush(
             anchor: nowPlayingAnchor, elapsed: elapsed, duration: duration, uptime: now

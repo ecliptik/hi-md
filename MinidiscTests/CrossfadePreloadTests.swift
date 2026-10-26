@@ -1,3 +1,4 @@
+import AVFoundation
 import Foundation
 import Testing
 @testable import Minidisc
@@ -65,6 +66,49 @@ struct AVPlayerEngineReplayGainRoutingTests {
         #expect(!AVPlayerEngine.requiresAudioTap(linearGain: 0.5, equalizerEnabled: false))
         #expect(AVPlayerEngine.requiresAudioTap(linearGain: 0.5, equalizerEnabled: true))
         #expect(AVPlayerEngine.requiresAudioTap(linearGain: 1.5, equalizerEnabled: false))
+    }
+}
+
+@Suite("AVPlayerEngine forward buffer", .serialized)
+struct AVPlayerEngineForwardBufferTests {
+    /// Hands the engine its two decks and keeps them, so the items it loads can be inspected.
+    private nonisolated final class DeckRecorder: @unchecked Sendable {
+        private let lock = NSLock()
+        private var players: [AVPlayer] = []
+        var decks: [AVPlayer] { lock.withLock { players } }
+        func make() -> AVPlayer {
+            let player = AVPlayer()
+            lock.withLock { players.append(player) }
+            return player
+        }
+    }
+
+    private let remote = URL(string: "https://playback.invalid/rest/stream?id=a")!
+    private let nextRemote = URL(string: "https://playback.invalid/rest/stream?id=b")!
+
+    @Test func remoteItemsAskForAFewMinutesOfAudioOnBothDecks() {
+        let recorder = DeckRecorder()
+        let engine = AVPlayerEngine(playerFactory: { recorder.make() })
+        defer { engine.stop() }
+        engine.play(trackID: "a", url: remote, headers: [:])
+        engine.preloadNext(trackID: "b", url: nextRemote, headers: [:], crossfadeDuration: 6, leadInTrim: 0, replayGainDB: 0, expectedCurrentTrackID: "a")
+        let items = recorder.decks.compactMap(\.currentItem)
+        #expect(items.count == 2)
+        #expect(AVPlayerEngine.remoteForwardBufferDuration >= 180 && AVPlayerEngine.remoteForwardBufferDuration <= 300)
+        #expect(items.allSatisfy { $0.preferredForwardBufferDuration == AVPlayerEngine.remoteForwardBufferDuration })
+    }
+
+    @Test func localFilesKeepTheSystemDefault() {
+        let recorder = DeckRecorder()
+        let engine = AVPlayerEngine(playerFactory: { recorder.make() })
+        defer { engine.stop() }
+        let file = URL(fileURLWithPath: "/tmp/forward-buffer-fixture.m4a")
+        engine.play(trackID: "a", url: file, headers: [:])
+        engine.preloadNext(trackID: "b", url: nextRemote, headers: [:], crossfadeDuration: 0, leadInTrim: 0, replayGainDB: 0, expectedCurrentTrackID: "a")
+        let decks = recorder.decks
+        #expect(decks.first?.currentItem?.preferredForwardBufferDuration == 0)
+        #expect(decks.last?.currentItem?.preferredForwardBufferDuration == AVPlayerEngine.remoteForwardBufferDuration)
+        #expect(AVPlayerEngine.preferredForwardBufferDuration(for: file) == 0)
     }
 }
 

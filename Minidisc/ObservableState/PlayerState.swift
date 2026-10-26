@@ -67,6 +67,12 @@ final class PlayerState {
     var isAutoExtendEnabled: Bool
     /// Index separating requested tracks from the auto-extended tail; nil means no extension.
     var originalQueueEndIndex: Int?
+    /// True while the playing song is still being downloaded in full. Pre-caching later songs
+    /// waits for it, so it never competes with the song that is playing.
+    var currentSongNeedsNetwork = false
+    /// True from shortly before a track transition until the next song starts. Background
+    /// downloads pause then, so the standby deck has the connection to itself.
+    var isNearTrackTransition = false
 
     init(isAutoExtendEnabled: Bool = false, waitingMessageDelay: Duration = .milliseconds(700)) {
         self.isAutoExtendEnabled = isAutoExtendEnabled
