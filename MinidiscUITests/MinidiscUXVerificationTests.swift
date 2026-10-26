@@ -1354,7 +1354,14 @@ final class MinidiscUXVerificationTests: XCTestCase {
     private func assertInlineTitle(_ title: String) throws {
         let navigation = app.navigationBars[title]
         try require(navigation)
-        XCTAssertLessThanOrEqual(navigation.frame.height, 60,
+        // A search field in the bar's drawer (the Playlists tab) adds to the bar's frame; measure only
+        // the title row above it. A large title would still push the field well past the limit.
+        var titleRowHeight = navigation.frame.height
+        let field = app.searchFields.firstMatch
+        if field.exists, navigation.frame.contains(CGPoint(x: field.frame.midX, y: field.frame.midY)) {
+            titleRowHeight = field.frame.minY - navigation.frame.minY
+        }
+        XCTAssertLessThanOrEqual(titleRowHeight, 60,
                                  "At ordinary text size, the browse title must use a compact navigation bar.")
     }
 
