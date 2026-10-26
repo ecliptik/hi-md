@@ -14,6 +14,13 @@
   <a href="https://swift.org"><img src="https://img.shields.io/badge/Swift-6-orange.svg" alt="Swift 6"></a>
 </p>
 
+<p align="center">
+  <img src="docs/screenshots/ios/01-home.jpg" alt="Home: playlists and favourite songs" width="200">
+  <img src="docs/screenshots/ios/02-now-playing.jpg" alt="Now Playing with the cover's colours" width="200">
+  <img src="docs/screenshots/ios/03-lyrics.jpg" alt="Synced lyrics in the player" width="200">
+  <img src="docs/screenshots/ios/05-discover.jpg" alt="Discover: stations and Smart Shuffle" width="200">
+</p>
+
 ## About this fork
 
 This repository is a fork of [Loriage/Minidisc](https://github.com/Loriage/Minidisc), which is itself a fork of [Cassette](https://github.com/CassetteLab/cassette) by Mathieu Dubart. Minidisc is a SwiftUI player for servers that speak the Subsonic or OpenSubsonic API, such as [Navidrome](https://www.navidrome.org). It has no accounts and no tracking: your music goes between your device and your server.
@@ -65,6 +72,15 @@ The fork follows its own direction and doesn't send changes upstream, but it mer
 
 - VoiceOver, Switch Control, Dynamic Type and Reduce Motion fixes, and a contrast sweep that brings text over covers and tinted surfaces to WCAG AA.
 - Security, concurrency, memory, performance, energy, UX and accessibility audits, with their follow-ups, are in [docs/audits](docs/audits).
+
+## Screenshots
+
+| | | |
+|:-:|:-:|:-:|
+| <img src="docs/screenshots/ios/06-artist.jpg" alt="Artist page" width="240"> | <img src="docs/screenshots/ios/07-library.jpg" alt="Library" width="240"> | <img src="docs/screenshots/ios/08-playlists.jpg" alt="Playlists" width="240"> |
+| Artist pages with a favourite button | Library | Playlists, with search |
+| <img src="docs/screenshots/ios/09-recommended.jpg" alt="Recommended for You" width="240"> | <img src="docs/screenshots/ios/10-playback-settings.jpg" alt="Playback settings" width="240"> | <img src="docs/screenshots/ios/04-minidisc-cover.jpg" alt="The MiniDisc cover easter egg" width="240"> |
+| Recommendations from Apple Intelligence | Playback settings, in Plexamp's order | Tap the cover for a MiniDisc |
 
 ## Features from upstream
 
