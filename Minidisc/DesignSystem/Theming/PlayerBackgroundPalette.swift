@@ -80,3 +80,50 @@ enum PlayerBackgroundPalette {
         WCAGContrast.luminance(WCAGContrast.RGB(red: red, green: green, blue: blue))
     }
 }
+
+/// The Mac's full-screen lyrics backdrop: the cover's colours made vivid and much brighter than
+/// the player's, with a soft dark wash behind the lyrics and behind the song's text so white
+/// stays readable. Every number here is checked by the full-screen contrast tests.
+enum FullScreenLyricsBackdrop {
+    /// The brightest a vivid stop gets. White, the line being sung, keeps 3:1 on it with no wash.
+    nonisolated static let maxLuminance = 0.28
+    /// The wash behind the lyrics (and, with Reduce Transparency, over the whole backdrop): the
+    /// line before or after the current one reaches 3:1 on it.
+    nonisolated static let lyricsWashOpacity = 0.42
+    /// The wash behind the title, the times and the controls: secondary text reaches 4.5:1.
+    nonisolated static let textWashOpacity = 0.38
+    /// The lines either side of the one being sung.
+    nonisolated static let nearLineOpacity = 0.55
+
+    /// The cover's colours, saturated and brightened, then darkened to `maxLuminance`. A grey
+    /// sleeve takes a hint of `accent` first, as the Now Playing backdrop does.
+    static func colors(from samples: [Color], accent: Color) -> [Color] {
+        let accentRGB = WCAGContrast.RGB(accent.rgbComponents)
+        return samples.enumerated().map { index, sample in
+            guard let rgb = WCAGContrast.RGB(sample.rgbComponents) else { return .black }
+            let fraction = Double(index) / Double(max(samples.count - 1, 1))
+            let tinted = accentRGB.map { PlayerBackgroundPalette.tinted(rgb, toward: $0, fraction: fraction) } ?? rgb
+            let stop = vivid(tinted)
+            return Color(red: stop.red, green: stop.green, blue: stop.blue)
+        }
+    }
+
+    /// `color` with its saturation raised and its brightness lifted to full, then darkened until
+    /// its luminance is at most `maxLuminance`. The hue stays.
+    nonisolated static func vivid(_ color: WCAGContrast.RGB) -> WCAGContrast.RGB {
+        let high = max(color.red, color.green, color.blue)
+        let low = min(color.red, color.green, color.blue)
+        let saturation = high > 0 ? (high - low) / high : 0
+        let boosted = min(saturation * 1.35 + 0.08, 1)
+        // Each component keeps its place between the lowest and the highest.
+        func lifted(_ component: Double) -> Double {
+            let place = high > low ? (component - low) / (high - low) : 1
+            return 1 - boosted + boosted * place
+        }
+        var stop = WCAGContrast.RGB(red: lifted(color.red), green: lifted(color.green), blue: lifted(color.blue))
+        while WCAGContrast.luminance(stop) > maxLuminance {
+            stop = stop.scaled(by: 0.97)
+        }
+        return stop
+    }
+}

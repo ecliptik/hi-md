@@ -95,3 +95,53 @@ nonisolated struct NowPlayingMetrics: Equatable, Sendable {
         paneWidth = showsPane ? column : 0
     }
 }
+
+/// The Mac's full-screen lyrics for a window: the artwork, the song and its controls in a column
+/// on the left, about 40% of the width, and the lyrics on the right in huge lines, only about
+/// four of them showing. Everything grows with the window; the lines are about 60 points in a
+/// 1,000-point window.
+nonisolated struct FullScreenLyricsMetrics: Equatable, Sendable {
+    /// 1 in a 1,000-point window, from 0.85 to 1.6.
+    let scale: Double
+    let horizontalInset: Double
+    let verticalInset: Double
+    /// Between the player column and the lyrics.
+    let columnGap: Double
+    /// The artwork's side, which is also the width of the song, the scrubber and the transport.
+    let artworkSide: Double
+    let lyricsWidth: Double
+    /// The lyric lines' point size.
+    let lineSize: Double
+    /// The height the lyrics show in.
+    let lyricsHeight: Double
+
+    var lineSpacing: Double { (lineSize * 0.42).rounded() }
+    var titleSize: Double { (17 * scale).rounded() }
+    var subtitleSize: Double { (14 * scale).rounded() }
+    var timeSize: Double { (11 * scale).rounded() }
+    var transportSize: Double { (19 * scale).rounded() }
+    var playSize: Double { (32 * scale).rounded() }
+    var columnSpacing: Double { (16 * scale).rounded() }
+    /// Roughly how many lines show, if none wraps.
+    static let visibleLines = 4.2
+
+    /// What the column needs under the artwork: the song, the scrubber, the transport and gaps.
+    static func controlsHeight(scale: Double) -> Double { 170 * scale }
+
+    init(width: Double, height: Double) {
+        let scale = min(max(width / 1000, 0.85), 1.6)
+        self.scale = scale
+        horizontalInset = min(max(width * 0.06, 40), 120).rounded()
+        verticalInset = min(max(height * 0.08, 32), 96).rounded()
+        columnGap = min(max(width * 0.05, 36), 110).rounded()
+        let content = max(width - 2 * horizontalInset - columnGap, 0)
+        let byHeight = height - 2 * verticalInset - Self.controlsHeight(scale: scale)
+        artworkSide = max(min(content * 0.45, byHeight), 160)
+        lyricsWidth = max(content - artworkSide, 0)
+        // Slower than the window, so a large screen's lines don't hold only a word or two.
+        let size = 60 * pow(scale, 0.7)
+        lineSize = min(max(min(size, lyricsWidth / 7.5), 36), 84).rounded()
+        let pitch = lineSize * 1.25 + (lineSize * 0.42).rounded()
+        lyricsHeight = max(min(pitch * Self.visibleLines, height - 2 * verticalInset), 0)
+    }
+}
