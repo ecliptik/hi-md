@@ -316,14 +316,20 @@ struct ArtistDetailView: View {
                         }
                     }
                 } label: {
-                    Image(systemName: isArtistFavorite ? "star.fill" : "star")
+                    Image(systemName: FavoriteToggle(isFavorite: isArtistFavorite).starSystemImage)
                         .font(.system(size: 18, weight: .regular))
                         .foregroundStyle(isArtistFavorite ? .white : headerTextColor)
                         .frame(width: 48, height: 48)
                         .background(.ultraThinMaterial, in: Circle())
+                        .contentTransition(.symbolEffect(.replace))
                 }
                 .buttonStyle(.plain)
                 .disabled(!isOnline)
+                .opacity(isOnline ? 1 : 0.4)
+                .accessibilityLabel(Text("Favorite"))
+                .accessibilityValue(Text(FavoriteToggle(isFavorite: isArtistFavorite).accessibilityValue))
+                .accessibilityHint(Text(FavoriteToggle(isFavorite: isArtistFavorite).actionTitle))
+                .accessibilityAddTraits(isArtistFavorite ? .isSelected : [])
             }
         }
     }

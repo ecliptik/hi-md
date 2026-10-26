@@ -84,6 +84,22 @@ struct AlbumDetailView: View {
     private var albumThemeIds: [String] {
         [albumCoverId] + (viewModel?.songs.compactMap { $0.coverArtId } ?? [])
     }
+    /// The header's star and the … menu: stars or unstars the album on the server.
+    private func toggleAlbumFavorite() {
+        HapticFeedback.light.trigger()
+        let star = !isAlbumFavorite
+        let albumId = albumId
+        Task {
+            await container?.toastService.perform {
+                if star {
+                    try await container?.favoritesService.star(itemType: .album, itemId: albumId)
+                } else {
+                    try await container?.favoritesService.unstar(itemType: .album, itemId: albumId)
+                }
+            }
+        }
+    }
+
     private func resetThemeColor() {
         colorExtractor.setColorOverride(nil, forIds: albumThemeIds)
         dominantColor = colorExtractor.cachedColor(for: albumCoverId) ?? dominantColor
@@ -239,7 +255,10 @@ struct AlbumDetailView: View {
                     contentColor: palette.accentControlColor ?? palette.contentColor,
                     controlFillColor: palette.controlFillColor,
                     playLabelColor: palette.playLabelColor,
-                    playFillColor: palette.playFillColor
+                    playFillColor: palette.playFillColor,
+                    favorite: FavoriteToggle(isFavorite: isAlbumFavorite),
+                    canFavorite: isOnline,
+                    toggleFavorite: toggleAlbumFavorite
                 )
                 .padding(.top, MinidiscSpacing.l)
                 .padding(.bottom, MinidiscSpacing.xl)
@@ -374,18 +393,9 @@ struct AlbumDetailView: View {
             // The system "…" menu, which also takes the download button when space runs out.
             ToolbarOverflowMenu {
                     Group {
-                        Button(
-                            isAlbumFavorite ? "Remove from Favorites" : "Add to Favorites",
-                            systemImage: isAlbumFavorite ? "star.fill" : "star"
-                        ) {
-                            HapticFeedback.light.trigger()
-                            Task {
-                                if isAlbumFavorite {
-                                    await container?.toastService.perform { try await container?.favoritesService.unstar(itemType: .album, itemId: albumId) }
-                                } else {
-                                    await container?.toastService.perform { try await container?.favoritesService.star(itemType: .album, itemId: albumId) }
-                                }
-                            }
+                        let favorite = FavoriteToggle(isFavorite: isAlbumFavorite)
+                        Button(String(localized: favorite.actionTitle), systemImage: favorite.starMenuSystemImage) {
+                            toggleAlbumFavorite()
                         }
                         .disabled(!isOnline)
                         Button("Select Songs", systemImage: "checkmark.circle") {
@@ -737,6 +747,10 @@ private struct AlbumPlaybackActions: View {
     let controlFillColor: Color
     let playLabelColor: Color
     let playFillColor: Color
+    let favorite: FavoriteToggle
+    /// Starring needs the server.
+    let canFavorite: Bool
+    let toggleFavorite: () -> Void
 
     @Environment(\.appContainer) private var container
 
@@ -761,6 +775,22 @@ private struct AlbumPlaybackActions: View {
 
                 PlayMenuButton(songs: songs, fillColor: playFillColor, labelColor: playLabelColor)
                     .frame(maxWidth: 220)
+
+                // Balances Shuffle on the other side of Play: star the album.
+                Button(action: toggleFavorite) {
+                    AlbumCircularActionLabel(
+                        systemImage: favorite.starSystemImage,
+                        foregroundColor: contentColor,
+                        backgroundColor: controlFillColor
+                    )
+                    .contentTransition(.symbolEffect(.replace))
+                }
+                .disabled(!canFavorite)
+                .opacity(canFavorite ? 1 : 0.4)
+                .accessibilityLabel(Text("Favorite"))
+                .accessibilityValue(Text(favorite.accessibilityValue))
+                .accessibilityHint(Text(favorite.actionTitle))
+                .accessibilityAddTraits(favorite.isFavorite ? .isSelected : [])
             }
             .buttonStyle(.plain)
             .padding(.horizontal, MinidiscSpacing.xxxxl)
