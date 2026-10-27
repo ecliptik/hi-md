@@ -48,7 +48,9 @@ struct SiriSettingsSection: View {
         if authorization != .notDetermined {
             if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) }
         } else {
-            INPreferences.requestSiriAuthorization { _ in
+            // Sendable: Intents calls this on a background queue, and a main-actor closure traps
+            // there before it can hop.
+            INPreferences.requestSiriAuthorization { @Sendable _ in
                 Task { @MainActor in refresh() }
             }
         }

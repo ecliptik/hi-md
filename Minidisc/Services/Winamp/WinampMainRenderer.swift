@@ -23,6 +23,13 @@ nonisolated enum WinampMainRenderer {
 
     /// Draws into a context whose user space is the window's pixels with the origin at the
     /// bottom left, as a bitmap context's is.
+    /// How many of the analyser's `rows` a bar or peak fills. `min` and `max` pass NaN through,
+    /// and `Int(NaN)` traps, so a non-finite level from the analyser draws an empty bar.
+    static func level(_ value: Float, rows: Int) -> Int {
+        guard value.isFinite else { return 0 }
+        return Int((Double(min(max(value, 0), 1)) * Double(rows)).rounded())
+    }
+
     static func draw(_ state: WinampMainDisplayState, skin: WinampSkin, sprites: WinampSpriteCache, in context: CGContext) {
         var canvas = Canvas(context: context, sprites: sprites, height: CGFloat(height))
         context.interpolationQuality = .none
@@ -232,13 +239,13 @@ nonisolated enum WinampMainRenderer {
         case .spectrum:
             for (index, value) in picture.bars.prefix(Int(area.width)).enumerated() {
                 let x = area.minX + CGFloat(index)
-                let barHeight = Int((Double(min(max(value, 0), 1)) * Double(rows)).rounded())
+                let barHeight = level(value, rows: rows)
                 // Each row keeps its own colour, so tall bars run from the top colour to the bottom one.
                 for row in (rows - barHeight)..<rows {
                     canvas.fill(CGRect(x: x, y: area.minY + CGFloat(row), width: 1, height: 1), color: colors[2 + row])
                 }
                 if index < picture.peaks.count {
-                    let peakHeight = Int((Double(min(max(picture.peaks[index], 0), 1)) * Double(rows)).rounded())
+                    let peakHeight = level(picture.peaks[index], rows: rows)
                     if peakHeight > 0 {
                         canvas.fill(CGRect(x: x, y: area.minY + CGFloat(rows - peakHeight), width: 1, height: 1), color: colors[23])
                     }

@@ -56,9 +56,9 @@ struct EditPlaylistSheet: View {
                 .listRowSeparator(.hidden)
 
                 Section {
-                    ForEach(editSongs) { song in
-                        trackRow(song)
-                            .tag(song.id)
+                    ForEach(SongOccurrence.list(editSongs)) { entry in
+                        trackRow(entry.song)
+                            .tag(entry.song.id)
                     }
                     .onMove { from, to in
                         editSongs.move(fromOffsets: from, toOffset: to)

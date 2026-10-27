@@ -1,6 +1,7 @@
 #if canImport(UIKit)
 import AVFoundation
 import AVKit
+import Combine
 import SwiftUI
 import UIKit
 
@@ -31,7 +32,9 @@ struct AudioOutputRow: View {
                 .accessibilityLabel("Choose Audio Output")
         }
         .accessibilityElement(children: .contain)
-        .onReceive(NotificationCenter.default.publisher(for: AVAudioSession.routeChangeNotification)) { _ in
+        // AVAudioSession posts route changes on its own thread; onReceive runs the action there.
+        .onReceive(NotificationCenter.default.publisher(for: AVAudioSession.routeChangeNotification)
+            .receive(on: DispatchQueue.main)) { _ in
             outputName = Self.currentOutputName()
         }
     }

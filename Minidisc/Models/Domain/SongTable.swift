@@ -13,6 +13,31 @@ nonisolated struct SongTableRow: Identifiable, Hashable, Sendable {
     }
 }
 
+/// A song in an iPhone list that can hold it more than once (a playlist, its editor), identified
+/// by the song's ID and which occurrence of it this is. Keyed by the song alone, the second copy
+/// gave the List a duplicate identifier, which breaks its deletes, moves and selection. A song
+/// that's there once keeps its identity as it moves.
+nonisolated struct SongOccurrence: Identifiable, Hashable, Sendable {
+    struct ID: Hashable, Sendable {
+        let songID: String
+        let occurrence: Int
+    }
+
+    let id: ID
+    /// Its position in the list.
+    let index: Int
+    let song: DisplayableSong
+
+    static func list(_ songs: [DisplayableSong]) -> [SongOccurrence] {
+        var seen: [String: Int] = [:]
+        return songs.enumerated().map { index, song in
+            let occurrence = seen[song.id, default: 0]
+            seen[song.id] = occurrence + 1
+            return SongOccurrence(id: ID(songID: song.id, occurrence: occurrence), index: index, song: song)
+        }
+    }
+}
+
 /// Orders song table rows by one column. Text compares the way the Finder does (ignoring case,
 /// numbers in numeric order) and missing values sort after names. Equal values keep the list's order
 /// in both directions, so clicking a column twice never shuffles tracks that tie.

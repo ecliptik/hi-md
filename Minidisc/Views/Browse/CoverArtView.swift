@@ -31,6 +31,12 @@ struct CoverArtView: View {
     /// filling on a cold launch doesn't flash. RAM hits render on the first pass and never animate.
     static let arrival: Animation = .easeOut(duration: 0.25)
 
+    /// The cache a cover loads through: the environment's, else the container's, else none (the
+    /// cover waits on its loading tile rather than trapping). See `CoverArtViewContent`.
+    static func cache(environment: ArtworkImageCache?, container: AppContainer?) -> ArtworkImageCache? {
+        environment ?? container?.artworkImageCache
+    }
+
     var body: some View {
         CoverArtViewContent(
             id: id,
@@ -59,7 +65,11 @@ private struct CoverArtViewContent: View {
     let crossfades: Bool
 
     @Environment(\.appContainer) private var container
-    @Environment(ArtworkImageCache.self) private var artworkCache
+    /// Optional: AppKit lays out the Mac's table and list cells in hosting views of their own, and
+    /// can do so (mid-scroll, or while a table is torn down) before the table's environment has
+    /// reached them. A required read traps there ("No Observable object of type
+    /// ArtworkImageCache"); without a cache the cover shows its loading tile until one arrives.
+    @Environment(ArtworkImageCache.self) private var environmentCache: ArtworkImageCache?
     @AppStorage("coverArtUploadVersion") private var coverArtUploadVersion = 0
     @State private var cachedImage: PlatformImage?
     @State private var url: URL?
@@ -86,6 +96,11 @@ private struct CoverArtViewContent: View {
         _displayedId = State(initialValue: initialImage == nil ? nil : id)
     }
 
+    /// The environment's cache, or the container's when only that reached this view.
+    private var artworkCache: ArtworkImageCache? {
+        CoverArtView.cache(environment: environmentCache, container: container)
+    }
+
     private var resolvedTier: ArtworkTier {
         tier ?? ((size ?? 0) >= 480 ? .hero : .thumb)
     }
@@ -93,7 +108,7 @@ private struct CoverArtViewContent: View {
     /// The RAM-cache hit for this id, tier and upload version, read once when the body first sees
     /// them. The cache isn't observed, so this is a snapshot; the task still resolves everything else.
     private func ramSnapshot() -> PlatformImage? {
-        guard loadingEnabled else { return nil }
+        guard loadingEnabled, let artworkCache else { return nil }
         let tier = resolvedTier
         return ramHit.image(for: id, key: "\(id)@\(tier.rawValue):\(coverArtUploadVersion)") {
             artworkCache.cachedImage(for: id, tier: tier)
@@ -112,7 +127,7 @@ private struct CoverArtViewContent: View {
         let shown = shownImage(snapshot: snapshot)
         // The missing-cover record is read like the RAM cache, as a snapshot, so a cover already
         // known to be missing shows its placeholder on the first pass instead of the loading tile.
-        let knownMissing = missingId == id || artworkCache.isMissing(id)
+        let knownMissing = missingId == id || artworkCache?.isMissing(id) == true
         // An earlier id's image gives way at once to a cover known to be missing.
         let ownsShown = displayedId == id || snapshot != nil
         let phase = CoverArtPhase.resolve(id: id, hasImage: shown != nil && (ownsShown || !knownMissing),
@@ -146,7 +161,7 @@ private struct CoverArtViewContent: View {
                     case .failure:
                         missing
                             .onAppear {
-                                artworkCache.noteLoadFailed(id)
+                                artworkCache?.noteLoadFailed(id)
                                 missingId = id
                             }
                     case .empty:
@@ -157,8 +172,9 @@ private struct CoverArtViewContent: View {
                 }
             }
         }
-        .task(id: "\(loadingEnabled):\(id):\(coverArtUploadVersion)") {
-            guard loadingEnabled else { return }
+        // Keyed on the cache too, so a cover that rendered before its cache reached it loads then.
+        .task(id: "\(loadingEnabled):\(id):\(coverArtUploadVersion):\(artworkCache != nil)") {
+            guard loadingEnabled, let artworkCache else { return }
             if url != nil { url = nil }
             // A cover invalidated since (a new upload) loads again rather than staying missing.
             if missingId == id, !artworkCache.isMissing(id) { missingId = nil }

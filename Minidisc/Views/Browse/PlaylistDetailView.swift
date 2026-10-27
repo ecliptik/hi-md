@@ -762,9 +762,9 @@ struct PlaylistDetailView: View {
 
     @ViewBuilder
     private var editableSongRows: some View {
-        ForEach(editSongs) { song in
-            editTrackRow(song)
-                .tag(song.id)
+        ForEach(SongOccurrence.list(editSongs)) { entry in
+            editTrackRow(entry.song)
+                .tag(entry.song.id)
                 .listRowBackground(bodyColor)
         }
         .onMove { from, to in
@@ -1021,8 +1021,8 @@ struct PlaylistSongRows: View {
         let favoriteIds = favoriteSongIds
         let downloadedIds = downloadedSongIds
         if let removeAction = onRemove {
-            ForEach(songs.enumerated(), id: \.element.id) { index, song in
-                makeRow(index: index, song: song, favoriteIds: favoriteIds, downloadedIds: downloadedIds)
+            ForEach(SongOccurrence.list(songs)) { entry in
+                makeRow(index: entry.index, song: entry.song, favoriteIds: favoriteIds, downloadedIds: downloadedIds)
                     .listRowBackground(rowBackground)
             }
             .onDelete { indexSet in
@@ -1032,8 +1032,8 @@ struct PlaylistSongRows: View {
                 onReorder?(source, destination)
             }
         } else {
-            ForEach(songs.enumerated(), id: \.element.id) { index, song in
-                makeRow(index: index, song: song, favoriteIds: favoriteIds, downloadedIds: downloadedIds)
+            ForEach(SongOccurrence.list(songs)) { entry in
+                makeRow(index: entry.index, song: entry.song, favoriteIds: favoriteIds, downloadedIds: downloadedIds)
                     .listRowBackground(rowBackground)
             }
         }
