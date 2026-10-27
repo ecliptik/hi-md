@@ -13,8 +13,8 @@ struct MacPlayerBar: View {
     @Namespace private var paneSelection
 
     /// The capsule's height, its widest, and the margin it floats at from the content's edges.
-    static let height: Double = 48
-    static let maxWidth: Double = 780
+    static let height: Double = 56
+    static let maxWidth: Double = 860
     static let margin: Double = 10
 
     private var playerState: PlayerState { playback.state }
@@ -25,30 +25,36 @@ struct MacPlayerBar: View {
         let shownPane = navigator.inspector
         GlassEffectContainer(spacing: 12) {
             HStack(spacing: 12) {
+                // The window's text colour, not the accent: gold glyphs vanish over yellow covers.
+                // Shuffle and repeat still turn gold when on.
                 MacTransportControls(commands: commands)
-                    .frame(width: 150, alignment: .leading)
+                    .tint(.primary)
+                    .frame(width: 180, alignment: .leading)
                 MacNowPlayingDisplay()
                     .frame(maxWidth: .infinity)
-                HStack(spacing: 8) {
+                HStack(spacing: 10) {
                     MacVolumeSlider()
-                        .frame(width: 84)
+                        .frame(width: 96)
                     HStack(spacing: 2) {
                         MacGlassSegment(title: "Lyrics", systemImage: "quote.bubble", isOn: shownPane == .lyrics,
-                                        side: 24, selection: paneSelection) {
+                                        side: 28, selection: paneSelection) {
                             toggle(.lyrics, shown: shownPane)
                         }
                         .disabled(!commands.canShowLyrics && shownPane != .lyrics)
                         MacGlassSegment(title: "Playing Next", systemImage: "list.bullet", isOn: shownPane == .queue,
-                                        side: 24, selection: paneSelection) {
+                                        side: 28, selection: paneSelection) {
                             toggle(.queue, shown: shownPane)
                         }
                     }
                 }
-                .frame(width: 150, alignment: .trailing)
+                .frame(width: 180, alignment: .trailing)
             }
-            .padding(.leading, 16)
-            .padding(.trailing, 10)
+            .padding(.leading, 20)
+            .padding(.trailing, 12)
             .frame(height: Self.height)
+            // A layer of the window's background under the content keeps the controls legible
+            // over bright covers scrolling beneath; the glass still shows through at the edges.
+            .background(Color(nsColor: .windowBackgroundColor).opacity(0.62), in: Capsule())
             .macGlass(in: Capsule(), interactive: false)
             .frame(maxWidth: Self.maxWidth)
         }
@@ -165,7 +171,7 @@ private struct MacNowPlayingDisplay: View {
                             .padding(4)
                     }
                 }
-                .frame(width: 36, height: 36)
+                .frame(width: 42, height: 42)
                 .overlay(alignment: .bottomTrailing) {
                     Image(systemName: "arrow.up.left.and.arrow.down.right")
                         .font(.system(size: 8, weight: .bold))
