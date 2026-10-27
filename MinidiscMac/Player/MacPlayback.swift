@@ -65,6 +65,12 @@ final class MacPlayback {
         setRepeatMode(state.repeatMode.next)
     }
 
+    /// Autoplay: keep going with similar music when the queue runs out. The same setting as
+    /// Settings > Playback > Autoplay.
+    func setAutoplay(_ isOn: Bool) {
+        Task { await player.setAutoExtendEnabled(isOn) }
+    }
+
     func setVolume(_ newValue: Float) {
         volume = min(1, max(0, newValue))
         let level = volume

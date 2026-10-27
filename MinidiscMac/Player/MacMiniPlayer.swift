@@ -1,15 +1,20 @@
 import SwiftSonic
 import SwiftUI
 
-/// Window > MiniPlayer (⌥⌘M): a floating window modelled on Plexamp's mini player, over a
-/// backdrop tinted from the artwork. Its layout follows the window's shape: compact (the artwork
-/// above the song), tall (adds the transport, volume and the Library, Playing Next, Related and
-/// Lyrics tabs) or wide (the artwork beside everything else, with a pane between the song and
-/// the controls when one is open). The chevron switches between compact and tall; the toolbar's
-/// Library and Lyrics buttons open their pane, growing a compact window to show it. Clicking the
-/// artwork shows the spinning MiniDisc. Opening it closes Now Playing in the main window, so
-/// there's one player on screen; closing it leaves playback alone. It's separate from the menu
-/// bar player and Winamp mode.
+/// Window > MiniPlayer (⌥⌘M): a floating window modelled on the Music app's MiniPlayer. The
+/// artwork runs to the window's edges, up under the traffic lights, and nothing sits on it until
+/// the pointer comes over: then the traffic lights, a glass capsule at the top right (Lyrics,
+/// Queue and Volume) and, over a soft scrim at the bottom, the song, its heart and ⋯ menu, the
+/// waveform scrubber and the transport fade in, and fade out again 2.5 seconds after the pointer
+/// stops (`PlayerChromeVisibility`).
+///
+/// The window hugs its content: without a pane it's only the artwork, square, and resizing it
+/// scales the artwork; Lyrics or Queue grows it by a pane under the artwork (or beside it, when
+/// the screen has no room below, or the window is dragged wide), and closing the pane puts it
+/// back as it was. The ⋯ menu also opens the Library and Related Songs panes. Clicking the
+/// artwork shows the spinning MiniDisc. Opening the MiniPlayer closes Now Playing in the main
+/// window, so there's one player on screen; closing it leaves playback alone. It's separate from
+/// the menu bar player and Miniamp.
 ///
 /// Nothing in it is a List or Table: its layouts are rebuilt as the window crosses from one shape
 /// to another during a live resize, and an NSTableView torn down then crashes.
@@ -41,7 +46,6 @@ private struct MacMiniPlayerContent: View {
     @Environment(\.openWindow) private var openWindow
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
-    @Environment(\.accessibilityVoiceOverEnabled) private var voiceOverEnabled
 
     @AppStorage("minidisc.mac.miniPlayerPane") private var storedPane: MiniPlayerPane = .upNext
     @AppStorage("minidisc.mac.miniPlayerPaneOpen") private var storedPaneOpen = false
@@ -52,13 +56,22 @@ private struct MacMiniPlayerContent: View {
     @State private var model = MacMiniPlayerModel()
     @State private var library: LibraryBrowserModel
     @State private var window = MacWindowHandle()
+    @State private var chrome = MacPlayerChrome()
+    @State private var sizing = MiniPlayerWindowSizing()
     @State private var showsSpinningDisc = false
-    @State private var isHoveringWindow = false
-    @State private var isHoveringArtwork = false
-    /// The band the traffic lights take along the top, measured from the window's buttons.
-    @State private var topInset = MiniPlayerLayout.titleBarBand
-    /// The compact window's size before a Library or Lyrics click grew it, to go back to.
-    @State private var sizeBeforeGrowing: CGSize?
+    @State private var isVolumeShown = false
+    /// The window's frame before a pane opened, to put it back exactly where it was.
+    @State private var frameBeforeOpening: CGRect?
+    /// While the window animates to or from a pane, the layout with the pane, so the artwork
+    /// holds its place and only the pane grows or shrinks.
+    @State private var transition: MiniPlayerLayout?
+    /// The layout the window's limits were last set for.
+    @State private var limitsLayout: MiniPlayerLayout?
+    @FocusState private var focus: MiniPlayerControl?
+    @Namespace private var paneSelection
+
+    /// The row the glass capsule takes above a pane beside the artwork.
+    private static let capsuleRow: Double = 44
 
     init(container: AppContainer) {
         self.container = container
@@ -67,9 +80,9 @@ private struct MacMiniPlayerContent: View {
 
     private var state: PlayerState { playback.state }
     private var track: DisplayableSong? { state.currentTrack }
-    private var inset: Double { MiniPlayerLayout.inset }
-    private var topSpace: Double { MiniPlayerLayout.topSpace(topInset) }
     private var canShowLyrics: Bool { playback.commands.canShowLyrics }
+    private var hasSong: Bool { track != nil || state.currentRadio != nil }
+    private var animation: Animation? { reduceMotion ? nil : .smooth(duration: 0.25) }
 
     private var coverArtID: String? {
         state.isLiveStream ? state.currentRadio?.coverArt : (track?.coverArtId ?? track?.id)
@@ -87,42 +100,51 @@ private struct MacMiniPlayerContent: View {
 
     var body: some View {
         GeometryReader { proxy in
-            let layout = MiniPlayerLayout.layout(for: proxy.size)
-            let side = layout.artworkSide(in: proxy.size, topInset: topInset)
-            Group {
+            let size = proxy.size
+            let layout = transition ?? MiniPlayerLayout.layout(for: size, isPaneOpen: panel.isOpen)
+            // Mid-animation the artwork follows the shorter edge, so only the pane grows or shrinks.
+            let side = transition != nil ? Double(min(size.width, size.height)) : layout.artworkSide(in: size)
+            ZStack(alignment: .topTrailing) {
                 switch layout {
-                case .compact: compact(side: side)
-                case .tall: tall(side: side, width: proxy.size.width)
-                case .wide: wide(side: side, size: proxy.size)
+                case .compact:
+                    artworkStage(side: side)
+                        .frame(width: size.width, height: size.height)
+                case .tall:
+                    VStack(spacing: 0) {
+                        artworkStage(side: side)
+                            .frame(maxWidth: .infinity)
+                        paneArea(layout: .tall, width: Double(size.width))
+                    }
+                case .wide:
+                    HStack(spacing: 0) {
+                        artworkStage(side: side)
+                            .frame(maxHeight: .infinity)
+                        paneArea(layout: .wide, width: max(Double(size.width) - side, 0))
+                    }
                 }
+                paneCapsule
+                    .padding(.top, 8)
+                    .padding(.trailing, 10)
             }
-            .frame(width: proxy.size.width, height: proxy.size.height, alignment: .top)
+            .frame(width: size.width, height: size.height, alignment: .topLeading)
+            .onChange(of: layout, initial: true) { _, newLayout in applyLimits(for: newLayout) }
         }
-        .frame(minWidth: MiniPlayerLayout.minimumWidth, maxWidth: .infinity,
-               minHeight: MiniPlayerLayout.minimumHeight, maxHeight: .infinity)
-        // The backdrop runs under the traffic lights' band, so the window still looks borderless.
+        .frame(minWidth: MiniPlayerLayout.minimumSide, maxWidth: .infinity,
+               minHeight: MiniPlayerLayout.minimumSide, maxHeight: .infinity)
+        // The backdrop runs under the pane and behind the artwork while it loads.
         .background { background.ignoresSafeArea() }
         .ignoresSafeArea()
         .background(MacWindowReader(handle: window) { nsWindow in
             configure(nsWindow)
         })
-        .onHover { hovering in
-            isHoveringWindow = hovering
-            window.setTrafficLightsVisible(hovering || voiceOverEnabled, animated: !reduceMotion)
+        .playerChromeTracking(chrome)
+        .onChange(of: chrome.isVisible, initial: true) { _, visible in
+            window.setTrafficLightsVisible(visible, animated: !reduceMotion)
         }
+        .onChange(of: focus) { _, focused in chrome.set(.keyboardFocus, focused != nil) }
+        .onChange(of: isVolumeShown) { _, shown in chrome.set(.popover, shown) }
         .onChange(of: floatsOnTop) { _, floats in
             window.window?.level = floats ? .floating : .normal
-        }
-        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didResizeNotification)) { note in
-            guard let nsWindow = window.window, note.object as? NSWindow === nsWindow else { return }
-            window.constrainAspect()
-            measureTopInset()
-        }
-        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didEndLiveResizeNotification)) { note in
-            guard let nsWindow = window.window, note.object as? NSWindow === nsWindow,
-                  let size = window.contentSize else { return }
-            // Dragged back to compact by hand: a later click grows it from here.
-            if MiniPlayerLayout.layout(for: size) == .compact { sizeBeforeGrowing = nil }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.willCloseNotification)) { note in
             guard let nsWindow = window.window, note.object as? NSWindow === nsWindow else { return }
@@ -156,7 +178,7 @@ private struct MacMiniPlayerContent: View {
     // MARK: Backdrop
 
     /// The artwork's colours darkened under the cap that keeps white text at 7.5:1 and the
-    /// secondary white at 4.5:1. Reduce Transparency gets one solid colour.
+    /// secondary white at 4.5:1, behind the pane. Reduce Transparency gets one solid colour.
     @ViewBuilder private var background: some View {
         let colors = PlayerBackgroundPalette.tintedColors(from: backdrop.backgroundColors, accent: .minidiscAccent)
         if reduceTransparency {
@@ -166,345 +188,271 @@ private struct MacMiniPlayerContent: View {
         }
     }
 
-    // MARK: Layouts
-
-    private func compact(side: Double) -> some View {
-        VStack(spacing: 0) {
-            artworkArea(side: side, layout: .compact)
-                .padding(.top, topSpace)
-            Spacer(minLength: 10)
-            MacWaveformScrubber(envelope: model.waveform)
-                .padding(.horizontal, inset)
-            songText(alignment: .center)
-                .padding(.horizontal, inset)
-                .padding(.top, 6)
-            MiniPlayerMetadataRow(track: track, model: model)
-                .padding(.top, 4)
-            Spacer(minLength: 4)
-            toolbar(layout: .compact)
-                .padding(.horizontal, inset - 4)
-                .padding(.bottom, 8)
-        }
-    }
-
-    private func tall(side: Double, width: Double) -> some View {
-        VStack(spacing: 0) {
-            artworkArea(side: side, layout: .tall)
-                .padding(.top, topSpace)
-            MacWaveformScrubber(envelope: model.waveform)
-                .padding(.horizontal, inset)
-                .padding(.top, 10)
-            songText(alignment: .center)
-                .padding(.horizontal, inset)
-                .padding(.top, 6)
-            albumLine(layout: .tall)
-                .padding(.horizontal, inset)
-                .padding(.top, 2)
-            MiniPlayerMetadataRow(track: track, model: model)
-                .padding(.top, 4)
-            MiniPlayerTransport(commands: playback.commands, playDiameter: 52)
-                .padding(.top, 8)
-            MacVolumeSlider()
-                .padding(.horizontal, inset + 12)
-                .padding(.top, 8)
-            toolbar(layout: .tall)
-                .padding(.horizontal, inset - 4)
-                .padding(.top, 6)
-            paneArea(width: width, layout: .tall)
-        }
-    }
-
-    /// The artwork on the left; on the right the song at the top and the controls at the
-    /// bottom, with the open pane filling the space between them.
-    private func wide(side: Double, size: CGSize) -> some View {
-        let showsPane = MiniPlayerLayout.wide.showsPane(isOpen: panel.isOpen)
-        let columnWidth = max(Double(size.width) - side - 3 * inset, 0)
-        return HStack(alignment: .top, spacing: inset) {
-            artworkArea(side: side, layout: .wide)
-            VStack(alignment: .leading, spacing: 0) {
-                songText(alignment: .leading)
-                if size.height >= 240 {
-                    albumLine(layout: .wide)
-                        .padding(.top, 2)
-                }
-                MiniPlayerMetadataRow(track: track, model: model)
-                    .padding(.top, 4)
-                if showsPane {
-                    paneArea(width: columnWidth, layout: .wide)
-                        .padding(.vertical, 6)
-                        .frame(maxHeight: .infinity)
-                } else {
-                    Spacer(minLength: 4)
-                }
-                MacWaveformScrubber(envelope: model.waveform)
-                MiniPlayerTransport(commands: playback.commands, playDiameter: 40)
-                    .frame(maxWidth: .infinity)
-                    .padding(.top, 6)
-                if size.height >= (showsPane ? 440 : 250) {
-                    MacVolumeSlider()
-                        .padding(.horizontal, 12)
-                        .padding(.top, 6)
-                }
-                toolbar(layout: .wide)
-                    .padding(.top, 4)
-            }
-            .frame(maxHeight: .infinity)
-        }
-        .padding(.horizontal, inset)
-        .padding(.bottom, inset)
-        .padding(.top, topSpace)
-    }
-
     // MARK: Artwork
 
-    /// The artwork, which clicking swaps for the spinning MiniDisc. Compact shows the transport
-    /// over the artwork while the pointer is on it (always, with VoiceOver). The panes never
-    /// cover it.
-    private func artworkArea(side: Double, layout: MiniPlayerLayout) -> some View {
-        let showsHoverTransport = layout == .compact
-        return MacSpinningDiscArtwork(showsDisc: $showsSpinningDisc, cornerRadius: 8, artworkSize: 600)
-            .shadow(color: .black.opacity(0.3), radius: 10, y: 4)
-            .overlay {
-                if showsHoverTransport, track != nil || state.currentRadio != nil {
-                    hoverTransport
-                        .opacity(isHoveringArtwork || voiceOverEnabled ? 1 : 0)
-                        .allowsHitTesting(isHoveringArtwork || voiceOverEnabled)
+    /// The artwork, edge to edge, which clicking swaps for the spinning MiniDisc, and the song's
+    /// controls over its bottom while the pointer is on the window.
+    private func artworkStage(side: Double) -> some View {
+        ZStack(alignment: .bottom) {
+            MacSpinningDiscArtwork(showsDisc: $showsSpinningDisc, cornerRadius: 0, artworkSize: 1200)
+            if hasSong {
+                artworkControls
+            }
+        }
+        .frame(width: side, height: side)
+        .clipped()
+    }
+
+    /// The song with its heart and menu, the waveform scrubber with the times, and the transport,
+    /// over a scrim that keeps them legible on any artwork.
+    private var artworkControls: some View {
+        let isShown = chrome.isVisible
+        return VStack(spacing: 6) {
+            HStack(alignment: .center, spacing: 8) {
+                songText
+                    .allowsHitTesting(false)
+                Spacer(minLength: 4)
+                GlassEffectContainer(spacing: 6) {
+                    HStack(spacing: 6) {
+                        if let track, !track.isLocalFile {
+                            MacMiniPlayerHeart(track: track, isShown: isShown)
+                                .focused($focus, equals: .favorite)
+                        }
+                        moreMenu(isShown: isShown)
+                    }
                 }
             }
-            .onHover { hovering in
-                withAnimation(reduceMotion ? nil : .easeOut(duration: 0.15)) { isHoveringArtwork = hovering }
-            }
-            .frame(width: side, height: side)
-    }
-
-    private var hoverTransport: some View {
-        ZStack(alignment: .bottom) {
-            LinearGradient(colors: [.clear, .black.opacity(0.55)], startPoint: .center, endPoint: .bottom)
-                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                .allowsHitTesting(false)
-            MiniPlayerTransport(commands: playback.commands, playDiameter: 44)
-                .padding(.bottom, 14)
+            MacWaveformScrubber(envelope: model.waveform, height: 20, isStacked: true, centerLabel: model.formatLabel)
+            MiniPlayerTransport(commands: playback.commands, focus: $focus)
         }
+        .padding(.horizontal, 14)
+        .padding(.top, 8)
+        .padding(.bottom, 8)
+        .background {
+            MacArtworkScrim(fadeHeight: Self.scrimFade)
+                .padding(.top, -Self.scrimFade)
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+        }
+        .playerChromeFade(isShown, reduceMotion: reduceMotion)
     }
 
-    // MARK: Song
+    private static let scrimFade: Double = 56
 
-    /// Artist in regular weight above the title in bold, as Plexamp has them.
-    private func songText(alignment: HorizontalAlignment) -> some View {
-        let textAlignment: TextAlignment = alignment == .center ? .center : .leading
-        return VStack(alignment: alignment, spacing: 1) {
+    /// The title in bold above "Artist — Album", as the Music app's MiniPlayer has them.
+    private var songText: some View {
+        VStack(alignment: .leading, spacing: 1) {
             if let track {
-                Text(track.artist ?? "")
-                    .font(.callout)
-                    .foregroundStyle(Color.white.opacity(NowPlayingText.secondaryOpacity))
                 Text(track.title)
                     .font(.headline)
-            } else if let radio = state.currentRadio {
-                Text("Live")
-                    .font(.callout)
+                MacSongSubtitle(artist: track.artist, album: track.albumName)
+                    .font(.caption)
                     .foregroundStyle(Color.white.opacity(NowPlayingText.secondaryOpacity))
+            } else if let radio = state.currentRadio {
                 Text(radio.name)
                     .font(.headline)
-            } else {
-                Text("Not Playing")
-                    .font(.headline)
+                Text("Live")
+                    .font(.caption)
                     .foregroundStyle(Color.white.opacity(NowPlayingText.secondaryOpacity))
             }
         }
         .lineLimit(1)
-        .multilineTextAlignment(textAlignment)
-        .frame(maxWidth: .infinity, alignment: alignment == .center ? .center : .leading)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)
     }
 
-    /// "Album (Year)".
-    @ViewBuilder private func albumLine(layout: MiniPlayerLayout) -> some View {
-        if let album = track?.albumName, !album.isEmpty {
-            Group {
-                if let year = model.year, year > 0 {
-                    Text(verbatim: "\(album) (\(String(year)))")
-                } else {
-                    Text(verbatim: album)
-                }
-            }
-            .font(.caption)
-            .foregroundStyle(Color.white.opacity(NowPlayingText.secondaryOpacity))
-            .lineLimit(1)
-            .frame(maxWidth: .infinity, alignment: layout == .wide ? .leading : .center)
-        }
-    }
-
-    // MARK: Toolbar
-
-    /// More, the MiniDisc, Shuffle, the chevron, Repeat, Library, Lyrics and AirPlay.
-    private func toolbar(layout: MiniPlayerLayout) -> some View {
-        let commands = playback.commands
-        return HStack(spacing: 0) {
-            moreMenu(layout: layout)
-            Spacer(minLength: 2)
-            MiniPlayerToolbarButton(title: showsSpinningDisc ? "Show Artwork" : "Show Spinning Disc",
-                                    systemImage: "opticaldisc", isOn: showsSpinningDisc) {
-                withAnimation(reduceMotion ? nil : .smooth(duration: 0.35)) { showsSpinningDisc.toggle() }
-            }
-            .disabled(track == nil && state.currentRadio == nil)
-            Spacer(minLength: 2)
-            MiniPlayerToolbarButton(title: "Shuffle", systemImage: "shuffle", isOn: state.isShuffled,
-                                    action: playback.toggleShuffle)
-                .disabled(!commands.canShuffle)
-            Spacer(minLength: 2)
-            MiniPlayerToolbarButton(title: layout.expands ? "Show Lyrics and Queue" : "Hide Lyrics and Queue",
-                                    systemImage: layout.expands ? "chevron.down" : "chevron.up") {
-                toggleExpanded()
-            }
-            Spacer(minLength: 2)
-            MiniPlayerToolbarButton(title: "Repeat", systemImage: state.repeatMode.systemImage,
-                                    isOn: state.repeatMode != .off, action: playback.cycleRepeatMode)
-                .disabled(!commands.canRepeat)
-            Spacer(minLength: 2)
-            MiniPlayerToolbarButton(title: "Library", systemImage: "books.vertical",
-                                    isOn: panel.isShowing(.library, in: layout, canShowLyrics: canShowLyrics)) {
-                togglePane(.library, layout: layout)
-            }
-            Spacer(minLength: 2)
-            MiniPlayerToolbarButton(title: "Lyrics", systemImage: "quote.bubble",
-                                    isOn: panel.isShowing(.lyrics, in: layout, canShowLyrics: canShowLyrics)) {
-                togglePane(.lyrics, layout: layout)
-            }
-            .disabled(!canShowLyrics)
-            Spacer(minLength: 2)
-            MacAirPlayButton()
-                .frame(width: 28, height: 28)
-        }
-        .frame(height: 30)
-    }
-
-    private func moreMenu(layout: MiniPlayerLayout) -> some View {
+    private func moreMenu(isShown: Bool) -> some View {
         Menu {
+            if let plays = model.playCount, plays > 0 {
+                Text("\(plays) plays")
+            }
             if let track, !track.isLocalFile {
                 FavoriteMatches(.song, id: track.id) { toggle in
                     MacSongMenu(songs: [track], isFavorite: toggle.isFavorite, beforeNavigating: showMainWindow)
                 }
-                Divider()
             }
-            if panel.isShowing(.lyrics, in: layout, canShowLyrics: canShowLyrics), lyrics.hasLyrics,
+            Divider()
+            Toggle("Library", isOn: paneBinding(.library))
+            Toggle("Related Songs", isOn: paneBinding(.related))
+                .disabled(track == nil || track?.isLocalFile == true)
+            if panel.isShowing(.lyrics, canShowLyrics: canShowLyrics), lyrics.hasLyrics,
                let viewModel = lyrics.viewModel {
+                Divider()
                 Toggle("Follow Lyrics", isOn: Binding(get: { viewModel.autoScrollEnabled },
                                                      set: { viewModel.autoScrollEnabled = $0 }))
-                Divider()
             }
+            Divider()
             Toggle("Float MiniPlayer on Top", isOn: $floatsOnTop)
             Toggle("Hide Main Window with MiniPlayer", isOn: $hidesMainWindow)
             Divider()
             Button("Show Hi-MD", systemImage: "macwindow", action: showMainWindow)
         } label: {
-            Image(systemName: "ellipsis")
-                .font(.system(size: 14, weight: .semibold))
-                .frame(width: 28, height: 28)
+            MacGlassCircleLabel(systemImage: "ellipsis", isShown: isShown)
         }
         .menuStyle(.button)
         .buttonStyle(.plain)
         .menuIndicator(.hidden)
         .fixedSize()
-        .foregroundStyle(Color.white.opacity(NowPlayingText.secondaryOpacity))
+        .focused($focus, equals: .more)
         .accessibilityLabel("More")
         .help("More")
     }
 
+    // MARK: Capsule
+
+    /// Lyrics, Queue and Volume in one glass capsule, the pane on screen filled with the accent.
+    private var paneCapsule: some View {
+        MacGlassGroup(isShown: chrome.isVisible) {
+            MacGlassSegment(title: "Lyrics", systemImage: "quote.bubble",
+                            isOn: panel.isShowing(.lyrics, canShowLyrics: canShowLyrics), selection: paneSelection) {
+                change(.lyrics, toggling: true)
+            }
+            .disabled(!canShowLyrics)
+            .focused($focus, equals: .lyrics)
+            MacGlassSegment(title: "Queue", systemImage: "list.bullet",
+                            isOn: panel.isShowing(.upNext, canShowLyrics: canShowLyrics), selection: paneSelection) {
+                change(.upNext, toggling: true)
+            }
+            .focused($focus, equals: .queue)
+            MacGlassSegment(title: "Volume", systemImage: volumeSymbol) {
+                isVolumeShown.toggle()
+            }
+            .focused($focus, equals: .volume)
+            .popover(isPresented: $isVolumeShown, arrowEdge: .bottom) {
+                HStack(spacing: 10) {
+                    MacVolumeSlider()
+                        .frame(width: 170)
+                    MacAirPlayButton()
+                        .frame(width: 26, height: 26)
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
+            }
+        }
+        .playerChromeFade(chrome.isVisible, reduceMotion: reduceMotion)
+    }
+
+    private var volumeSymbol: String {
+        switch playback.volume {
+        case ..<0.01: "speaker.slash.fill"
+        case ..<0.34: "speaker.wave.1.fill"
+        case ..<0.67: "speaker.wave.2.fill"
+        default: "speaker.wave.3.fill"
+        }
+    }
+
     // MARK: Panes
 
-    /// The tabs and the pane under them: the bottom of the tall layout, or between the song and
-    /// the controls in the wide one.
-    private func paneArea(width: Double, layout: MiniPlayerLayout) -> some View {
-        let isTall = layout == .tall
-        return VStack(spacing: 0) {
-            MiniPlayerTabBar(selection: shownPane, canShowLyrics: canShowLyrics) { pane in
-                panel.select(pane)
+    @ViewBuilder private func paneArea(layout: MiniPlayerLayout, width: Double) -> some View {
+        let rowInset: Double = 14
+        Group {
+            switch shownPane {
+            case .library:
+                MacMiniPlayerLibrary(model: library, rowInset: rowInset, beforeNavigating: showMainWindow)
+            case .upNext:
+                MiniPlayerQueuePane(rowInset: rowInset, beforeNavigating: showMainWindow)
+            case .related:
+                MiniPlayerRelatedList(model: model, container: container, rowInset: rowInset,
+                                      beforeNavigating: showMainWindow)
+            case .lyrics:
+                // The lines around the one being sung blur and fade, as in Now Playing.
+                MacLyricsPane(container: container, session: lyrics, adoptsSessionLyrics: true)
+                    .environment(\.lyricsTypography,
+                                 .scaled(forWidth: width, minimum: 18, maximum: 28)
+                                     .withoutHeaderButtons()
+                                     .withDepth(.gentle))
+                    .padding(.horizontal, 8)
             }
-            .padding(.horizontal, isTall ? inset - 4 : 0)
-            .padding(.top, isTall ? 6 : 0)
-            .padding(.bottom, 6)
-            Divider()
-                .overlay(Color.white.opacity(0.12))
-            paneContent(width: width, layout: layout)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .clipped()
+        }
+        // Beside the artwork, the glass capsule has the pane's top row.
+        .padding(.top, layout == .wide ? Self.capsuleRow : 0)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .clipped()
+    }
+
+    private func paneBinding(_ pane: MiniPlayerPane) -> Binding<Bool> {
+        Binding {
+            panel.isShowing(pane, canShowLyrics: canShowLyrics)
+        } set: { isOn in
+            if isOn {
+                change(pane, toggling: false)
+            } else if panel.isShowing(pane, canShowLyrics: canShowLyrics) {
+                change(pane, toggling: true)
+            }
         }
     }
 
-    @ViewBuilder private func paneContent(width: Double, layout: MiniPlayerLayout) -> some View {
-        let isTall = layout == .tall
-        let rowInset = isTall ? inset : 0
-        switch shownPane {
-        case .library:
-            MacMiniPlayerLibrary(model: library, rowInset: rowInset, beforeNavigating: showMainWindow)
-        case .upNext:
-            MiniPlayerQueueList(rowInset: rowInset, beforeNavigating: showMainWindow)
-        case .related:
-            MiniPlayerRelatedList(model: model, container: container, rowInset: rowInset, beforeNavigating: showMainWindow)
-        case .lyrics:
-            // The lines around the one being sung blur and fade, as in Now Playing.
-            MacLyricsPane(container: container, session: lyrics, adoptsSessionLyrics: true)
-                .environment(\.lyricsTypography,
-                             .scaled(forWidth: width, minimum: isTall ? 20 : 17, maximum: isTall ? 28 : 26)
-                                 .withoutHeaderButtons()
-                                 .withDepth(.gentle))
-                .padding(.horizontal, isTall ? inset - 6 : -4)
-        }
-    }
-
-    /// The toolbar's Library and Lyrics buttons.
-    private func togglePane(_ pane: MiniPlayerPane, layout: MiniPlayerLayout) {
-        guard let content = window.contentSize else { return }
+    /// A capsule toggle (`toggling`) or a menu item for `pane`, and what it does to the window:
+    /// opening a pane grows a compact window, closing it puts the window back as it was.
+    private func change(_ pane: MiniPlayerPane, toggling: Bool) {
         var next = panel
-        let change = next.toggle(pane, in: layout, canShowLyrics: canShowLyrics,
-                                 grewFromCompact: sizeBeforeGrowing != nil)
-        withAnimation(reduceMotion ? nil : .smooth(duration: 0.25)) { panel = next }
+        let change = toggling ? next.toggle(pane, canShowLyrics: canShowLyrics)
+            : next.show(pane, canShowLyrics: canShowLyrics)
+        guard let content = window.contentSize else {
+            panel = next
+            return
+        }
         switch change {
-        case .show:
-            if let taller = MiniPlayerLayout.wideSizeShowingPane(from: content, topInset: topInset) {
-                window.resizeContent(to: taller, animated: !reduceMotion)
+        case .none:
+            return
+        case .switchPane:
+            withAnimation(animation) { panel = next }
+        case .open:
+            frameBeforeOpening = window.frame
+            let target = sizing.sizeOpeningPane(from: content, available: window.availableContentSize)
+            let layout = MiniPlayerLayout.layout(for: target, isPaneOpen: true)
+            transition = layout
+            panel = next
+            applyLimits(for: layout)
+            window.resizeContent(to: target, animated: !reduceMotion) {
+                transition = nil
             }
         case .close:
-            break
-        case .grow:
-            sizeBeforeGrowing = content
-            let grown = MiniPlayerLayout.grownSize(fromCompact: content, available: window.availableContentSize,
-                                                   topInset: topInset)
-            window.resizeContent(to: grown, animated: !reduceMotion)
-        case .collapse:
-            let compact = sizeBeforeGrowing ?? MiniPlayerLayout.collapsedSize(from: content, topInset: topInset)
-            sizeBeforeGrowing = nil
-            window.resizeContent(to: compact, animated: !reduceMotion)
+            let target = sizing.sizeClosingPane(from: content)
+            transition = transition ?? MiniPlayerLayout.layout(for: content, isPaneOpen: true)
+            // Down to the compact size; its square limits follow once the pane has gone.
+            window.window?.contentMinSize = MiniPlayerLayout.compact.minimumSize
+            let finish: @MainActor () -> Void = {
+                panel = next
+                transition = nil
+                applyLimits(for: .compact)
+            }
+            if let frame = frameBeforeOpening, let nsWindow = window.window,
+               nsWindow.contentRect(forFrameRect: frame).size == target {
+                window.restoreFrame(frame, animated: !reduceMotion, completion: finish)
+            } else {
+                window.resizeContent(to: target, animated: !reduceMotion, completion: finish)
+            }
+            frameBeforeOpening = nil
         }
     }
 
     // MARK: Window
 
-    /// Compact ↔ tall, keeping the window's top edge in place.
-    private func toggleExpanded() {
-        guard let content = window.contentSize else { return }
-        sizeBeforeGrowing = nil
-        window.resizeContent(to: MiniPlayerLayout.toggledSize(from: content, topInset: topInset), animated: !reduceMotion)
-    }
-
-    /// The traffic lights' band, when the buttons have moved or come and gone.
-    private func measureTopInset() {
-        let band = window.trafficLightsBand()
-        if abs(band - topInset) > 0.5 { topInset = band }
+    private func applyLimits(for layout: MiniPlayerLayout) {
+        guard transition == nil || layout == transition, limitsLayout != layout else { return }
+        limitsLayout = layout
+        window.applyMiniPlayerLimits(for: layout)
     }
 
     /// No title bar, moved by dragging anywhere, floating unless turned off, and no zoom: a
-    /// double-click on the backdrop would otherwise blow the card up to a full-screen strip.
+    /// double-click on the artwork would otherwise blow the window up to fill the screen.
     private func configure(_ nsWindow: NSWindow) {
         nsWindow.isMovableByWindowBackground = true
         nsWindow.level = floatsOnTop ? .floating : .normal
         nsWindow.standardWindowButton(.zoomButton)?.isEnabled = false
         nsWindow.collectionBehavior.insert(.fullScreenNone)
-        window.setTrafficLightsVisible(isHoveringWindow || voiceOverEnabled, animated: false)
-        window.constrainAspect()
-        measureTopInset()
-        // The title bar lays its buttons out after the window first shows.
-        Task { @MainActor in measureTopInset() }
+        window.setTrafficLightsVisible(chrome.isVisible, animated: false)
+        // A window restored from an earlier launch, or an older version's shapes, fits the pane
+        // state: square without a pane.
+        if let content = window.contentSize {
+            let fitted = MiniPlayerLayout.reconciled(content, isPaneOpen: storedPaneOpen)
+            limitsLayout = nil
+            applyLimits(for: MiniPlayerLayout.layout(for: fitted, isPaneOpen: storedPaneOpen))
+            if abs(fitted.width - content.width) > 1 || abs(fitted.height - content.height) > 1 {
+                window.resizeContent(to: fitted, animated: false)
+            }
+        }
         if hidesMainWindow {
             MiniPlayerSettings.hideMainWindows()
         }

@@ -3,10 +3,13 @@ import SwiftUI
 /// Plexamp's scrubber: the elapsed time, the song's waveform and its length. The waveform is
 /// mirrored about its middle, the played part in the accent colour with a thin playhead. Until
 /// the song has a local copy to measure it's a plain rounded bar. Click or drag to seek; the
-/// seek happens on release.
+/// seek happens on release. Stacked, as over the MiniPlayer's artwork, the times go under the
+/// waveform, elapsed and remaining, with `centerLabel` (the format) between them.
 struct MacWaveformScrubber: View {
     let envelope: WaveformEnvelope?
     var height: Double = 26
+    var isStacked = false
+    var centerLabel: String? = nil
 
     @Environment(MacPlayback.self) private var playback
     @State private var dragPosition: TimeInterval?
@@ -21,9 +24,45 @@ struct MacWaveformScrubber: View {
         let duration = state.duration > 0 ? state.duration : (state.currentTrack?.duration ?? 0)
         let shown = min(dragPosition ?? state.position, max(duration, 0))
         let canSeek = state.currentTrack != nil && !state.isLiveStream && duration > 0
-        HStack(spacing: 8) {
-            Text(Self.time(shown))
-                .frame(minWidth: 34, alignment: .trailing)
+        Group {
+            if isStacked {
+                VStack(spacing: 3) {
+                    bar(shown: shown, duration: duration, canSeek: canSeek, state: state)
+                    HStack(spacing: 6) {
+                        Text(Self.time(shown))
+                        Spacer(minLength: 4)
+                        if let centerLabel {
+                            Text(verbatim: centerLabel)
+                                .padding(.horizontal, 5)
+                                .padding(.vertical, 1)
+                                .overlay(RoundedRectangle(cornerRadius: 3).strokeBorder(lineWidth: 1))
+                                .accessibilityLabel(Text("Format: \(centerLabel)"))
+                        }
+                        Spacer(minLength: 4)
+                        Text(verbatim: "-" + Self.time(max(duration - shown, 0)))
+                    }
+                    .font(.caption2.weight(.bold))
+                }
+            } else {
+                HStack(spacing: 8) {
+                    Text(Self.time(shown))
+                        .frame(minWidth: 34, alignment: .trailing)
+                    bar(shown: shown, duration: duration, canSeek: canSeek, state: state)
+                    Text(Self.time(duration))
+                        .frame(minWidth: 34, alignment: .leading)
+                }
+            }
+        }
+        .font(.caption.weight(.bold))
+        .monospacedDigit()
+        .foregroundStyle(Self.secondary)
+        .opacity(canSeek || state.currentTrack == nil ? 1 : 0.6)
+        .onDisappear {
+            if state.lyricsClock.isScrubbing { playback.cancelScrub() }
+        }
+    }
+
+    private func bar(shown: TimeInterval, duration: TimeInterval, canSeek: Bool, state: PlayerState) -> some View {
             GeometryReader { proxy in
                 let progress = duration > 0 ? shown / duration : 0
                 waveform(progress: progress, size: proxy.size)
@@ -56,16 +95,6 @@ struct MacWaveformScrubber: View {
                 let target = min(max(state.position + step, 0), duration)
                 Task { await playback.seek(to: target) }
             }
-            Text(Self.time(duration))
-                .frame(minWidth: 34, alignment: .leading)
-        }
-        .font(.caption.weight(.bold))
-        .monospacedDigit()
-        .foregroundStyle(Self.secondary)
-        .opacity(canSeek || state.currentTrack == nil ? 1 : 0.6)
-        .onDisappear {
-            if state.lyricsClock.isScrubbing { playback.cancelScrub() }
-        }
     }
 
     private static func time(_ seconds: TimeInterval) -> String {

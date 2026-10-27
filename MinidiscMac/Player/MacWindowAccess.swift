@@ -19,9 +19,13 @@ final class MacWindowHandle {
         }
     }
 
-    /// Resizes the content to `size`, keeping the top edge where it is and the window on screen.
-    func resizeContent(to size: CGSize, animated: Bool) {
-        guard let window else { return }
+    /// Resizes the content to `size`, keeping the top edge where it is and the window on screen,
+    /// then runs `completion`.
+    func resizeContent(to size: CGSize, animated: Bool, completion: (@MainActor () -> Void)? = nil) {
+        guard let window else {
+            completion?()
+            return
+        }
         let old = window.frame
         var frame = window.frameRect(forContentRect: CGRect(origin: .zero, size: size))
         if let visible = window.screen?.visibleFrame {
@@ -32,7 +36,31 @@ final class MacWindowHandle {
         } else {
             frame.origin = CGPoint(x: old.minX, y: old.maxY - frame.height)
         }
-        window.setFrame(frame, display: true, animate: animated)
+        setFrame(frame, animated: animated, completion: completion)
+    }
+
+    /// Puts the window at `frame`, as it was before a pane opened, then runs `completion`.
+    func restoreFrame(_ frame: CGRect, animated: Bool, completion: (@MainActor () -> Void)? = nil) {
+        setFrame(frame, animated: animated, completion: completion)
+    }
+
+    private func setFrame(_ frame: CGRect, animated: Bool, completion: (@MainActor () -> Void)?) {
+        guard let window else {
+            completion?()
+            return
+        }
+        guard animated else {
+            window.setFrame(frame, display: true)
+            completion?()
+            return
+        }
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.25
+            context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            window.animator().setFrame(frame, display: true)
+        } completionHandler: {
+            MainActor.assumeIsolated { completion?() }
+        }
     }
 }
 

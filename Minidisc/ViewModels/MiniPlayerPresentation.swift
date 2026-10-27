@@ -1,186 +1,131 @@
 import CoreGraphics
 import Foundation
 
-/// The Mac MiniPlayer's three layouts, chosen from the window's size, as Plexamp's mini player
-/// does: a square-ish window shows the artwork above the song; a tall one adds the transport,
-/// volume and the Library, Playing Next, Related and Lyrics tabs; a wide one puts the artwork
-/// beside everything else, with the same panes between the song and the controls when one is
-/// open.
+/// The Mac MiniPlayer's layouts, after the Music app's MiniPlayer. The artwork always runs to the
+/// window's edges, its top under the traffic lights, and the controls lie over it while the pointer
+/// is there (`PlayerChromeVisibility`):
+/// - compact: only the artwork, so the window is square and resizing it scales the artwork;
+/// - tall: a pane (the queue, lyrics, library or related songs) under the artwork;
+/// - wide: the artwork down the left, full height, and the pane beside it.
 ///
-/// Every layout keeps a band along the top for the window's close, minimise and zoom buttons
-/// (`topInset`, measured from the real buttons), so no content sits under them.
+/// The window hugs what it shows: opening a pane from compact adds `paneHeight` under the
+/// artwork (or `paneWidth` beside it when the screen has no room below), and closing it goes back
+/// to the size it had (`MiniPlayerWindowSizing`).
 nonisolated enum MiniPlayerLayout: String, CaseIterable, Sendable {
     case compact
     case tall
     case wide
 
-    /// The space around the artwork.
-    static let inset: Double = 14
-    /// The band kept for the traffic lights when they can't be measured: the title bar's height.
-    static let titleBarBand: Double = 28
-    /// What the compact layout draws under the artwork: the scrubber, the song, its details and
-    /// the toolbar.
-    static let compactChrome: Double = 160
-    /// The tall layout adds the album line, the transport, the volume and the tab bar.
-    static let tallChrome: Double = 316
-    /// The least room the tall layout leaves its tab.
-    static let minimumPanelHeight: Double = 180
-    /// What the wide layout's right column draws besides a pane: the song, its details, the
-    /// scrubber, the transport and the toolbar.
-    static let wideDetailsChrome: Double = 190
-    /// The least room the wide layout gives an open pane.
-    static let wideMinimumPaneHeight: Double = 150
-    /// The least width of the wide layout's right column, and the pane's width when a compact
-    /// window grows to show one.
-    static let wideDetailsMinimumWidth: Double = 240
-    static let widePaneWidth: Double = 320
+    /// The compact window's side when it first opens.
+    static let defaultSide: Double = 320
+    /// The smallest compact window: room for the song, the scrubber and the transport over the
+    /// artwork, and the glass buttons at the top clear of the traffic lights.
+    static let minimumSide: Double = 260
+    /// The largest compact window.
+    static let maximumSide: Double = 720
+    /// What opening a pane adds under the artwork: about seven rows of the queue and its header.
+    static let paneHeight: Double = 340
+    /// What opening a pane beside the artwork adds.
+    static let paneWidth: Double = 340
+    /// The least room a pane keeps under or beside the artwork.
+    static let minimumPaneHeight: Double = 200
+    static let minimumPaneWidth: Double = 280
 
-    static let defaultWidth: Double = 300
-    static let minimumWidth: Double = 260
-    static let minimumHeight: Double = 220
-    static let tallMinimumHeight: Double = 560
-    /// Width over height from which the window is wide.
-    static let wideAspect: Double = 1.4
-    /// Height over width from which the window is tall.
-    static let tallAspect: Double = 1.8
-
-    static func layout(for size: CGSize) -> MiniPlayerLayout {
-        guard size.width > 0, size.height > 0 else { return .compact }
-        if size.width >= size.height * wideAspect { return .wide }
-        if size.height >= size.width * tallAspect, size.height >= tallMinimumHeight { return .tall }
-        return .compact
+    /// The layout for a window of `size`. Without a pane it's compact, whatever its shape; with
+    /// one the pane goes beside the artwork once the window has room for it there.
+    static func layout(for size: CGSize, isPaneOpen: Bool) -> MiniPlayerLayout {
+        guard isPaneOpen, size.width > 0, size.height > 0 else { return .compact }
+        return Double(size.width - size.height) >= minimumPaneWidth ? .wide : .tall
     }
 
-    /// The space above the content: the traffic lights' band, or the inset if that's more.
-    static func topSpace(_ topInset: Double) -> Double { max(topInset, inset) }
-
-    /// The compact window for `width`: the artwork fills the width and the details fit under it.
-    static func compactHeight(forWidth width: Double, topInset: Double = titleBarBand) -> Double {
-        (topSpace(topInset) + (width - 2 * inset) + compactChrome).rounded()
-    }
-
-    /// The tall window for `width`, with room for the tabs.
-    static func tallHeight(forWidth width: Double) -> Double {
-        max(tallMinimumHeight, (width * 2.5).rounded())
-    }
-
-    /// The artwork's side in this layout for a window of `size`.
-    func artworkSide(in size: CGSize, topInset: Double = Self.titleBarBand) -> Double {
+    /// The artwork's side in a window of `size`: the whole width (tall) or height (wide), less
+    /// whatever the pane needs to keep its least room.
+    func artworkSide(in size: CGSize) -> Double {
         let width = Double(size.width), height = Double(size.height)
-        let inset = Self.inset, top = Self.topSpace(topInset)
         switch self {
-        case .compact:
-            return max(min(width - 2 * inset, height - top - Self.compactChrome), 48)
-        case .tall:
-            return max(min(width - 2 * inset, height - top - Self.tallChrome - Self.minimumPanelHeight), 96)
-        case .wide:
-            // The details keep at least 240 points beside the artwork.
-            return max(min(height - top - inset, width - 3 * inset - Self.wideDetailsMinimumWidth), 64)
+        case .compact: return max(min(width, height), 0)
+        case .tall: return max(min(width, height - Self.minimumPaneHeight), 0)
+        case .wide: return max(min(height, width - Self.minimumPaneWidth), 0)
         }
     }
 
-    /// The window after the chevron: compact expands to tall, tall collapses to compact, and wide
-    /// expands to a tall window about as wide as its artwork.
-    static func toggledSize(from size: CGSize, topInset: Double = titleBarBand) -> CGSize {
-        let width = Double(size.width)
-        switch layout(for: size) {
-        case .compact:
-            return CGSize(width: width, height: tallHeight(forWidth: width))
-        case .tall:
-            return CGSize(width: width, height: compactHeight(forWidth: width, topInset: topInset))
-        case .wide:
-            let narrow = min(max(Double(size.height), minimumWidth), 420)
-            return CGSize(width: narrow, height: tallHeight(forWidth: narrow))
+    /// The room the pane gets under (tall) or beside (wide) the artwork.
+    func paneSize(in size: CGSize) -> CGSize {
+        let side = artworkSide(in: size)
+        switch self {
+        case .compact: return .zero
+        case .tall: return CGSize(width: size.width, height: max(Double(size.height) - side, 0))
+        case .wide: return CGSize(width: max(Double(size.width) - side, 0), height: size.height)
         }
     }
 
-    /// The compact window a tall or wide one collapses to when its pane closes: as wide as a
-    /// tall one, or about as wide as a wide one's artwork.
-    static func collapsedSize(from size: CGSize, topInset: Double = titleBarBand) -> CGSize {
-        switch layout(for: size) {
-        case .compact:
-            return size
-        case .tall:
-            return toggledSize(from: size, topInset: topInset)
-        case .wide:
-            let side = MiniPlayerLayout.wide.artworkSide(in: size, topInset: topInset)
-            let width = min(max(side + 2 * inset, minimumWidth), 420).rounded()
-            return CGSize(width: width, height: compactHeight(forWidth: width, topInset: topInset))
+    /// The least and most the window can be in this layout. A compact window also keeps a 1:1
+    /// aspect ratio, so dragging any edge scales the artwork.
+    var minimumSize: CGSize {
+        switch self {
+        case .compact: CGSize(width: Self.minimumSide, height: Self.minimumSide)
+        case .tall: CGSize(width: Self.minimumSide, height: Self.minimumSide + Self.minimumPaneHeight)
+        case .wide: CGSize(width: Self.minimumSide + Self.minimumPaneWidth, height: Self.minimumSide)
         }
     }
 
-    /// A wide window for the compact window `size` that shows a pane beside an artwork at least
-    /// as big as the compact one's, and tall enough for the pane.
-    static func wideSize(fromCompact size: CGSize, topInset: Double = titleBarBand) -> CGSize {
-        let side = MiniPlayerLayout.compact.artworkSide(in: size, topInset: topInset)
-        let top = topSpace(topInset)
-        let height = max(side + top + inset, top + inset + wideDetailsChrome + wideMinimumPaneHeight).rounded()
-        let artwork = height - top - inset
-        let width = min(3 * inset + artwork + widePaneWidth, height * maximumWideAspect).rounded()
-        return CGSize(width: max(width, (height * wideAspect).rounded()), height: height)
+    var maximumSize: CGSize {
+        switch self {
+        case .compact: CGSize(width: Self.maximumSide, height: Self.maximumSide)
+        case .tall, .wide: CGSize(width: 10_000, height: 10_000)
+        }
     }
 
-    /// The window a compact one grows to when a pane opens in it: tall or wide, whichever is the
-    /// smaller change that fits in `available` (the room on screen), or wide, the shorter, when
-    /// neither fits.
-    static func grownSize(fromCompact size: CGSize, available: CGSize?, topInset: Double = titleBarBand) -> CGSize {
-        let tall = CGSize(width: size.width, height: tallHeight(forWidth: Double(size.width)))
-        let wide = wideSize(fromCompact: size, topInset: topInset)
-        func change(_ candidate: CGSize) -> Double {
-            hypot(Double(candidate.width - size.width), Double(candidate.height - size.height))
-        }
+    static func clampedSide(_ side: Double) -> Double {
+        min(max(side, minimumSide), maximumSide)
+    }
+
+    /// A compact window with an artwork of `side` points, within the limits.
+    static func compactSize(side: Double) -> CGSize {
+        let side = clampedSide(side).rounded()
+        return CGSize(width: side, height: side)
+    }
+
+    /// The window a compact one grows to when a pane opens: the pane under the artwork, or
+    /// beside it when `available` (the room on screen below the window's top edge) is too short;
+    /// with room for neither, the pane under it as tall as the screen allows.
+    static func openedSize(fromCompact size: CGSize, available: CGSize?) -> CGSize {
+        let side = Double(compactSize(side: compact.artworkSide(in: size)).width)
+        let tall = CGSize(width: side, height: side + paneHeight)
+        let wide = CGSize(width: side + paneWidth, height: side)
+        guard let available else { return tall }
         func fits(_ candidate: CGSize) -> Bool {
-            guard let available else { return true }
-            return candidate.width <= available.width + 0.5 && candidate.height <= available.height + 0.5
+            candidate.width <= available.width + 0.5 && candidate.height <= available.height + 0.5
         }
-        return [tall, wide].filter(fits).min { change($0) < change($1) } ?? wide
+        if fits(tall) { return tall }
+        if fits(wide) { return wide }
+        return CGSize(width: side, height: max(Double(available.height).rounded(.down), side + minimumPaneHeight))
     }
 
-    /// A wide window tall enough for an open pane, as wide as before (or wider, should the extra
-    /// height stop it being wide). Nil when it already has the room.
-    static func wideSizeShowingPane(from size: CGSize, topInset: Double = titleBarBand) -> CGSize? {
-        let needed = (topSpace(topInset) + inset + wideDetailsChrome + wideMinimumPaneHeight).rounded()
-        guard layout(for: size) == .wide, Double(size.height) < needed else { return nil }
-        let width = max(Double(size.width), (needed * wideAspect).rounded())
-        return CGSize(width: width, height: needed)
+    /// The compact window a pane closes to when the size before it opened isn't known (it was
+    /// open at launch): as big as the artwork was.
+    static func collapsedSize(from size: CGSize, isPaneOpen: Bool) -> CGSize {
+        compactSize(side: layout(for: size, isPaneOpen: isPaneOpen).artworkSide(in: size))
     }
 
-    /// The widest a wide window gets for its height (3:1), and the tallest a tall one gets for
-    /// its width, so the window can't be dragged into a strip the layouts can't fill.
-    static let maximumWideAspect: Double = 3
-    static let maximumTallAspect: Double = 3.2
-
-    /// The window's largest content size while it's `size`, refreshed as it resizes: dragging
-    /// one edge can't take the shape past the limits.
-    static func maximumContentSize(for size: CGSize) -> CGSize {
-        CGSize(width: max(Double(size.height) * maximumWideAspect, minimumWidth),
-               height: max(Double(size.width) * maximumTallAspect, minimumHeight))
-    }
-
-    /// `size` brought inside those limits, for a window that was saved or zoomed outside them.
-    static func clamped(_ size: CGSize) -> CGSize {
-        var width = max(Double(size.width), minimumWidth)
-        var height = max(Double(size.height), minimumHeight)
-        if width > height * maximumWideAspect { width = height * maximumWideAspect }
-        if height > width * maximumTallAspect { height = width * maximumTallAspect }
-        return CGSize(width: width, height: height)
-    }
-
-    /// Whether the chevron expands (compact, wide) or collapses (tall).
-    var expands: Bool { self != .tall }
-
-    /// Whether this layout shows a pane: tall always, wide while one is open, compact never.
-    func showsPane(isOpen: Bool) -> Bool {
-        switch self {
-        case .compact: false
-        case .tall: true
-        case .wide: isOpen
+    /// `size` brought in line with the pane state, for a window restored from an earlier launch
+    /// or version: square without a pane, and with one at least its layout's minimum and tall
+    /// enough that the artwork spans the width.
+    static func reconciled(_ size: CGSize, isPaneOpen: Bool) -> CGSize {
+        let width = Double(size.width), height = Double(size.height)
+        guard isPaneOpen else { return compactSize(side: min(width, height)) }
+        let layout = layout(for: size, isPaneOpen: true)
+        let least = layout.minimumSize
+        var fitted = CGSize(width: max(width, Double(least.width)), height: max(height, Double(least.height)))
+        if layout == .tall, Double(fitted.height) < Double(fitted.width) + minimumPaneHeight {
+            fitted.height = fitted.width + minimumPaneHeight
         }
+        return fitted
     }
 }
 
-/// The MiniPlayer's panes: the tall layout's tabs, and what opens beside the artwork in the wide
-/// one. The songs played earlier (Plexamp's "Back To") sit above the current one in Playing Next.
+/// The MiniPlayer's panes. The songs played earlier ("Back To") sit above the current one in the
+/// queue.
 nonisolated enum MiniPlayerPane: String, CaseIterable, Sendable {
     case library
     case upNext
@@ -189,54 +134,96 @@ nonisolated enum MiniPlayerPane: String, CaseIterable, Sendable {
     case lyrics
 }
 
-/// What a click on the toolbar's Library or Lyrics button does to the window.
+/// What a pane button or menu item does to the window.
 nonisolated enum MiniPlayerPaneChange: Equatable, Sendable {
-    /// Shows the pane in place: a tall window's tab, or a wide window's pane.
-    case show
-    /// Grows a compact window to a tall or wide one showing the pane.
-    case grow
-    /// Closes a wide window's pane, leaving the window as it is.
+    /// Nothing to do: that pane is already showing.
+    case none
+    /// A pane opens in a compact window, which grows to show it.
+    case open
+    /// Another pane takes the open one's place; the window stays as it is.
+    case switchPane
+    /// The pane closes and the window goes back to compact.
     case close
-    /// Back to a compact window: from tall, or from a wide one that grew from compact.
-    case collapse
 }
 
-/// Which pane the MiniPlayer shows, and whether the wide layout has it open. The toolbar's
-/// Library and Lyrics buttons are toggles: on a compact window they grow it to show the pane, and
-/// clicking the one that's showing puts the window back as it was.
+/// Which pane the MiniPlayer shows and whether one is open. The glass capsule's Lyrics and Queue
+/// are toggles: they open their pane, switch to it, or close it when it's the one showing. The
+/// … menu's Library and Related Songs only open or switch.
 nonisolated struct MiniPlayerPanelState: Equatable, Sendable {
     var pane: MiniPlayerPane = .upNext
-    /// The wide layout's pane; tall always shows one and compact never does.
     var isOpen = false
 
-    /// The pane on screen: Lyrics falls back to Playing Next for a song without lyrics.
+    /// The pane on screen: Lyrics falls back to the queue for a song without lyrics.
     func shownPane(canShowLyrics: Bool) -> MiniPlayerPane {
         pane == .lyrics && !canShowLyrics ? .upNext : pane
     }
 
-    func isShowing(_ pane: MiniPlayerPane, in layout: MiniPlayerLayout, canShowLyrics: Bool) -> Bool {
-        layout.showsPane(isOpen: isOpen) && shownPane(canShowLyrics: canShowLyrics) == pane
+    func isShowing(_ pane: MiniPlayerPane, canShowLyrics: Bool) -> Bool {
+        isOpen && shownPane(canShowLyrics: canShowLyrics) == pane
     }
 
-    /// A tab: shows that pane.
-    mutating func select(_ pane: MiniPlayerPane) {
-        self.pane = pane
-        isOpen = true
-    }
-
-    /// The toolbar's button for `pane`: hides the pane when it's showing, otherwise shows it,
-    /// growing a compact window. `grewFromCompact` says a wide window grew from a compact one,
-    /// so hiding its pane puts it back.
-    mutating func toggle(_ pane: MiniPlayerPane, in layout: MiniPlayerLayout, canShowLyrics: Bool,
-                         grewFromCompact: Bool) -> MiniPlayerPaneChange {
-        if isShowing(pane, in: layout, canShowLyrics: canShowLyrics) {
-            // Closed either way, so dragging the compact window wide again doesn't bring it back.
+    /// The capsule's Lyrics or Queue.
+    mutating func toggle(_ pane: MiniPlayerPane, canShowLyrics: Bool) -> MiniPlayerPaneChange {
+        if isShowing(pane, canShowLyrics: canShowLyrics) {
             isOpen = false
-            return layout == .wide && !grewFromCompact ? .close : .collapse
+            return .close
         }
+        return show(pane, canShowLyrics: canShowLyrics)
+    }
+
+    /// The … menu's Library or Related Songs.
+    mutating func show(_ pane: MiniPlayerPane, canShowLyrics: Bool) -> MiniPlayerPaneChange {
+        if isShowing(pane, canShowLyrics: canShowLyrics) { return .none }
+        let wasOpen = isOpen
         self.pane = pane
         isOpen = true
-        return layout == .compact ? .grow : .show
+        return wasOpen ? .switchPane : .open
+    }
+
+    mutating func close() -> MiniPlayerPaneChange {
+        guard isOpen else { return .none }
+        isOpen = false
+        return .close
+    }
+}
+
+/// The MiniPlayer window's size as panes open and close: opening one from compact remembers the
+/// compact size, and closing it goes back to exactly that size, however the window was resized
+/// while the pane was open.
+nonisolated struct MiniPlayerWindowSizing: Equatable, Sendable {
+    /// The compact window before the pane opened.
+    private(set) var compactSize: CGSize?
+
+    /// The size for opening a pane in a compact window of `size`.
+    mutating func sizeOpeningPane(from size: CGSize, available: CGSize?) -> CGSize {
+        compactSize = size
+        return MiniPlayerLayout.openedSize(fromCompact: size, available: available)
+    }
+
+    /// The compact size to go back to when the pane closes.
+    mutating func sizeClosingPane(from size: CGSize) -> CGSize {
+        defer { compactSize = nil }
+        return compactSize ?? MiniPlayerLayout.collapsedSize(from: size, isPaneOpen: true)
+    }
+}
+
+/// The MiniPlayer queue's sections, as the Music app has them: the songs the listener queued
+/// under "Playing Next", then the ones Autoplay added under "Continue Playing".
+nonisolated enum MiniPlayerQueueSections {
+    /// Splits the upcoming songs at `autoplayStart`, the queue index where Autoplay's songs
+    /// begin (nil when it added none).
+    static func split<Entry>(_ upcoming: [Entry], queueIndex: (Entry) -> Int,
+                             autoplayStart: Int?) -> (requested: [Entry], autoplay: [Entry]) {
+        guard let autoplayStart else { return (upcoming, []) }
+        let requested = upcoming.filter { queueIndex($0) < autoplayStart }
+        let autoplay = upcoming.filter { queueIndex($0) >= autoplayStart }
+        return (requested, autoplay)
+    }
+
+    /// The pane's heading: "Playing Next" while the listener's own songs are coming up, and
+    /// "Continue Playing" once only Autoplay's are.
+    static func headingIsContinuePlaying(requestedCount: Int, autoplayCount: Int) -> Bool {
+        requestedCount == 0 && autoplayCount > 0
     }
 }
 
