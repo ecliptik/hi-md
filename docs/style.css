@@ -732,14 +732,26 @@ a:hover { text-decoration-thickness: 2px; }
 
 .build__head p { font-size: 1rem; max-width: 30em; }
 .build__head { align-self: center; }
-.build__phone {
+/* The app's spinning disc: the printed ring around the spindle turns behind
+   the shell, once every 3 s, while the reflections stay put. */
+.spindisc {
+  position: relative;
   justify-self: center;
-  width: min(300px, 100%);
-  overflow: hidden;
-  border-radius: 28px;
-  transform: rotate(3deg);
+  width: 440px;
+  max-width: 100%;
+  aspect-ratio: 800 / 770;
+  transform: rotate(-6deg);
+  filter: drop-shadow(0 18px 22px rgba(0, 0, 0, 0.28)) drop-shadow(0 2px 3px rgba(0, 0, 0, 0.16));
 }
-.build__phone img { width: 100%; border-radius: 21px; }
+.spindisc img { position: absolute; inset: 0; width: 100%; height: 100%; }
+.spindisc__hub {
+  transform-origin: 52.57% 49.83%;
+  animation: spindisc 3s linear infinite;
+}
+@keyframes spindisc { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .spindisc__hub { animation: none; }
+}
 
 pre {
   margin: 12px 0 0;
