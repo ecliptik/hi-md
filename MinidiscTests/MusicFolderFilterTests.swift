@@ -105,4 +105,21 @@ struct MusicFolderFilterTests {
         #expect(MusicFolderFilter.movedSelection(rowIDs: rows, selection: ["f0", "f1"], by: 1) == "f2")
         #expect(MusicFolderFilter.movedSelection(rowIDs: [], selection: [], by: 1) == nil)
     }
+
+    @Test func aFilteredListingKeepsItsQueryAndWhatItShows() {
+        var listing = FilteredListing(items: folders(["Beyoncé", "Björk", "Can"]), locale: english, name: \.name)
+        #expect(names(listing.shown) == ["Beyoncé", "Björk", "Can"])
+        #expect(!listing.isFiltering)
+        listing.query = "b"
+        #expect(names(listing.shown) == ["Beyoncé", "Björk"])
+        #expect(listing.isFiltering && !listing.hasNoMatches)
+        listing.query = "zzz"
+        #expect(listing.shown.isEmpty && listing.hasNoMatches)
+        listing.query = " "
+        #expect(names(listing.shown) == ["Beyoncé", "Björk", "Can"])
+        // An empty folder has nothing to miss.
+        var empty = FilteredListing<MusicFolderItem>(name: \.name)
+        empty.query = "a"
+        #expect(!empty.hasNoMatches)
+    }
 }

@@ -28,26 +28,27 @@ final class WinampFolderBrowserModel {
     private(set) var errorMessage: String?
     private(set) var notice: String?
     var selection: Set<Row.ID> = []
+    /// The folder's items and what the search leaves of them; shared with the MiniPlayer's
+    /// Library browser.
+    private var filtered = FilteredListing<MusicFolderItem>(name: \.name)
+
     /// The rows the search leaves, in listing order. ".." isn't among them; it always shows.
-    private(set) var shownItems: [MusicFolderItem] = []
-    private var queryText = ""
+    var shownItems: [MusicFolderItem] { filtered.shown }
 
     /// The search field: narrows the folder on screen as it's typed into. Each folder opened
     /// starts with it empty.
     var query: String {
-        get { queryText }
+        get { filtered.query }
         set {
-            queryText = newValue
-            applyFilter()
+            filtered.query = newValue
+            pruneSelection()
         }
     }
 
-    var isFiltering: Bool { MusicFolderFilter.isActive(queryText) }
+    var isFiltering: Bool { filtered.isFiltering }
 
     /// The search found nothing in a folder that has something.
-    var hasNoMatches: Bool { isFiltering && shownItems.isEmpty && listing?.items.isEmpty == false }
-
-    @ObservationIgnored private var filter = MusicFolderFilter(items: [])
+    var hasNoMatches: Bool { filtered.hasNoMatches }
 
     @ObservationIgnored private let browser: MusicFolderBrowser
     @ObservationIgnored private let playerService: any PlayerServiceProtocol
@@ -73,9 +74,8 @@ final class WinampFolderBrowserModel {
         return rows
     }
 
-    private func applyFilter() {
-        shownItems = filter.matches(queryText)
-        // Rows the search hides drop out of the selection, so Play and Add take only what's shown.
+    /// Rows the search hides drop out of the selection, so Play and Add take only what's shown.
+    private func pruneSelection() {
         let visible = Set(shownItems.map(\.id)).union([Self.parentRowID])
         let kept = selection.intersection(visible)
         if kept != selection { selection = kept }
@@ -83,10 +83,8 @@ final class WinampFolderBrowserModel {
 
     private func show(_ listing: MusicFolderListing) {
         self.listing = listing
-        filter = MusicFolderFilter(items: listing.items)
+        filtered = FilteredListing(items: listing.items, name: \.name)
         selection = []
-        queryText = ""
-        applyFilter()
     }
 
     func clearQuery() {
