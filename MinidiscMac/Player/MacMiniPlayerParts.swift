@@ -19,17 +19,32 @@ extension MacWindowHandle {
 
     /// The window's limits in `layout`: a compact window keeps a 1:1 aspect ratio between its
     /// smallest and largest side, so dragging any edge scales the artwork; with a pane it resizes
-    /// freely above the layout's minimum.
+    /// freely above the layout's minimum; a bar keeps its height and only changes its width.
     func applyMiniPlayerLimits(for layout: MiniPlayerLayout) {
+        applyMiniPlayerLimits(minimum: layout.minimumSize, maximum: layout.maximumSize, keepsSquare: layout.keepsSquare)
+    }
+
+    /// The window's limits while it animates between two layouts: room for both, no aspect ratio.
+    func applyMiniPlayerLimits(during change: MiniPlayerLayoutChange) {
+        applyMiniPlayerLimits(minimum: change.minimumSize, maximum: change.maximumSize, keepsSquare: false)
+    }
+
+    private func applyMiniPlayerLimits(minimum: CGSize, maximum: CGSize, keepsSquare: Bool) {
         guard let window = liveWindow else { return }
-        window.contentMinSize = layout.minimumSize
-        window.contentMaxSize = layout.maximumSize
-        if layout == .compact {
+        window.contentMinSize = minimum
+        window.contentMaxSize = maximum
+        if keepsSquare {
             window.contentAspectRatio = NSSize(width: 1, height: 1)
         } else {
             // Resize increments replace the aspect ratio.
             window.contentResizeIncrements = NSSize(width: 1, height: 1)
         }
+    }
+
+    /// Where the traffic lights end, from the window's leading edge.
+    var trafficLightsTrailingEdge: Double? {
+        guard let zoom = window?.standardWindowButton(.zoomButton) else { return nil }
+        return Double(zoom.convert(zoom.bounds, to: nil).maxX)
     }
 
     var contentSize: CGSize? {
@@ -71,6 +86,8 @@ struct MacAirPlayButton: NSViewRepresentable {
 /// The MiniPlayer's controls that a keyboard can be on; while one is, they stay on screen.
 enum MiniPlayerControl: Hashable {
     case lyrics, queue, volume, favorite, more, shuffle, previous, playPause, next, repeatMode
+    /// The bar's button back to the artwork.
+    case expand
 }
 
 /// Shuffle, Previous, Play/Pause, Next and Repeat in white over the artwork's scrim, as the Music

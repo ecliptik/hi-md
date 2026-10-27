@@ -16,6 +16,12 @@ import SwiftUI
 /// window, so there's one player on screen; closing it leaves playback alone. It's separate from
 /// the menu bar player and Miniamp.
 ///
+/// Smaller still, Show as Bar (the ⋯ menu, or Window > MiniPlayer as Bar, ⌥⌘B) turns it into a
+/// short strip of controls on the cover's colours (`MacMiniPlayerBar`), which keeps its height
+/// and only resizes its width; the bar's expand button or Show Artwork goes back to the square it
+/// came from, and choosing a pane from its ⋯ menu (or the green button) opens it under the
+/// artwork. The window's top edge stays put each way, and the bar is remembered across launches.
+///
 /// Nothing in it is a List or Table: its layouts are rebuilt as the window crosses from one shape
 /// to another during a live resize, and an NSTableView torn down then crashes.
 struct MacMiniPlayer: View {
@@ -51,6 +57,23 @@ private struct MacMiniPlayerContent: View {
     @AppStorage("minidisc.mac.miniPlayerPaneOpen") private var storedPaneOpen = false
     @AppStorage(MiniPlayerSettings.floatsOnTopKey) private var floatsOnTop = true
     @AppStorage(MiniPlayerSettings.hidesMainWindowKey) private var hidesMainWindow = false
+    /// Show as Bar, kept across launches; Window > MiniPlayer as Bar sets it too.
+    @AppStorage(MiniPlayerSettings.showsBarKey) private var storedBar = false
+    /// The bar's last width and the compact window's last side, for going between them after a
+    /// launch (0 until known).
+    @AppStorage("minidisc.mac.miniPlayerBarWidth") private var storedBarWidth: Double = 0
+    @AppStorage("minidisc.mac.miniPlayerCompactSide") private var storedCompactSide: Double = 0
+    /// Whether the window is laid out as the bar. It follows `storedBar`, but only through
+    /// `showAsBar()` and `showArtwork()`, which resize the window with it.
+    @State private var isBar: Bool
+    /// While the window animates between layouts, both of them: the window's limits and the root
+    /// view's least size make room for either until it settles.
+    @State private var layoutChange: MiniPlayerLayoutChange?
+    /// While the window animates to or from the bar, the artwork's side: it holds its final size
+    /// at the top left and the window opens over it or closes on it.
+    @State private var transitionSide: Double?
+    /// Room on the bar's left for the traffic lights, measured from the window.
+    @State private var trafficLightsInset: Double = 72
     @State private var lyrics = MacLyricsSession()
     @State private var backdrop = FullPlayerViewModel()
     @State private var model = MacMiniPlayerModel()
@@ -78,6 +101,15 @@ private struct MacMiniPlayerContent: View {
     init(container: AppContainer) {
         self.container = container
         _library = State(initialValue: LibraryBrowserModel(source: LibraryServiceBrowserSource(library: container.libraryService)))
+        _isBar = State(initialValue: UserDefaults.standard.bool(forKey: MiniPlayerSettings.showsBarKey))
+    }
+
+    private var lastBarWidth: Double? { storedBarWidth > 0 ? storedBarWidth : nil }
+    private var lastCompactSide: Double? { storedCompactSide > 0 ? storedCompactSide : nil }
+
+    /// The window's least size, for the root view (`.contentMinSize`) as for the window itself.
+    private var windowMinimum: CGSize {
+        MiniPlayerLayoutChange.minimumSize(settledIn: limitsLayout ?? (isBar ? .bar : .compact), during: layoutChange)
     }
 
     private var state: PlayerState { playback.state }
@@ -103,18 +135,21 @@ private struct MacMiniPlayerContent: View {
     var body: some View {
         GeometryReader { proxy in
             let size = proxy.size
-            let layout = transition ?? MiniPlayerLayout.layout(for: size, isPaneOpen: panel.isOpen)
-            // Mid-animation the artwork follows the shorter edge, so only the pane grows or shrinks.
-            let side = transition != nil ? Double(min(size.width, size.height)) : layout.artworkSide(in: size)
+            let layout = transition ?? MiniPlayerLayout.layout(for: size, isPaneOpen: panel.isOpen, isBar: isBar)
+            // Mid-animation the artwork follows the shorter edge, so only the pane grows or shrinks;
+            // to or from the bar it keeps its final size.
+            let side = transitionSide ?? (transition != nil ? Double(min(size.width, size.height)) : layout.artworkSide(in: size))
+            // To or from the bar, the artwork stays at the top left while the window's other edges move.
+            let pinned = transitionSide != nil
             ZStack(alignment: .topTrailing) {
                 switch layout {
                 case .compact:
                     artworkStage(side: side)
-                        .frame(width: size.width, height: size.height)
+                        .frame(width: size.width, height: size.height, alignment: pinned ? .topLeading : .center)
                 case .tall:
                     VStack(spacing: 0) {
                         artworkStage(side: side)
-                            .frame(maxWidth: .infinity)
+                            .frame(maxWidth: .infinity, alignment: pinned ? .leading : .center)
                         paneArea(layout: .tall, width: Double(size.width))
                     }
                 case .wide:
@@ -123,21 +158,30 @@ private struct MacMiniPlayerContent: View {
                             .frame(maxHeight: .infinity)
                         paneArea(layout: .wide, width: max(Double(size.width) - side, 0))
                     }
+                case .bar:
+                    MacMiniPlayerBar(waveform: model.waveform, leadingInset: trafficLightsInset, focus: $focus,
+                                     expand: showArtwork) {
+                        moreMenu(isShown: true)
+                    }
+                    .frame(width: size.width, height: MiniPlayerLayout.barHeight)
+                    .frame(width: size.width, height: size.height, alignment: .top)
                 }
-                paneCapsule
-                    .padding(.top, 8)
-                    .padding(.trailing, 10)
+                if layout != .bar {
+                    paneCapsule
+                        .padding(.top, 8)
+                        .padding(.trailing, 10)
+                }
             }
             .frame(width: size.width, height: size.height, alignment: .topLeading)
             .onChange(of: layout, initial: true) { _, newLayout in applyLimits(for: newLayout) }
+            .onChange(of: size) { _, newSize in rememberBarWidth(newSize, layout: layout) }
         }
-        // The window's least size comes from here (`.contentMinSize`), so with a pane open it must
-        // be the tall layout's: room for the song and controls over the artwork as well as the
-        // pane. Not while the window animates open or closed, so it doesn't jump.
-        .frame(minWidth: MiniPlayerLayout.minimumSide, maxWidth: .infinity,
-               minHeight: panel.isOpen && transition == nil
-                   ? Double(MiniPlayerLayout.tall.minimumSize.height) : MiniPlayerLayout.minimumSide,
-               maxHeight: .infinity)
+        // The window's least size comes from here (`.contentMinSize`), so it's the same as the
+        // window's own limits: the settled layout's minimum (with a pane, room for the song and
+        // controls over the artwork as well as the pane; as a bar, its height), and mid-animation
+        // the least of both layouts, so the window doesn't jump on the way.
+        .frame(minWidth: windowMinimum.width, maxWidth: .infinity,
+               minHeight: windowMinimum.height, maxHeight: .infinity)
         // The backdrop runs under the pane and behind the artwork while it loads.
         .background { background.ignoresSafeArea() }
         .ignoresSafeArea()
@@ -164,7 +208,12 @@ private struct MacMiniPlayerContent: View {
             if library.location == .favorites { library.reload() }
         }
         .onReceive(NotificationCenter.default.publisher(for: MiniPlayerZoomButton.clickedNotification)) { _ in
+            // From the bar this opens the list, leaving the bar for the tall layout.
             change(storedPane, toggling: true)
+        }
+        // Window > MiniPlayer as Bar (⌥⌘B).
+        .onChange(of: storedBar) { _, wantsBar in
+            if wantsBar != isBar { wantsBar ? showAsBar() : showArtwork() }
         }
         .onChange(of: container.serverState.activeServer?.id) { _, _ in
             library.reset()
@@ -192,10 +241,14 @@ private struct MacMiniPlayerContent: View {
 
     /// The artwork's colours darkened under the cap that keeps white text at 7.5:1 and the
     /// secondary white at 4.5:1, behind the pane. Reduce Transparency gets one solid colour.
+    /// The bar runs the same colours left to right; every stop keeps the same contrast, and so
+    /// does every blend between two of them.
     @ViewBuilder private var background: some View {
         let colors = PlayerBackgroundPalette.tintedColors(from: backdrop.backgroundColors, accent: .minidiscAccent)
         if reduceTransparency {
             (colors.first ?? .black)
+        } else if isBar {
+            LinearGradient(colors: colors, startPoint: .leading, endPoint: .trailing)
         } else {
             LinearGradient(colors: colors, startPoint: .top, endPoint: .bottom)
         }
@@ -301,6 +354,12 @@ private struct MacMiniPlayerContent: View {
                 }
             }
             Divider()
+            if isBar {
+                // The bar has no glass capsule, so its panes are here; each leaves the bar.
+                Toggle("Lyrics", isOn: paneBinding(.lyrics))
+                    .disabled(!canShowLyrics)
+                Toggle("Queue", isOn: paneBinding(.upNext))
+            }
             Toggle("Library", isOn: paneBinding(.library))
             Toggle("Related Songs", isOn: paneBinding(.related))
                 .disabled(track == nil || track?.isLocalFile == true)
@@ -311,6 +370,11 @@ private struct MacMiniPlayerContent: View {
                                                      set: { viewModel.autoScrollEnabled = $0 }))
             }
             Divider()
+            if isBar {
+                Button("Show Artwork", systemImage: "arrow.up.left.and.arrow.down.right", action: showArtwork)
+            } else {
+                Button("Show as Bar", systemImage: "arrow.down.right.and.arrow.up.left", action: showAsBar)
+            }
             Toggle("Float MiniPlayer on Top", isOn: $floatsOnTop)
             Toggle("Hide Main Window with MiniPlayer", isOn: $hidesMainWindow)
             Divider()
@@ -412,13 +476,16 @@ private struct MacMiniPlayerContent: View {
     }
 
     /// A capsule toggle (`toggling`) or a menu item for `pane`, and what it does to the window:
-    /// opening a pane grows a compact window, closing it puts the window back as it was.
+    /// opening a pane grows a compact window, or turns the bar back into one with the pane under
+    /// it; closing it puts the window back as it was.
     private func change(_ pane: MiniPlayerPane, toggling: Bool) {
         var next = panel
         let change = toggling ? next.toggle(pane, canShowLyrics: canShowLyrics)
             : next.show(pane, canShowLyrics: canShowLyrics)
-        guard !window.isClosing else { return }
+        // One resize at a time; a second click mid-animation does nothing.
+        guard !window.isClosing, layoutChange == nil else { return }
         guard let content = window.contentSize else {
+            if next.isOpen, isBar { setBar(false) }
             panel = next
             return
         }
@@ -427,27 +494,29 @@ private struct MacMiniPlayerContent: View {
             return
         case .switchPane:
             withAnimation(animation) { panel = next }
+        case .open where isBar:
+            openFromBar(next)
         case .open:
             frameBeforeOpening = window.frame
             let target = sizing.sizeOpeningPane(from: content, available: window.availableContentSize)
             let layout = MiniPlayerLayout.layout(for: target, isPaneOpen: true)
             transition = layout
             panel = next
-            applyLimits(for: layout)
+            beginLayoutChange(from: .compact, to: layout)
             window.resizeContent(to: target, animated: !reduceMotion) {
-                transition = nil
+                finishLayoutChange()
             }
         case .close:
             let target = sizing.sizeClosingPane(from: content)
-            transition = transition ?? MiniPlayerLayout.layout(for: content, isPaneOpen: true)
+            let from = transition ?? MiniPlayerLayout.layout(for: content, isPaneOpen: true)
+            transition = from
             // Down to the compact size; its square limits follow once the pane has gone.
-            window.liveWindow?.contentMinSize = MiniPlayerLayout.compact.minimumSize
+            beginLayoutChange(from: from, to: .compact)
             let finish: @MainActor () -> Void = {
                 panel = next
-                transition = nil
-                applyLimits(for: .compact)
+                finishLayoutChange()
             }
-            if let frame = frameBeforeOpening, let nsWindow = window.window,
+            if let frame = frameBeforeOpening, let nsWindow = window.liveWindow,
                nsWindow.contentRect(forFrameRect: frame).size == target {
                 window.restoreFrame(frame, animated: !reduceMotion, completion: finish)
             } else {
@@ -457,12 +526,113 @@ private struct MacMiniPlayerContent: View {
         }
     }
 
+    // MARK: Bar
+
+    /// Show as Bar (the ⋯ menu, or Window > MiniPlayer as Bar): any pane closes and the window
+    /// shrinks to the bar, its top edge where it was; the compact window is remembered for the
+    /// way back.
+    private func showAsBar() {
+        guard !isBar, !window.isClosing else { return }
+        guard let content = window.contentSize else {
+            var next = panel
+            _ = next.close()
+            panel = next
+            setBar(true)
+            return
+        }
+        // Mid-animation, Window > MiniPlayer as Bar follows once the window settles
+        // (`finishLayoutChange`).
+        guard layoutChange == nil else { return }
+        let from = limitsLayout ?? MiniPlayerLayout.layout(for: content, isPaneOpen: panel.isOpen)
+        var next = panel
+        let target = sizing.sizeEnteringBar(from: content, panel: &next, barWidth: lastBarWidth)
+        if let compact = sizing.compactSizeBeforeBar { storedCompactSide = Double(compact.width) }
+        frameBeforeOpening = nil
+        transition = .bar
+        setBar(true)
+        panel = next
+        beginLayoutChange(from: from, to: .bar)
+        window.resizeContent(to: target, animated: !reduceMotion) {
+            finishLayoutChange()
+        }
+    }
+
+    /// Show Artwork, or the bar's expand button: back to the compact square at the size it had,
+    /// the artwork held at its final size at the top left while the window opens over it.
+    private func showArtwork() {
+        guard isBar, !window.isClosing else { return }
+        guard window.contentSize != nil else {
+            setBar(false)
+            return
+        }
+        guard layoutChange == nil else { return }
+        let target = sizing.sizeLeavingBar(compactSide: lastCompactSide)
+        transition = .compact
+        transitionSide = Double(target.width)
+        setBar(false)
+        beginLayoutChange(from: .bar, to: .compact)
+        window.resizeContent(to: target, animated: !reduceMotion) {
+            finishLayoutChange()
+        }
+    }
+
+    /// A pane chosen from the bar's ⋯ menu (or the green button): the bar goes, and the compact
+    /// window it came from comes back with the pane under it (beside it without room below).
+    private func openFromBar(_ next: MiniPlayerPanelState) {
+        let target = sizing.sizeOpeningPaneFromBar(compactSide: lastCompactSide, available: window.availableContentSize)
+        let layout = MiniPlayerLayout.layout(for: target, isPaneOpen: true)
+        let side = sizing.compactSize.map { Double($0.width) } ?? layout.artworkSide(in: target)
+        frameBeforeOpening = nil
+        transition = layout
+        transitionSide = side
+        setBar(false)
+        panel = next
+        beginLayoutChange(from: .bar, to: layout)
+        window.resizeContent(to: target, animated: !reduceMotion) {
+            finishLayoutChange()
+        }
+    }
+
+    private func setBar(_ bar: Bool) {
+        isBar = bar
+        if storedBar != bar { storedBar = bar }
+    }
+
+    /// Keeps the bar's width, as the listener sets it, for the next time.
+    private func rememberBarWidth(_ size: CGSize, layout: MiniPlayerLayout) {
+        guard layout == .bar, layoutChange == nil, abs(Double(size.height) - MiniPlayerLayout.barHeight) <= 1 else { return }
+        let width = Double(MiniPlayerLayout.barSize(width: Double(size.width)).width)
+        if width != storedBarWidth { storedBarWidth = width }
+    }
+
     // MARK: Window
 
+    /// The settled layout's limits: not while the window animates between layouts, when
+    /// `beginLayoutChange` has set room for both.
     private func applyLimits(for layout: MiniPlayerLayout) {
-        guard transition == nil || layout == transition, limitsLayout != layout else { return }
+        guard layoutChange == nil, limitsLayout != layout else { return }
         limitsLayout = layout
         window.applyMiniPlayerLimits(for: layout)
+    }
+
+    /// Before the window animates from one layout to another: its limits, and the root view's
+    /// least size with them, make room for both.
+    private func beginLayoutChange(from: MiniPlayerLayout, to: MiniPlayerLayout) {
+        let change = MiniPlayerLayoutChange(from: from, to: to)
+        layoutChange = change
+        window.applyMiniPlayerLimits(during: change)
+    }
+
+    /// Once the window has settled: the layout's own limits, for the size it ended at, and a
+    /// bar switch asked for in the meantime (from the Window menu).
+    private func finishLayoutChange() {
+        transition = nil
+        transitionSide = nil
+        layoutChange = nil
+        limitsLayout = nil
+        let size = window.contentSize ?? .zero
+        applyLimits(for: MiniPlayerLayout.layout(for: size, isPaneOpen: panel.isOpen, isBar: isBar))
+        if storedBar != isBar { storedBar ? showAsBar() : showArtwork() }
     }
 
     /// No title bar, moved by dragging anywhere, and floating unless turned off. The green button
@@ -479,12 +649,23 @@ private struct MacMiniPlayerContent: View {
         }
         nsWindow.collectionBehavior.insert(.fullScreenNone)
         window.setTrafficLightsVisible(chrome.isVisible, animated: false)
+        if let edge = window.trafficLightsTrailingEdge { trafficLightsInset = (edge + 10).rounded() }
+        // The bar has no panes: restored as a bar, any pane left open is closed.
+        isBar = storedBar
+        if isBar, storedPaneOpen { storedPaneOpen = false }
         // A window restored from an earlier launch, or an older version's shapes, fits the pane
-        // state: square without a pane.
+        // and bar state: square without a pane, the bar's height as a bar.
         if let content = window.contentSize {
-            let fitted = MiniPlayerLayout.reconciled(content, isPaneOpen: storedPaneOpen)
+            // Made a bar while closed: the square it opened at is the one to come back to.
+            if isBar, abs(Double(content.height) - MiniPlayerLayout.barHeight) > 1, !storedPaneOpen {
+                storedCompactSide = Double(MiniPlayerLayout.compactSize(side: Double(min(content.width, content.height))).width)
+            }
+            let fitted = MiniPlayerLayout.reconciled(content, isPaneOpen: storedPaneOpen, isBar: isBar, barWidth: lastBarWidth)
+            layoutChange = nil
+            transition = nil
+            transitionSide = nil
             limitsLayout = nil
-            applyLimits(for: MiniPlayerLayout.layout(for: fitted, isPaneOpen: storedPaneOpen))
+            applyLimits(for: MiniPlayerLayout.layout(for: fitted, isPaneOpen: storedPaneOpen, isBar: isBar))
             if abs(fitted.width - content.width) > 1 || abs(fitted.height - content.height) > 1 {
                 window.resizeContent(to: fitted, animated: false)
             }

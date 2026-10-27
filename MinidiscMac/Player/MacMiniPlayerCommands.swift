@@ -9,6 +9,9 @@ enum MiniPlayerSettings {
     /// Off by default: opening the MiniPlayer puts the main window away, for using the MiniPlayer
     /// instead of it. Closing the MiniPlayer brings it back.
     static let hidesMainWindowKey = "minidisc.mac.miniPlayerHidesMainWindow"
+    /// Off by default: the MiniPlayer shows as a bar of controls rather than the artwork. Kept
+    /// across launches.
+    static let showsBarKey = "minidisc.mac.miniPlayerBar"
 
     /// The main windows the MiniPlayer put away, by window number, so closing it brings back
     /// exactly those and nothing else.
@@ -73,13 +76,23 @@ enum MiniPlayerSettings {
     }
 }
 
-/// Window > Float MiniPlayer on Top and Hide Main Window with MiniPlayer.
+/// Window > MiniPlayer as Bar (⌥⌘B), Float MiniPlayer on Top and Hide Main Window with
+/// MiniPlayer.
 struct MiniPlayerCommands: Commands {
     @AppStorage(MiniPlayerSettings.floatsOnTopKey) private var floatsOnTop = true
     @AppStorage(MiniPlayerSettings.hidesMainWindowKey) private var hidesMainWindow = false
+    @AppStorage(MiniPlayerSettings.showsBarKey) private var showsBar = false
+    @Environment(\.openWindow) private var openWindow
 
     var body: some Commands {
         CommandGroup(after: .windowArrangement) {
+            // The open MiniPlayer follows the setting and resizes itself; turning it on with the
+            // MiniPlayer closed opens it as the bar.
+            Toggle("MiniPlayer as Bar", isOn: Binding(get: { showsBar }, set: { isOn in
+                showsBar = isOn
+                if isOn { openWindow(id: MacMiniPlayer.windowID) }
+            }))
+            .keyboardShortcut("b", modifiers: [.command, .option])
             Toggle("Float MiniPlayer on Top", isOn: $floatsOnTop)
             Toggle("Hide Main Window with MiniPlayer", isOn: $hidesMainWindow)
         }

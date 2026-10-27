@@ -6,7 +6,10 @@ import Foundation
 /// is there (`PlayerChromeVisibility`):
 /// - compact: only the artwork, so the window is square and resizing it scales the artwork;
 /// - tall: a pane (the queue, lyrics, library or related songs) under the artwork;
-/// - wide: the artwork down the left, full height, and the pane beside it.
+/// - wide: the artwork down the left, full height, and the pane beside it;
+/// - bar: no artwork stage and no pane, only a short strip of controls on the cover's colours
+///   (a thumbnail, the song, a thin scrubber and the transport), always showing. It's chosen
+///   (Show as Bar), not reached by resizing, and its height is fixed.
 ///
 /// The window hugs what it shows: opening a pane from compact adds `paneHeight` under the
 /// artwork (or `paneWidth` beside it when the screen has no room below), and closing it goes back
@@ -15,6 +18,7 @@ nonisolated enum MiniPlayerLayout: String, CaseIterable, Sendable {
     case compact
     case tall
     case wide
+    case bar
 
     /// The compact window's side when it first opens.
     static let defaultSide: Double = 320
@@ -31,21 +35,34 @@ nonisolated enum MiniPlayerLayout: String, CaseIterable, Sendable {
     static let minimumPaneHeight: Double = 200
     static let minimumPaneWidth: Double = 280
 
-    /// The layout for a window of `size`. Without a pane it's compact, whatever its shape; with
-    /// one the pane goes beside the artwork once the window has room for it there.
-    static func layout(for size: CGSize, isPaneOpen: Bool) -> MiniPlayerLayout {
+    /// The bar's fixed height: a 48-point thumbnail, or the title, "Artist — Album" and the thin
+    /// scrubber stacked beside it, with a margin above and below.
+    static let barHeight: Double = 76
+    /// The narrowest bar: the traffic lights' corner, the thumbnail, a little of the song and
+    /// scrubber, the transport and the expand button.
+    static let barMinimumWidth: Double = 380
+    static let barMaximumWidth: Double = 900
+    /// The bar's width the first time, with room for everything.
+    static let barDefaultWidth: Double = 560
+
+    /// The layout for a window of `size`. As a bar it's the bar whatever the size; otherwise
+    /// without a pane it's compact, whatever its shape, and with one the pane goes beside the
+    /// artwork once the window has room for it there.
+    static func layout(for size: CGSize, isPaneOpen: Bool, isBar: Bool = false) -> MiniPlayerLayout {
+        if isBar { return .bar }
         guard isPaneOpen, size.width > 0, size.height > 0 else { return .compact }
         return Double(size.width - size.height) >= minimumPaneWidth ? .wide : .tall
     }
 
     /// The artwork's side in a window of `size`: the whole width (tall) or height (wide), less
-    /// whatever the pane needs to keep its least room.
+    /// whatever the pane needs to keep its least room. The bar has no artwork stage.
     func artworkSide(in size: CGSize) -> Double {
         let width = Double(size.width), height = Double(size.height)
         switch self {
         case .compact: return max(min(width, height), 0)
         case .tall: return max(min(width, height - Self.minimumPaneHeight), 0)
         case .wide: return max(min(height, width - Self.minimumPaneWidth), 0)
+        case .bar: return 0
         }
     }
 
@@ -53,19 +70,20 @@ nonisolated enum MiniPlayerLayout: String, CaseIterable, Sendable {
     func paneSize(in size: CGSize) -> CGSize {
         let side = artworkSide(in: size)
         switch self {
-        case .compact: return .zero
+        case .compact, .bar: return .zero
         case .tall: return CGSize(width: size.width, height: max(Double(size.height) - side, 0))
         case .wide: return CGSize(width: max(Double(size.width) - side, 0), height: size.height)
         }
     }
 
     /// The least and most the window can be in this layout. A compact window also keeps a 1:1
-    /// aspect ratio, so dragging any edge scales the artwork.
+    /// aspect ratio, so dragging any edge scales the artwork; a bar only changes its width.
     var minimumSize: CGSize {
         switch self {
         case .compact: CGSize(width: Self.minimumSide, height: Self.minimumSide)
         case .tall: CGSize(width: Self.minimumSide, height: Self.minimumSide + Self.minimumPaneHeight)
         case .wide: CGSize(width: Self.minimumSide + Self.minimumPaneWidth, height: Self.minimumSide)
+        case .bar: CGSize(width: Self.barMinimumWidth, height: Self.barHeight)
         }
     }
 
@@ -73,8 +91,12 @@ nonisolated enum MiniPlayerLayout: String, CaseIterable, Sendable {
         switch self {
         case .compact: CGSize(width: Self.maximumSide, height: Self.maximumSide)
         case .tall, .wide: CGSize(width: 10_000, height: 10_000)
+        case .bar: CGSize(width: Self.barMaximumWidth, height: Self.barHeight)
         }
     }
+
+    /// Whether the window keeps a 1:1 aspect ratio while it's resized.
+    var keepsSquare: Bool { self == .compact }
 
     static func clampedSide(_ side: Double) -> Double {
         min(max(side, minimumSide), maximumSide)
@@ -84,6 +106,11 @@ nonisolated enum MiniPlayerLayout: String, CaseIterable, Sendable {
     static func compactSize(side: Double) -> CGSize {
         let side = clampedSide(side).rounded()
         return CGSize(width: side, height: side)
+    }
+
+    /// A bar `width` points wide, within the limits, at the bar's height.
+    static func barSize(width: Double) -> CGSize {
+        CGSize(width: min(max(width, barMinimumWidth), barMaximumWidth).rounded(), height: barHeight)
     }
 
     /// The window a compact one grows to when a pane opens: the pane under the artwork, or
@@ -108,11 +135,17 @@ nonisolated enum MiniPlayerLayout: String, CaseIterable, Sendable {
         compactSize(side: layout(for: size, isPaneOpen: isPaneOpen).artworkSide(in: size))
     }
 
-    /// `size` brought in line with the pane state, for a window restored from an earlier launch
-    /// or version: square without a pane, and with one at least its layout's minimum and tall
-    /// enough that the artwork spans the width.
-    static func reconciled(_ size: CGSize, isPaneOpen: Bool) -> CGSize {
+    /// `size` brought in line with the pane and bar state, for a window restored from an earlier
+    /// launch or version: square without a pane, and with one at least its layout's minimum and
+    /// tall enough that the artwork spans the width. As a bar it's the bar's height and a width
+    /// within its limits: the restored width when the window was already a bar, or else
+    /// `barWidth` (the bar's last width), since a square's width says nothing about the bar's.
+    static func reconciled(_ size: CGSize, isPaneOpen: Bool, isBar: Bool = false, barWidth: Double? = nil) -> CGSize {
         let width = Double(size.width), height = Double(size.height)
+        if isBar {
+            let wasBar = abs(height - barHeight) <= 1
+            return barSize(width: wasBar ? width : (barWidth ?? barDefaultWidth))
+        }
         guard isPaneOpen else { return compactSize(side: min(width, height)) }
         let layout = layout(for: size, isPaneOpen: true)
         let least = layout.minimumSize
@@ -121,6 +154,52 @@ nonisolated enum MiniPlayerLayout: String, CaseIterable, Sendable {
             fitted.height = fitted.width + minimumPaneHeight
         }
         return fitted
+    }
+}
+
+/// The window's limits while it animates from one layout to another: the least of both layouts'
+/// minimums and the most of their maximums, so neither stops it on the way, and no aspect ratio.
+/// The root view's least size (`.contentMinSize`) and the window's own limits both come from
+/// here mid-animation, and from the layout's own limits otherwise, so they never disagree.
+nonisolated struct MiniPlayerLayoutChange: Equatable, Sendable {
+    let from: MiniPlayerLayout
+    let to: MiniPlayerLayout
+
+    var minimumSize: CGSize {
+        CGSize(width: min(from.minimumSize.width, to.minimumSize.width),
+               height: min(from.minimumSize.height, to.minimumSize.height))
+    }
+
+    var maximumSize: CGSize {
+        CGSize(width: max(from.maximumSize.width, to.maximumSize.width),
+               height: max(from.maximumSize.height, to.maximumSize.height))
+    }
+
+    /// The least size the window may be: mid-animation `change`'s, else `layout`'s own.
+    static func minimumSize(settledIn layout: MiniPlayerLayout, during change: MiniPlayerLayoutChange?) -> CGSize {
+        change?.minimumSize ?? layout.minimumSize
+    }
+}
+
+/// What the bar has room for at a width. Everything else always shows; as the bar narrows the
+/// ⋯ menu goes first, then the heart, then the times beside the scrubber. The expand button,
+/// the way back to the artwork, never goes.
+nonisolated struct MiniPlayerBarItems: Equatable, Sendable {
+    var showsTimes: Bool
+    var showsHeart: Bool
+    var showsMenu: Bool
+
+    /// The narrowest bar with the elapsed and remaining times beside the scrubber.
+    static let timesWidth: Double = 430
+    /// … and the heart.
+    static let heartWidth: Double = 470
+    /// … and the ⋯ menu.
+    static let menuWidth: Double = 510
+
+    init(width: Double) {
+        showsTimes = width >= Self.timesWidth
+        showsHeart = width >= Self.heartWidth
+        showsMenu = width >= Self.menuWidth
     }
 }
 
@@ -187,12 +266,40 @@ nonisolated struct MiniPlayerPanelState: Equatable, Sendable {
     }
 }
 
-/// The MiniPlayer window's size as panes open and close: opening one from compact remembers the
-/// compact size, and closing it goes back to exactly that size, however the window was resized
-/// while the pane was open.
+/// The MiniPlayer window's size as panes open and close and as it turns into a bar and back:
+/// opening a pane from compact remembers the compact size, and closing it goes back to exactly
+/// that size, however the window was resized while the pane was open; the bar likewise goes back
+/// to the compact window it came from.
 nonisolated struct MiniPlayerWindowSizing: Equatable, Sendable {
     /// The compact window before the pane opened.
     private(set) var compactSize: CGSize?
+    /// The compact window before it became a bar (or the one its pane would have closed to).
+    private(set) var compactSizeBeforeBar: CGSize?
+
+    /// Show as Bar from a window of `size`: any pane in `panel` closes, the compact window to come
+    /// back to is remembered, and the bar is `barWidth` wide (its last width), or the default.
+    mutating func sizeEnteringBar(from size: CGSize, panel: inout MiniPlayerPanelState, barWidth: Double?) -> CGSize {
+        if panel.isOpen {
+            compactSizeBeforeBar = sizeClosingPane(from: size)
+            _ = panel.close()
+        } else {
+            compactSizeBeforeBar = MiniPlayerLayout.compactSize(side: min(Double(size.width), Double(size.height)))
+        }
+        return MiniPlayerLayout.barSize(width: barWidth ?? MiniPlayerLayout.barDefaultWidth)
+    }
+
+    /// Show Artwork, or the bar's expand button: the compact window the bar came from, or one of
+    /// `compactSide` (the last compact side, when the bar was restored at launch), or the default.
+    mutating func sizeLeavingBar(compactSide: Double?) -> CGSize {
+        defer { compactSizeBeforeBar = nil }
+        return compactSizeBeforeBar ?? MiniPlayerLayout.compactSize(side: compactSide ?? MiniPlayerLayout.defaultSide)
+    }
+
+    /// A pane opening from the bar: the bar leaves for the compact window it came from with the
+    /// pane added, which closing the pane later goes back to.
+    mutating func sizeOpeningPaneFromBar(compactSide: Double?, available: CGSize?) -> CGSize {
+        sizeOpeningPane(from: sizeLeavingBar(compactSide: compactSide), available: available)
+    }
 
     /// The size for opening a pane in a compact window of `size`.
     mutating func sizeOpeningPane(from size: CGSize, available: CGSize?) -> CGSize {
