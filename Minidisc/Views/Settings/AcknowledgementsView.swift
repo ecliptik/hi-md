@@ -4,7 +4,7 @@ struct AcknowledgementsView: View {
     var body: some View {
         Form {
             Section("License") {
-                LabeledContent("Minidisc") {
+                LabeledContent("Hi-MD") {
                     Text("Mozilla Public License 2.0")
                 }
             }

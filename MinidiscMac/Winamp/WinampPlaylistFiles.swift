@@ -32,7 +32,7 @@ final class WinampPlaylistFiles {
         let panel = NSSavePanel()
         panel.allowedContentTypes = [UTType(filenameExtension: "m3u8") ?? .m3uPlaylist]
         panel.nameFieldStringValue = String(localized: "Playlist") + ".m3u8"
-        panel.message = String(localized: "Songs are saved by artist, album and title, so Minidisc can find them on the server again.")
+        panel.message = String(localized: "Songs are saved by artist, album and title, so Hi-MD can find them on the server again.")
         guard panel.runModal() == .OK, let url = panel.url else { return }
         let source = source
         task = Task { [weak self] in

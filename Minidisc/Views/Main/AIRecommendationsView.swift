@@ -115,9 +115,9 @@ struct AIRecommendationsView: View {
         let provider = settings.provider
         return Section {
             VStack(alignment: .leading, spacing: MinidiscSpacing.s) {
-                Label("What Minidisc sends to \(provider.title)", systemImage: "hand.raised")
+                Label("What Hi-MD sends to \(provider.title)", systemImage: "hand.raised")
                     .font(.headline)
-                Text("To suggest albums, Minidisc sends \(provider.title) the names of up to 20 recently played albums, 15 favourite albums, your 25 most collected artists and 15 playlists. Nothing else is sent: no server address, account details or play counts. The terms of your API key apply.")
+                Text("To suggest albums, Hi-MD sends \(provider.title) the names of up to 20 recently played albums, 15 favourite albums, your 25 most collected artists and 15 playlists. Nothing else is sent: no server address, account details or play counts. The terms of your API key apply.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }

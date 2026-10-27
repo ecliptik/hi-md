@@ -55,7 +55,7 @@ private struct CollectionGrid: View {
 
     var body: some View {
         if items.isEmpty {
-            WidgetEmptyMessage(text: hasServer ? "Nothing here yet" : "Open Minidisc to connect")
+            WidgetEmptyMessage(text: hasServer ? "Nothing here yet" : "Open Hi-MD to connect")
         } else {
             VStack(alignment: .leading, spacing: 8) {
                 if family != .systemSmall {
@@ -116,7 +116,7 @@ private struct MoodsView: View {
     var body: some View {
         let moods = snapshot.moods.filter(\.isAvailable)
         if moods.isEmpty {
-            WidgetEmptyMessage(text: snapshot.hasServer ? "Create Mood playlists in Minidisc" : "Open Minidisc to connect")
+            WidgetEmptyMessage(text: snapshot.hasServer ? "Create Mood playlists in Hi-MD" : "Open Hi-MD to connect")
         } else {
             let shown = Array(moods.prefix(family == .systemSmall ? 4 : 6))
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: family == .systemSmall ? 2 : 3), spacing: 8) {

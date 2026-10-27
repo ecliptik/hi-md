@@ -54,7 +54,7 @@ private struct NowPlayingWidgetView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
         } else {
-            WidgetEmptyMessage(text: entry.snapshot.hasServer ? "Nothing is playing" : "Open Minidisc to connect")
+            WidgetEmptyMessage(text: entry.snapshot.hasServer ? "Nothing is playing" : "Open Hi-MD to connect")
         }
     }
 

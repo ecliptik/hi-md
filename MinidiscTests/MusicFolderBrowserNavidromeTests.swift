@@ -200,7 +200,7 @@ struct MusicFolderBrowserNavidromeTests {
             Issue.record("Expected a decoding error")
         } catch {
             let message = MusicFolderBrowserError.message(for: error)
-            #expect(message == String(localized: "Your server sent a folder listing Minidisc couldn't read."))
+            #expect(message == String(localized: "Your server sent a folder listing Hi-MD couldn't read."))
             #expect(message != UserFacingError.serverUnreachable.displayMessage)
         }
     }

@@ -47,11 +47,11 @@ final class WinampLocalFiles {
             } catch {
                 guard !Task.isCancelled else { return }
                 Logger.ui.error("Winamp: couldn't add local files: \(String(describing: error), privacy: .public)")
-                self?.showProblem(String(localized: "Minidisc couldn't read the files or folders you chose."))
+                self?.showProblem(String(localized: "Hi-MD couldn't read the files or folders you chose."))
                 return
             }
             guard !imported.songs.isEmpty else {
-                self?.showProblem(String(localized: "There are no audio files there that Minidisc can play."))
+                self?.showProblem(String(localized: "There are no audio files there that Hi-MD can play."))
                 return
             }
             await player.appendToQueue(imported.songs)

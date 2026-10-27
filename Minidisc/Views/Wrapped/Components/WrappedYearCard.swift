@@ -49,7 +49,7 @@ struct WrappedYearCard: View {
     private var overlayContent: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Text("Minidisc Wrapped")
+                Text("Hi-MD Wrapped")
                     .scaledFont(size: 22, weight: .bold, design: .rounded)
                     .foregroundStyle(.white)
                 Spacer()
@@ -88,12 +88,12 @@ struct WrappedYearCard: View {
         } else if let first = firstTrack {
             Text("Your year started with \(first.title)")
         } else {
-            Text("Minidisc Wrapped \(yearString)")
+            Text("Hi-MD Wrapped \(yearString)")
         }
     }
 
     private var accessibilityLabel: String {
-        var label = "Minidisc Wrapped \(yearString)"
+        var label = "Hi-MD Wrapped \(yearString)"
         if let first = firstTrack, let last = lastTrack, first.trackId != last.trackId {
             label += ". Started with \(first.title), ended with \(last.title)"
         } else if let first = firstTrack {

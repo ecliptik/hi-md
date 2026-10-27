@@ -22,7 +22,7 @@ struct NowPlayingWatchView: View {
                     Image(systemName: "opticaldisc")
                         .font(.largeTitle)
                         .foregroundStyle(.tint)
-                    Text("Play something in Minidisc on your iPhone.")
+                    Text("Play something in Hi-MD on your iPhone.")
                         .font(.footnote)
                         .multilineTextAlignment(.center)
                         .foregroundStyle(.secondary)
@@ -42,7 +42,7 @@ struct NowPlayingWatchView: View {
                 }
             }
         }
-        .navigationTitle("Minidisc")
+        .navigationTitle("Hi-MD")
     }
 
     @ViewBuilder

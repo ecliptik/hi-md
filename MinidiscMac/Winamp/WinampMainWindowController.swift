@@ -287,7 +287,7 @@ final class WinampMainWindowController: NSObject, NSWindowDelegate, WinampMainVi
             return WinampMarquee.songTitle(artist: track.artist, title: track.title,
                                            duration: track.duration > 0 ? track.duration : player.duration)
         }
-        return "Minidisc"
+        return "Hi-MD"
     }
 
     private func updateTimers(title: String) {

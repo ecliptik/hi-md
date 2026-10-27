@@ -5,12 +5,12 @@ import WidgetKit
 struct PlayPauseControl: ControlWidget {
     var body: some ControlWidgetConfiguration {
         StaticControlConfiguration(kind: "app.minidisc.control.playPause", provider: PlayingValueProvider()) { isPlaying in
-            ControlWidgetToggle("Minidisc", isOn: isPlaying, action: SetMinidiscPlayingIntent()) { playing in
+            ControlWidgetToggle("Hi-MD", isOn: isPlaying, action: SetMinidiscPlayingIntent()) { playing in
                 Label(playing ? "Playing" : "Paused", systemImage: playing ? "pause.fill" : "play.fill")
             }
         }
         .displayName("Play or Pause")
-        .description("Play or pause Minidisc.")
+        .description("Play or pause Hi-MD.")
     }
 }
 
@@ -31,7 +31,7 @@ struct NextTrackControl: ControlWidget {
             }
         }
         .displayName("Next Track")
-        .description("Skip to the next song in Minidisc.")
+        .description("Skip to the next song in Hi-MD.")
     }
 }
 

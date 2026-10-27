@@ -364,7 +364,7 @@ private struct MacMiniPlayerContent: View {
             Toggle("Float MiniPlayer on Top", isOn: $floatsOnTop)
             Toggle("Hide Main Window with MiniPlayer", isOn: $hidesMainWindow)
             Divider()
-            Button("Show Minidisc", systemImage: "macwindow", action: showMainWindow)
+            Button("Show Hi-MD", systemImage: "macwindow", action: showMainWindow)
         } label: {
             Image(systemName: "ellipsis")
                 .font(.system(size: 14, weight: .semibold))

@@ -151,8 +151,8 @@ struct AutoEQSearchView: View {
     private static func message(for error: AutoEQError) -> LocalizedStringKey {
         switch error {
         case .offline: "Check your internet connection and try again."
-        case .notFound: "AutoEQ has no profile for these headphones that Minidisc can read."
-        case .tooLarge, .unreadable: "AutoEQ sent something Minidisc couldn't read. Try again later."
+        case .notFound: "AutoEQ has no profile for these headphones that Hi-MD can read."
+        case .tooLarge, .unreadable: "AutoEQ sent something Hi-MD couldn't read. Try again later."
         }
     }
 }

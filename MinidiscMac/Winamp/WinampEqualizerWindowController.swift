@@ -361,7 +361,7 @@ final class WinampEqualizerWindowController: NSObject, NSWindowDelegate, WinampS
     private func exportEQF() {
         let panel = NSSavePanel()
         panel.allowedContentTypes = [Self.eqfType]
-        panel.nameFieldStringValue = "Minidisc.eqf"
+        panel.nameFieldStringValue = "Hi-MD.eqf"
         guard panel.runModal() == .OK, let url = panel.url else { return }
         var preset = currentPreset
         preset.name = url.deletingPathExtension().lastPathComponent

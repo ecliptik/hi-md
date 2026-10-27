@@ -301,7 +301,7 @@ struct WinampRendererTests {
         var state = WinampMainDisplayState()
         state.playback = .playing
         state.time = WinampTimeDisplay.make(position: 83, duration: 245, mode: .elapsed)
-        state.title = "Minidisc"
+        state.title = "Hi-MD"
         state.visualizer = WinampVisualizerPicture(mode: .spectrum, bars: Array(repeating: 1, count: 75),
                                                    peaks: Array(repeating: 1, count: 75))
         let image = try #require(WinampMainRenderer.render(state, skin: skin))

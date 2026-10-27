@@ -31,7 +31,7 @@ struct MinidiscLogoView: View {
             clock.setRunning(running, at: .now)
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(Text("Minidisc"))
+        .accessibilityLabel(Text("Hi-MD"))
     }
 }
 

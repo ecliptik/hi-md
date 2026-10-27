@@ -172,7 +172,7 @@ final class MinidiscUXVerificationTests: XCTestCase {
         try require(authorization)
         XCTAssertTrue(authorization.isEnabled)
         XCTAssertTrue(authorization.label.contains("Activer Siri") || authorization.label.contains("Gérer l’accès à Siri") || authorization.label.contains("Ouvrir les réglages"))
-        try require(app.staticTexts["Autorisez Siri à rechercher dans votre bibliothèque Minidisc et à contrôler la lecture musicale."])
+        try require(app.staticTexts["Autorisez Siri à rechercher dans votre bibliothèque Hi-MD et à contrôler la lecture musicale."])
         captureHierarchy("siri-authorization-settings")
     }
 

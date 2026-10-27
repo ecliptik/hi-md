@@ -47,7 +47,7 @@ struct MacMenuBarPlayer: View {
             Divider()
 
             HStack {
-                Button("Show Minidisc") {
+                Button("Show Hi-MD") {
                     NSApp.activate()
                     if !NSApp.windows.contains(where: { $0.canBecomeMain && $0.isVisible }) {
                         openWindow(id: Self.mainWindowID)
@@ -55,7 +55,7 @@ struct MacMenuBarPlayer: View {
                     NSApp.windows.first { $0.canBecomeMain }?.makeKeyAndOrderFront(nil)
                 }
                 Spacer()
-                Button("Quit Minidisc") { NSApp.terminate(nil) }
+                Button("Quit Hi-MD") { NSApp.terminate(nil) }
             }
             .buttonStyle(.borderless)
             .font(.callout)

@@ -54,7 +54,7 @@ final class CarPlayController {
 
     private func reload() async {
         guard let container, let server = container.serverState.activeServer else {
-            let message = String(localized: "Open Minidisc on your iPhone to connect to your music server.")
+            let message = String(localized: "Open Hi-MD on your iPhone to connect to your music server.")
             for template in [homeTemplate, libraryTemplate, downloadsTemplate, moodsTemplate] {
                 template.emptyViewTitleVariants = [message]
                 template.updateSections([])
@@ -164,7 +164,7 @@ final class CarPlayController {
             }
         }
         let template = CPListTemplate(title: title, sections: [CPListSection(items: items)])
-        template.emptyViewTitleVariants = [String(localized: "Your library hasn't synced yet. Open Minidisc on your iPhone.")]
+        template.emptyViewTitleVariants = [String(localized: "Your library hasn't synced yet. Open Hi-MD on your iPhone.")]
         _ = try? await interfaceController.pushTemplate(template, animated: true)
         loadArtwork(for: items)
     }

@@ -53,7 +53,7 @@ struct WrappedShareCardView: View {
 
                 Spacer()
 
-                Text("Minidisc")
+                Text("Hi-MD")
                     .font(.system(size: 15, weight: .semibold, design: .rounded))
                     .foregroundStyle(.white.opacity(WrappedYearPalette.secondaryTextOpacity))
             }
