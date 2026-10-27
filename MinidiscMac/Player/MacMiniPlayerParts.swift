@@ -255,12 +255,16 @@ struct MiniPlayerQueuePane: View {
     var beforeNavigating: () -> Void
 
     @Environment(MacPlayback.self) private var playback
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// The queue place of the song last clicked in this list: the jump it starts leaves the list
+    /// where it is, since the listener is looking at it, where any other change of song brings
+    /// the current one to the top.
+    @State private var clickedIndex: Int?
 
-    private static let currentAnchor = "now-playing"
+    private static let currentAnchor = MiniPlayerQueueRows.Item.ID.heading(.nowPlaying)
 
     var body: some View {
         let state = playback.state
-        let history = Array(QueueHistory.earlier(in: state.queue, currentIndex: state.currentIndex).reversed())
         let upcoming = MacQueueEntry.upcoming(in: state)
         let sections = MiniPlayerQueueSections.split(upcoming, queueIndex: { $0.selection.destinationIndex },
                                                      autoplayStart: state.originalQueueEndIndex)
@@ -272,7 +276,7 @@ struct MiniPlayerQueuePane: View {
             if state.currentTrack == nil, upcoming.isEmpty {
                 MiniPlayerEmptyTab(title: "Nothing up next", systemImage: "list.bullet")
             } else {
-                list(state: state, history: history, sections: sections, upcoming: upcoming)
+                list(state: state, upcoming: upcoming)
             }
         }
     }
@@ -320,43 +324,25 @@ struct MiniPlayerQueuePane: View {
 
     // MARK: List
 
-    private func list(state: PlayerState, history: [QueueHistoryEntry],
-                      sections: (requested: [MacQueueEntry], autoplay: [MacQueueEntry]),
-                      upcoming: [MacQueueEntry]) -> some View {
-        ScrollViewReader { proxy in
+    private func list(state: PlayerState, upcoming: [MacQueueEntry]) -> some View {
+        let items = MiniPlayerQueueRows.items(queue: state.queue, currentIndex: state.currentIndex,
+                                              isPlaying: state.currentTrack != nil,
+                                              autoplayStart: state.originalQueueEndIndex)
+        let entries = Dictionary(upcoming.map { ($0.selection.destinationIndex, $0) }, uniquingKeysWith: { first, _ in first })
+        return ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 0) {
-                    if !history.isEmpty {
-                        MiniPlayerListHeading(title: "Back To")
-                        ForEach(history) { entry in
-                            historyRow(entry, state: state)
+                    // One list in queue order: a song keeps its row as it moves from Up Next to
+                    // Now Playing to Back To, so a jump only moves the headings and the highlight.
+                    ForEach(items) { item in
+                        switch item {
+                        case .heading(let heading):
+                            MiniPlayerListHeading(title: Self.title(of: heading))
+                        case .song(let row):
+                            songRow(row, state: state, entry: entries[row.index], upcoming: upcoming)
                         }
                     }
-                    if let current = state.currentTrack {
-                        MiniPlayerListHeading(title: "Now Playing")
-                            .id(Self.currentAnchor)
-                        MiniPlayerSongRow(song: current, isCurrent: true) {
-                            MiniPlayerDuration(seconds: current.duration)
-                            MiniPlayerRowMenu(song: current, beforeNavigating: beforeNavigating)
-                        }
-                        .contextMenu { MacSongMenu(songs: [current], beforeNavigating: beforeNavigating) }
-                    }
-                    if !sections.requested.isEmpty, !sections.autoplay.isEmpty {
-                        MiniPlayerListHeading(title: "Playing Next")
-                    }
-                    // Autoplay's songs follow the listener's, so a song's place in Up Next is
-                    // its place in its section, after the requested ones for Autoplay's.
-                    ForEach(Array(sections.requested.enumerated()), id: \.element.id) { position, entry in
-                        upcomingRow(entry, at: position, in: upcoming, queueCount: state.queue.count)
-                    }
-                    if !sections.autoplay.isEmpty {
-                        MiniPlayerListHeading(title: "Continue Playing")
-                        ForEach(Array(sections.autoplay.enumerated()), id: \.element.id) { offset, entry in
-                            upcomingRow(entry, at: sections.requested.count + offset, in: upcoming,
-                                        queueCount: state.queue.count)
-                        }
-                    }
-                    if upcoming.isEmpty {
+                    if !MiniPlayerQueueRows.hasUpcoming(items) {
                         Text("Nothing up next")
                             .font(.callout)
                             .foregroundStyle(Color.white.opacity(NowPlayingText.secondaryOpacity))
@@ -365,60 +351,89 @@ struct MiniPlayerQueuePane: View {
                 }
                 .padding(.horizontal, rowInset)
                 .padding(.bottom, 10)
+                .animation(reduceMotion ? nil : .smooth(duration: 0.25), value: state.currentIndex)
             }
             .scrollIndicators(.automatic)
             .onAppear { proxy.scrollTo(Self.currentAnchor, anchor: .top) }
-            .onChange(of: state.currentIndex) { _, _ in
-                proxy.scrollTo(Self.currentAnchor, anchor: .top)
+            .onChange(of: state.currentIndex) { _, index in
+                // A song clicked here plays where it is; the list stays put under the pointer.
+                if let clicked = clickedIndex {
+                    clickedIndex = nil
+                    if clicked == index { return }
+                }
+                withAnimation(reduceMotion ? nil : .smooth(duration: 0.3)) {
+                    proxy.scrollTo(Self.currentAnchor, anchor: .top)
+                }
             }
         }
     }
 
-    /// The row's ⋯ menu sits beside its button rather than in it, so the button doesn't take its
-    /// clicks.
-    private func historyRow(_ entry: QueueHistoryEntry, state: PlayerState) -> some View {
-        HStack(spacing: 4) {
-            Button {
-                guard let selection = QueueTrackSelection(playerState: state, destinationIndex: entry.index,
-                                                          destinationTrackID: entry.song.id) else { return }
-                playback.jump(to: selection)
-            } label: {
-                MiniPlayerSongRow(song: entry.song, isDimmed: true) {
-                    MiniPlayerDuration(seconds: entry.song.duration)
-                }
-            }
-            .buttonStyle(.plain)
-            .accessibilityHint("Play")
-            MiniPlayerRowMenu(song: entry.song, beforeNavigating: beforeNavigating)
+    private static func title(of heading: MiniPlayerQueueRows.Heading) -> LocalizedStringKey {
+        switch heading {
+        case .backTo: "Back To"
+        case .nowPlaying: "Now Playing"
+        case .playingNext: "Playing Next"
+        case .continuePlaying: "Continue Playing"
         }
-        .contextMenu { MacSongMenu(songs: [entry.song], beforeNavigating: beforeNavigating) }
     }
 
-    private func upcomingRow(_ entry: MacQueueEntry, at position: Int, in entries: [MacQueueEntry],
-                             queueCount: Int) -> some View {
-        HStack(spacing: 4) {
+    /// Every song's row has the same shape, whichever section it's in, so it isn't rebuilt (nor its
+    /// cover reloaded) when a jump moves it to another. The ⋯ menu sits beside the row's button
+    /// rather than in it, so the button doesn't take its clicks. Earlier songs are dimmed, the
+    /// current one is in the accent, and Up Next's songs move and leave through the menu.
+    private func songRow(_ row: MiniPlayerQueueRows.Song, state: PlayerState, entry: MacQueueEntry?,
+                         upcoming: [MacQueueEntry]) -> some View {
+        let position = row.upcomingPosition
+        let queueCount = state.queue.count
+        return HStack(spacing: 4) {
             Button {
-                playback.jump(to: entry.selection)
+                jump(to: row, state: state, entry: entry)
             } label: {
-                MiniPlayerSongRow(song: entry.song) {
-                    MiniPlayerDuration(seconds: entry.song.duration)
+                MiniPlayerSongRow(song: row.song, isCurrent: row.role == .current, isDimmed: row.role == .history) {
+                    MiniPlayerDuration(seconds: row.song.duration)
                 }
             }
             .buttonStyle(.plain)
-            .accessibilityHint("Play")
-            .accessibilityAction(named: "Move Up") { move(position, by: -1, in: entries, queueCount: queueCount) }
-            .accessibilityAction(named: "Move Down") { move(position, by: 1, in: entries, queueCount: queueCount) }
-            .accessibilityAction(named: "Remove from Queue") { playback.removeFromQueue([entry.selection]) }
-            MiniPlayerRowMenu(song: entry.song, beforeNavigating: beforeNavigating) {
-                queueActions(position, in: entries, queueCount: queueCount)
-                Divider()
+            .accessibilityHint(row.role == .current ? Text(verbatim: "") : Text("Play"))
+            .accessibilityActions {
+                if let position, let entry {
+                    Button("Move Up") { move(position, by: -1, in: upcoming, queueCount: queueCount) }
+                    Button("Move Down") { move(position, by: 1, in: upcoming, queueCount: queueCount) }
+                    Button("Remove from Queue") { playback.removeFromQueue([entry.selection]) }
+                }
+            }
+            MiniPlayerRowMenu(song: row.song, beforeNavigating: beforeNavigating) {
+                if let position {
+                    queueActions(position, in: upcoming, queueCount: queueCount)
+                    Divider()
+                }
             }
         }
         .contextMenu {
-            queueActions(position, in: entries, queueCount: queueCount)
-            Divider()
-            MacSongMenu(songs: [entry.song], beforeNavigating: beforeNavigating)
+            if let position {
+                queueActions(position, in: upcoming, queueCount: queueCount)
+                Divider()
+            }
+            MacSongMenu(songs: [row.song], beforeNavigating: beforeNavigating)
         }
+    }
+
+    /// Plays a song from the list: Up Next's with the request captured when its row was drawn,
+    /// an earlier one by its place. Clicking the current song does nothing.
+    private func jump(to row: MiniPlayerQueueRows.Song, state: PlayerState, entry: MacQueueEntry?) {
+        let selection: QueueTrackSelection?
+        switch row.role {
+        case .current:
+            return
+        case .history:
+            selection = QueueTrackSelection(playerState: state, destinationIndex: row.index,
+                                            destinationTrackID: row.song.id)
+        case .requested, .autoplay:
+            selection = entry?.selection
+        }
+        guard let selection else { return }
+        clickedIndex = row.index
+        playback.jump(to: selection)
     }
 
     @ViewBuilder

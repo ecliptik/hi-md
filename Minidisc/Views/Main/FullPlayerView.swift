@@ -121,10 +121,10 @@ struct FullPlayerView: View {
         let coverArtId = playerState.isLiveStream
             ? (playerState.currentRadio?.coverArt ?? "")
             : (playerState.currentTrack?.coverArtId ?? playerState.currentTrack?.id ?? "")
-        // Use the memoized color on the first frame while the view model catches up.
-        let colors = colorExtractor.cachedBackgroundColors(for: coverArtId)
-            ?? (vm.coverArtID == coverArtId ? vm.backgroundColors
-                : Array(repeating: colorExtractor.cachedColor(for: coverArtId) ?? .black, count: 4))
+        // The memoized colours on the first frame while the view model catches up; after that the
+        // model's, which keep the last song's palette until the next one is ready rather than
+        // flashing black or snapping between songs.
+        let colors = vm.displayedColors(for: coverArtId, colorExtractor: colorExtractor)
         let showingQueue = isQueueVisible(playerState)
 
         surfaceStack(playerState, coverArtId: coverArtId, showingQueue: showingQueue)
@@ -346,7 +346,8 @@ struct FullPlayerView: View {
                                  placeholderSystemImage: playerState.isLiveStream
                                     ? Self.radioPlaceholder : CoverArtPlaceholder.defaultSymbol,
                                  initialImage: initialArtwork?.id == coverArtId ? initialArtwork?.image : nil,
-                                 spinningDisc: playerState.playbackState == .playing)
+                                 spinningDisc: playerState.playbackState == .playing,
+                                 crossfades: true)
                         .clipShape(
                             RoundedRectangle(
                                 cornerRadius: isSource ? MinidiscCornerRadius.large : MinidiscCornerRadius.standard,

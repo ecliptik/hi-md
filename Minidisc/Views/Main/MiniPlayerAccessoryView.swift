@@ -215,7 +215,8 @@ struct MiniPlayerAccessoryView: View {
     private func miniArtwork(_ coverArtId: String, size: CGFloat = 30, isLiveStream: Bool) -> some View {
         CoverArtView(id: coverArtId, size: 120,
                      placeholderSystemImage: isLiveStream ? FullPlayerView.radioPlaceholder : CoverArtPlaceholder.defaultSymbol,
-                     initialImage: initialArtwork?.id == coverArtId ? initialArtwork?.image : nil)
+                     initialImage: initialArtwork?.id == coverArtId ? initialArtwork?.image : nil,
+                     crossfades: true)
             .minidiscCoverStyle()
             .modifier(PlayerArtworkTransition(namespace: artworkNamespace))
             .frame(width: size, height: size)

@@ -12,6 +12,7 @@ struct MacWaveformScrubber: View {
     var centerLabel: String? = nil
 
     @Environment(MacPlayback.self) private var playback
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var dragPosition: TimeInterval?
 
     private static let secondary = Color.white.opacity(NowPlayingText.secondaryOpacity)
@@ -66,6 +67,8 @@ struct MacWaveformScrubber: View {
             GeometryReader { proxy in
                 let progress = duration > 0 ? shown / duration : 0
                 waveform(progress: progress, size: proxy.size)
+                    // The next song's waveform, or the plain bar, fades in rather than snapping.
+                    .animation(reduceMotion ? nil : .easeInOut(duration: 0.25), value: envelope)
                     .contentShape(Rectangle())
                     .gesture(DragGesture(minimumDistance: 0)
                         .onChanged { value in
