@@ -5,6 +5,11 @@ A line-art MiniDisc after the 💽 emoji: a rounded cartridge outline, the disc 
 with a hub dot, and the shutter as a solid tab reaching in from the right edge beside the disc.
 `minidisc.fill` is the solid cartridge with the disc, hub and shutter knocked out.
 
+`--variant top-shutter` draws the alternative under consideration instead: the shutter as a bar
+reaching down from the top edge, where a real MiniDisc's metal shutter sits, with the disc centred
+below it. Write it somewhere other than the asset catalog to compare it; the shipped symbol is
+the default `side-shutter` variant.
+
 Every weight is built from the same centerlines with the same number of path commands, so SF Symbols
 (and actool) can interpolate the Ultralight, Regular and Black sources into all nine weights.
 Units are template units at 100 pt, small scale: y up from the baseline while building, flipped to
@@ -12,11 +17,13 @@ SVG's y-down when written.
 
 Usage (from the repository root):
     python3 Scripts/Symbols/make_minidisc_symbol.py Minidisc/Assets.xcassets
+    python3 Scripts/Symbols/make_minidisc_symbol.py --variant top-shutter /tmp/TopShutter.xcassets
 Check the result with Scripts/Symbols/symbol_sheet.swift.
 """
+import argparse
+import json
 import math
 import os
-import sys
 
 CAP = 70.459            # cap height at 100 pt (Capline-S - Baseline-S)
 CY = CAP / 2            # symbols are centred on the cap height's midline
@@ -30,6 +37,15 @@ WEIGHTS = {
     "Regular":    dict(t=7.0,  ring=13.5, ringx=28.0, hub=3.8, tableft=50.0, tabhalf=12.5),
     "Black":      dict(t=13.0, ring=11.5, ringx=29.5, hub=3.2, tableft=50.5, tabhalf=12.5),
 }
+
+# The top-shutter variant. barbottom: the shutter's outer bottom edge; barhalf: half its outer
+# width. The disc is centred across the cartridge and between the shutter and the bottom edge.
+TOP_SHUTTER_WEIGHTS = {
+    "Ultralight": dict(t=2.25, ring=17.0, hub=2.2, barbottom=53.5, barhalf=16.5),
+    "Regular":    dict(t=7.0,  ring=14.5, hub=3.8, barbottom=52.5, barhalf=16.5),
+    "Black":      dict(t=13.0, ring=11.5, hub=3.2, barbottom=50.5, barhalf=17.5),
+}
+VARIANTS = ("side-shutter", "top-shutter")
 
 # Cartridge centerline (independent of weight; strokes grow both ways like SF's): a plain rounded
 # rectangle, slightly taller than wide like a real MiniDisc, with one corner radius all round.
@@ -134,9 +150,50 @@ def rounded_rect_circles(x0, x1, half, r_left, r_right):
             ((x1 - r_right, CY + half - r_right), r_right), ((x0 + r_left, CY + half - r_left), r_left)]
 
 
-def build(weight, filled):
+def rect_circles(x0, x1, y0, y1, r_bottom, r_top):
+    """Corner circles of a rectangle (outer edges given), counter-clockwise from the bottom left."""
+    return [((x0 + r_bottom, y0 + r_bottom), r_bottom), ((x1 - r_bottom, y0 + r_bottom), r_bottom),
+            ((x1 - r_top, y1 - r_top), r_top), ((x0 + r_top, y1 - r_top), r_top)]
+
+
+def build_top_shutter(weight, filled):
+    """Outline: cartridge, a solid shutter reaching down from the top edge, and the closed disc
+    ring and hub dot centred below it. Fill: the solid cartridge with all three knocked out."""
+    p = TOP_SHUTTER_WEIGHTS[weight]
+    t = p["t"]
+    cx = (X0 + X1) / 2
+    inner_bottom = Y0 + t / 2
+    c = (cx, (inner_bottom + p["barbottom"]) / 2)
+    outer = p["ring"] + t / 2
+    assert c[1] + outer < p["barbottom"], "the disc must clear the shutter"
+    assert c[1] - outer > inner_bottom, "the disc must clear the cartridge"
+    assert cx - outer > X0 + t / 2, "the disc must fit across the cartridge"
+    assert p["ring"] - t / 2 > p["hub"], "the hub must sit inside the ring"
+    bx0, bx1 = cx - p["barhalf"], cx + p["barhalf"]
+    path = Path()
+    cart = cartridge_circles()
+    hull_of_circles(path, cart, t / 2)
+    if not filled:
+        hull_of_circles(path, cart, -t / 2, reverse=True)
+        # The shutter runs into the cartridge's top edge, so it ends inside that stroke.
+        hull_of_circles(path, rect_circles(bx0, bx1, p["barbottom"], Y1, 2.5, 1.0), 0)
+        circle(path, c, outer)
+        circle(path, c, p["ring"] - t / 2, reverse=True)
+        circle(path, c, p["hub"])
+    else:
+        # Cut out of the solid cartridge, leaving a rim along the top as wide as the outline's stroke.
+        hull_of_circles(path, rect_circles(bx0, bx1, p["barbottom"], Y1 - t / 2, 2.5, 2.5), 0, reverse=True)
+        circle(path, c, outer, reverse=True)
+        circle(path, c, p["ring"] - t / 2)
+        circle(path, c, p["hub"], reverse=True)
+    return path
+
+
+def build(weight, filled, variant="side-shutter"):
     """Outline: cartridge, closed disc ring, hub dot, solid shutter reaching in from the right edge.
     Fill: the solid cartridge with the ring, hub and shutter knocked out."""
+    if variant == "top-shutter":
+        return build_top_shutter(weight, filled)
     p = WEIGHTS[weight]
     t = p["t"]
     c = (p["ringx"], CY)
@@ -191,11 +248,11 @@ COLUMNS = {"Ultralight": 559.711, "Regular": 1449.84, "Black": 2933.4}
 ROWS = {"S": 696, "M": 1126, "L": 1556}
 
 
-def template(name, filled):
+def template(name, filled, variant="side-shutter"):
     groups, margins = [], []
     counts = set()
     for weight in ("Black", "Regular", "Ultralight"):
-        path = build(weight, filled)
+        path = build(weight, filled, variant)
         counts.add(tuple(c[0] for c in path.cmds))
         x0, x1, _, _ = bbox(path)
         width = (x1 - x0) + 2 * SIDEBEARING
@@ -259,17 +316,28 @@ def template(name, filled):
     ])
 
 
-def write_symbolset(out_dir, name, filled):
+def write_symbolset(out_dir, name, filled, variant="side-shutter"):
     folder = os.path.join(out_dir, f"{name}.symbolset")
     os.makedirs(folder, exist_ok=True)
     with open(os.path.join(folder, f"{name}.svg"), "w") as f:
-        f.write(template(name, filled))
+        f.write(template(name, filled, variant))
     with open(os.path.join(folder, "Contents.json"), "w") as f:
         f.write('{\n  "info" : {\n    "author" : "xcode",\n    "version" : 1\n  },\n  "symbols" : [\n    {\n'
                 f'      "filename" : "{name}.svg",\n      "idiom" : "universal"\n    }}\n  ]\n}}\n')
 
 
 if __name__ == "__main__":
-    out = sys.argv[1]
-    write_symbolset(out, "minidisc", filled=False)
-    write_symbolset(out, "minidisc.fill", filled=True)
+    parser = argparse.ArgumentParser(description="Writes the minidisc and minidisc.fill symbol sets.")
+    parser.add_argument("out_dir", help="the asset catalog (.xcassets) to write the .symbolset folders into")
+    parser.add_argument("--variant", choices=VARIANTS, default="side-shutter",
+                        help="side-shutter (shipped) or top-shutter (the alternative being compared)")
+    args = parser.parse_args()
+    # A new scratch catalog needs its own Contents.json before actool will compile it.
+    catalog_info = os.path.join(args.out_dir, "Contents.json")
+    if args.out_dir.rstrip("/").endswith(".xcassets") and not os.path.exists(catalog_info):
+        os.makedirs(args.out_dir, exist_ok=True)
+        with open(catalog_info, "w") as f:
+            json.dump({"info": {"author": "xcode", "version": 1}}, f, indent=2)
+            f.write("\n")
+    write_symbolset(args.out_dir, "minidisc", filled=False, variant=args.variant)
+    write_symbolset(args.out_dir, "minidisc.fill", filled=True, variant=args.variant)
