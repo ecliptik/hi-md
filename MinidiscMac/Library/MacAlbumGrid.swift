@@ -87,6 +87,9 @@ struct MacAlbumMenu: View {
     var albumName: String?
     var artistID: String?
     var artistName: String?
+    /// Runs before Go to Artist, so a window other than the main one (the MiniPlayer) can bring
+    /// the main window forward first.
+    var beforeNavigating: (() -> Void)? = nil
 
     @Environment(MacPlayback.self) private var playback
     @Environment(MacNavigator.self) private var navigator
@@ -112,6 +115,7 @@ struct MacAlbumMenu: View {
         if let artistID {
             Divider()
             Button("Go to Artist", systemImage: "music.microphone") {
+                beforeNavigating?()
                 navigator.show(.artist(id: artistID, name: artistName ?? ""))
             }
         }

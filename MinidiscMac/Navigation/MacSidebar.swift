@@ -72,6 +72,9 @@ struct MacSidebar: View {
 /// The context menu for a playlist, in the sidebar and on Home.
 struct MacPlaylistMenu: View {
     let playlist: Playlist
+    /// Runs before Rename and Delete, whose sheets show on the main window, so a window other
+    /// than the main one (the MiniPlayer) can bring it forward first.
+    var beforeShowingSheet: (() -> Void)? = nil
 
     @Environment(MacPlayback.self) private var playback
     @Environment(MacPlaylists.self) private var playlists
@@ -83,9 +86,15 @@ struct MacPlaylistMenu: View {
         Button("Download", systemImage: "arrow.down.circle") { playback.downloadPlaylist(id: playlist.id) }
             .disabled(!playlists.canEdit)
         Divider()
-        Button("Rename…") { playlists.renaming = playlist }
+        Button("Rename…") {
+            beforeShowingSheet?()
+            playlists.renaming = playlist
+        }
             .disabled(!playlists.canEdit)
-        Button("Delete Playlist…", role: .destructive) { playlists.deleting = playlist }
+        Button("Delete Playlist…", role: .destructive) {
+            beforeShowingSheet?()
+            playlists.deleting = playlist
+        }
             .disabled(!playlists.canEdit)
     }
 }

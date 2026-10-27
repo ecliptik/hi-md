@@ -64,6 +64,10 @@ struct MacLyricsPane: View {
     var session: MacLyricsSession? = nil
     /// The Mac's full-screen lyrics: huge centred lines instead of the player's column.
     var isFullScreen = false
+    /// Takes up the session's lyrics when they're for the same song, so a pane that comes and
+    /// goes (the MiniPlayer's, as its layout changes) doesn't load them again. Only for a session
+    /// that one pane shows at a time.
+    var adoptsSessionLyrics = false
 
     @State private var viewModel: LyricsViewModel?
 
@@ -115,6 +119,11 @@ struct MacLyricsPane: View {
             return
         }
         if viewModel?.canBeReused(forTrackID: track.id, source: source) == true { return }
+        if adoptsSessionLyrics, let shared = session?.viewModel,
+           shared.canBeReused(forTrackID: track.id, source: source) {
+            viewModel = shared
+            return
+        }
         let model = LyricsViewModel(track: track, serverId: serverID, source: source,
                                     lyricsService: container.lyricsService,
                                     playerService: container.playerService, playerState: container.playerState)
@@ -232,7 +241,7 @@ struct MacQueuePane: View {
 
 /// A song after the current one, with the request that jumps to, moves or removes it only if the
 /// queue hasn't changed since the row was drawn.
-private struct MacQueueEntry: Identifiable {
+struct MacQueueEntry: Identifiable {
     struct ID: Hashable {
         let generation: UInt64
         let songID: String
