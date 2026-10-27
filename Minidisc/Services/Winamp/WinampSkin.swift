@@ -223,7 +223,7 @@ nonisolated struct WinampSkin: @unchecked Sendable {
         return try load(data: data, name: url.deletingPathExtension().lastPathComponent, fallback: fallback)
     }
 
-    /// The original "Minidisc Gold" skin shipped with the app.
+    /// The original "Hi-MD Gold" skin shipped with the app.
     static func bundled(in bundle: Bundle = .main) throws -> WinampSkin {
         guard let url = bundle.url(forResource: bundledSkinName, withExtension: "wsz") else {
             throw LoadError.missingBundledSkin

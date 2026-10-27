@@ -8,4 +8,4 @@ DERIVED="${DERIVED_DATA:-build/mac}"
 xcodebuild build -project Minidisc.xcodeproj -scheme MinidiscMac \
     -destination 'platform=macOS' \
     -derivedDataPath "$DERIVED" CODE_SIGN_IDENTITY=- -quiet
-open -n "$DERIVED/Build/Products/Debug/Minidisc.app"
+open -n "$DERIVED/Build/Products/Debug/Hi-MD.app"

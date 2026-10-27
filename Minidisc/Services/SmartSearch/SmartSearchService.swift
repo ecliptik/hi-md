@@ -9,8 +9,8 @@ nonisolated enum SmartSearchError: Error, CustomLocalizedStringResourceConvertib
     var localizedStringResource: LocalizedStringResource {
         switch self {
         case .unavailable: "Apple Intelligence isn't available on this iPhone right now."
-        case .noServer: "Open Minidisc and connect to your music server first."
-        case .notUnderstood: "Minidisc couldn't turn that into a search. Try naming a genre, decade, artist or mood."
+        case .noServer: "Open Hi-MD and connect to your music server first."
+        case .notUnderstood: "Hi-MD couldn't turn that into a search. Try naming a genre, decade, artist or mood."
         }
     }
 }

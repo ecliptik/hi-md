@@ -1,11 +1,11 @@
 <p align="center">
-  <img src="docs/app-icon.png" alt="Minidisc app icon" width="128" height="128">
+  <img src="docs/app-icon.png" alt="Hi-MD app icon: a MiniDisc whose label reads Hi-MD" width="128" height="128">
 </p>
 
-<h1 align="center">Minidisc</h1>
+<h1 align="center">Hi-MD</h1>
 
 <p align="center">
-  A personal fork of <a href="https://github.com/Loriage/Minidisc">Minidisc</a>, the iOS music player for your own Subsonic or Navidrome server.
+  A personal fork of <a href="https://github.com/Loriage/Minidisc">Minidisc</a>, the music player for your own Subsonic or Navidrome server, on iPhone, Apple Watch and Mac.
 </p>
 
 <p align="center">
@@ -13,6 +13,21 @@
   <a href="#build-from-source"><img src="https://img.shields.io/badge/platform-iOS%2027%2B-blue.svg" alt="Platform: iOS 27+"></a>
   <a href="https://swift.org"><img src="https://img.shields.io/badge/Swift-6-orange.svg" alt="Swift 6"></a>
 </p>
+
+### "Hi-MD" Established: The Minidisc Music Player Has Evolved into a Versatile Listening App for the Self-Hosted Era
+
+*October 2026* — ecliptik today announced the development of "Hi-MD," marking an evolution of the Minidisc music player into a versatile listening app that also delivers synced lyrics, an Apple Watch remote and a native Mac app, while maintaining playback compatibility with current Subsonic and Navidrome servers and keeping your music between your devices and your own server.
+
+With the introduction of "Hi-MD," your Navidrome server is poised to meet the demands of a growing broadband era with a versatile player capable of playing a variety of content, such as music and lyrics, while maintaining high quality sound and resolution.
+
+- **High capacity:** songs buffer four minutes ahead on both decks, and the playing one downloads in full from its first second; upcoming, recently played, pinned and favourite songs can be cached for offline listening, and albums download for the commute.
+- **High quality sound:** original-quality streaming on Wi-Fi, so FLAC stays FLAC; gapless playback and real crossfades on a two-deck engine; a 10-band equalizer with AutoEq headphone corrections; loudness leveling.
+- **Versatile recording media:** iPhone, iPad, Apple Watch and a native Mac app, where Miniamp, a compact skinnable player, loads classic Winamp 2 skins (.wsz). Album recommendations come from Apple Intelligence on the device.
+- **Copyright protection technology:** no OpenMG, no MagicGate, no accounts and no tracking. Your server, your music.
+
+ecliptik will proactively promote the "Hi-MD" format household-wide.
+
+Hi-MD is a revamp of Minidisc, like [Hi-MD](https://www.minidisc.org/keep/sony_himd_announcement.pdf) was for the MiniDisc. It is an unofficial fork of [Loriage/Minidisc](https://github.com/Loriage/Minidisc), and it is not affiliated with or endorsed by Sony; MiniDisc and Hi-MD are Sony trademarks.
 
 <p align="center">
   <img src="docs/screenshots/ios/01-home.jpg" alt="Home: playlists and favourite songs" width="200">
@@ -23,7 +38,7 @@
 
 ## About this fork
 
-This repository is a fork of [Loriage/Minidisc](https://github.com/Loriage/Minidisc), which is itself a fork of [Cassette](https://github.com/CassetteLab/cassette) by Mathieu Dubart. Minidisc is a SwiftUI player for servers that speak the Subsonic or OpenSubsonic API, such as [Navidrome](https://www.navidrome.org). It has no accounts and no tracking: your music goes between your device and your server.
+This repository, Hi-MD, is a fork of [Loriage/Minidisc](https://github.com/Loriage/Minidisc), which is itself a fork of [Cassette](https://github.com/CassetteLab/cassette) by Mathieu Dubart. It began as Minidisc and was renamed Hi-MD in October 2026. Hi-MD is a SwiftUI player for servers that speak the Subsonic or OpenSubsonic API, such as [Navidrome](https://www.navidrome.org). It has no accounts and no tracking: your music goes between your device and your server.
 
 The fork follows its own direction and doesn't send changes upstream, but it merges upstream work from time to time. It is built for one person's library and devices and is shared as source only: there is no App Store listing, TestFlight or prebuilt `.ipa`. For the original app, its releases and its App Store listing, go to [upstream Minidisc](https://github.com/Loriage/Minidisc).
 
@@ -56,13 +71,13 @@ The fork follows its own direction and doesn't send changes upstream, but it mer
 - An Apple Watch remote, and iPad and landscape layouts.
 - CarPlay with Home, Library, Downloads and Moods tabs. It runs in the simulator; a device build needs Apple's CarPlay audio entitlement.
 - A native Mac app (`MinidiscMac`) with the iPhone's Home and Discover as Music-style shelves, a Music-style library, a full-window Now Playing view with lyrics, a MiniPlayer and a menu bar player.
-- A Winamp mode on the Mac (View › Winamp Mode, ⌘⇧W): classic `.wsz` skins, docking playlist and equalizer windows, zoom up to 4×, M3U playlists, a server folder browser with search, and a demo clip in the spirit of the original.
+- Miniamp on the Mac (View › Miniamp, ⌘⇧W): a compact, skinnable player that loads classic Winamp 2 skins (`.wsz`), with docking playlist and equalizer windows, zoom up to 4×, M3U playlists, a server folder browser with search, a demo clip in the spirit of Winamp's, and its own Hi-MD Gold skin. It is separate from the MiniPlayer.
 
 **Interface**
 
 - A redesigned interface: a tile-based Library, a searchable Playlists tab, restyled album, playlist and artist screens, a mini player tinted from the cover, and an Accent Color setting.
 - Full-screen karaoke lyrics, a sleep timer, and a spinning MiniDisc in place of the cover on tap.
-- A photographed MiniDisc as the app icon (gold, with dark and light alternates), the logo and the no-artwork placeholder.
+- A photographed MiniDisc, its label hand-lettered "Hi-MD", as the app icon (gold, with dark and light alternates), the logo and the no-artwork placeholder.
 
 **Discovery**
 
@@ -98,7 +113,7 @@ Everything upstream Minidisc offers is still here, including:
 
 ## Privacy
 
-- Minidisc does not track you. Library and playback traffic goes directly to your server.
+- Hi-MD does not track you. Library and playback traffic goes directly to your server.
 - Credentials are kept only in the Keychain. Custom HTTP headers are supported for servers behind a reverse proxy such as Cloudflare Access or Authelia.
 - Some features talk to other services, and only when you use them:
   - LRCLIB, for lyrics: the track's title, artist, album and duration.
@@ -121,12 +136,12 @@ Steps:
 1. Clone the repository and open the project:
 
     ```bash
-    git clone https://github.com/ecliptik/Minidisc.git
-    cd Minidisc
+    git clone https://github.com/ecliptik/hi-md.git
+    cd hi-md
     open Minidisc.xcodeproj
     ```
 
-    Swift Package Manager fetches the only dependency, [SwiftSonic](https://github.com/MathieuDubart/swiftsonic).
+    The Xcode project, targets and schemes keep their original Minidisc names. Swift Package Manager fetches the only dependency, [SwiftSonic](https://github.com/MathieuDubart/swiftsonic).
 
 2. Simulator builds need no signing setup: pick an iOS 27 simulator and press Command-R.
 
@@ -166,17 +181,17 @@ Run the `MinidiscTests` scheme for unit tests. The UI tests in `MinidiscUITests`
 
 ## Issues
 
-Report problems with this fork at [github.com/ecliptik/Minidisc/issues](https://github.com/ecliptik/Minidisc/issues). If a problem also happens in upstream Minidisc, report it there too.
+Report problems with this fork at [github.com/ecliptik/hi-md/issues](https://github.com/ecliptik/hi-md/issues). If a problem also happens in upstream Minidisc, report it there too.
 
 ## License
 
-Minidisc is licensed under the [Mozilla Public License 2.0](LICENSE), like upstream Minidisc and Cassette. `LICENSE`, `NOTICE` and `COPYRIGHT` are upstream's and are kept unchanged. The fork's changes are also under MPL-2.0, and the source of every change is in this repository.
+Hi-MD is licensed under the [Mozilla Public License 2.0](LICENSE), like upstream Minidisc and Cassette. `LICENSE`, `NOTICE` and `COPYRIGHT` are upstream's and are kept unchanged. The fork's changes are also under MPL-2.0, and the source of every change is in this repository.
 
 Third-party code and data, SwiftSonic and AutoEq (both MIT), are listed with their notices in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 > Code before upstream commit 21f9227 was licensed GPL-3.0-or-later.
 
-"MiniDisc" is a trademark of Sony. This project is not affiliated with Sony, Apple, Nullsoft or the Winamp brand owners; those names are used only to describe the app.
+"MiniDisc" and "Hi-MD" are trademarks of Sony, and "Winamp" is a trademark of its owner. Hi-MD and Miniamp are not affiliated with or endorsed by Sony, Apple, Nullsoft, or Winamp and Llama Group; those names are used only to describe the app.
 
 ## Acknowledgments
 

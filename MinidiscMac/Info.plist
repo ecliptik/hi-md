@@ -8,7 +8,7 @@
 			<key>UTTypeIdentifier</key>
 			<string>com.ecliptik.minidisc.songs</string>
 			<key>UTTypeDescription</key>
-			<string>Minidisc Songs</string>
+			<string>Hi-MD Songs</string>
 			<key>UTTypeConformsTo</key>
 			<array>
 				<string>public.data</string>

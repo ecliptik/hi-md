@@ -16,7 +16,7 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "EC1D27000000000000000033"
-               BuildableName = "Minidisc.app"
+               BuildableName = "Hi-MD.app"
                BlueprintName = "MinidiscMac"
                ReferencedContainer = "container:Minidisc.xcodeproj">
             </BuildableReference>
@@ -46,7 +46,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "EC1D27000000000000000033"
-            BuildableName = "Minidisc.app"
+            BuildableName = "Hi-MD.app"
             BlueprintName = "MinidiscMac"
             ReferencedContainer = "container:Minidisc.xcodeproj">
          </BuildableReference>
@@ -63,7 +63,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "EC1D27000000000000000033"
-            BuildableName = "Minidisc.app"
+            BuildableName = "Hi-MD.app"
             BlueprintName = "MinidiscMac"
             ReferencedContainer = "container:Minidisc.xcodeproj">
          </BuildableReference>

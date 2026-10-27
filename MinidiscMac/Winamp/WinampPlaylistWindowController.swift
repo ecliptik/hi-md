@@ -60,10 +60,10 @@ final class WinampPlaylistWindowController: NSObject, NSWindowDelegate, WinampSu
         sprites = WinampSpriteCache(skin: skin)
         size = host.preferences.playlistSize
         isShaded = host.preferences.isShaded(.playlist) && WinampPlaylistRenderer.hasShadeSprites(skin)
-        view = WinampSurfaceView(logicalSize: size.pixelSize, accessibilityLabel: String(localized: "Winamp Playlist"))
+        view = WinampSurfaceView(logicalSize: size.pixelSize, accessibilityLabel: String(localized: "Miniamp Playlist"))
         window = WinampWindow(contentSize: size.pixelSize)
         super.init()
-        window.title = String(localized: "Winamp Playlist")
+        window.title = String(localized: "Miniamp Playlist")
         window.contentView = view
         window.delegate = self
         window.closeHandler = { [weak host] in host?.close(.playlist) }

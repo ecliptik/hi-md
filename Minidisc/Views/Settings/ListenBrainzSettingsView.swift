@@ -41,7 +41,7 @@ struct ListenBrainzSettingsView: View {
 
     private func aboutSection() -> some View {
         Section {
-            Text("ListenBrainz is an open-source music recommendation service by the MetaBrainz Foundation. Minidisc uses it for personalized fresh releases and similar artists; your server sends it your plays.")
+            Text("ListenBrainz is an open-source music recommendation service by the MetaBrainz Foundation. Hi-MD uses it for personalized fresh releases and similar artists; your server sends it your plays.")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
             Button("Visit ListenBrainz →") {

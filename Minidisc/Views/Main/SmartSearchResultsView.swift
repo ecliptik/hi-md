@@ -14,7 +14,7 @@ struct SmartSearchRow: View {
         NavigationLink(value: SmartSearchRequest(text: text)) {
             Label {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Ask Minidisc")
+                    Text("Ask Hi-MD")
                         .font(.body.weight(.semibold))
                     Text("“\(text)”")
                         .font(.subheadline)

@@ -488,12 +488,12 @@ struct WinampCommands: Commands {
     var body: some Commands {
         CommandGroup(after: .toolbar) {
             Divider()
-            Toggle("Winamp Mode", isOn: Binding(get: { isOpen }, set: { WinampMode.shared.setOpen($0) }))
+            Toggle("Miniamp", isOn: Binding(get: { isOpen }, set: { WinampMode.shared.setOpen($0) }))
                 .keyboardShortcut("w", modifiers: [.command, .shift])
             if isOpen {
-                Button("Winamp Equalizer") { WinampMode.shared.toggle(.equalizer) }
+                Button("Miniamp Equalizer") { WinampMode.shared.toggle(.equalizer) }
                     .keyboardShortcut("g", modifiers: [.command, .option])
-                Button("Winamp Playlist") { WinampMode.shared.toggle(.playlist) }
+                Button("Miniamp Playlist") { WinampMode.shared.toggle(.playlist) }
                     .keyboardShortcut("e", modifiers: [.command, .option])
                 // The playing song's heart, as in the main window: ⌘⇧H for "heart".
                 Button {
@@ -503,7 +503,7 @@ struct WinampCommands: Commands {
                 }
                 .keyboardShortcut("h", modifiers: [.command, .shift])
                 .disabled(!favorites.current.canToggle)
-                Menu("Winamp Zoom") {
+                Menu("Miniamp Zoom") {
                     ForEach(Array(WinampZoom.levels), id: \.self) { level in
                         Toggle(WinampZoom.title(level), isOn: Binding(
                             get: { WinampZoom.clamped(zoom) == level },

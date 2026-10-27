@@ -35,10 +35,10 @@ final class WinampEqualizerWindowController: NSObject, NSWindowDelegate, WinampS
         self.skin = skin
         sprites = WinampSpriteCache(skin: skin)
         isShaded = host.preferences.isShaded(.equalizer) && WinampEqualizerRenderer.hasShadeSprites(skin)
-        view = WinampSurfaceView(logicalSize: WinampEqualizerLayout.size, accessibilityLabel: String(localized: "Winamp Equalizer"))
+        view = WinampSurfaceView(logicalSize: WinampEqualizerLayout.size, accessibilityLabel: String(localized: "Miniamp Equalizer"))
         window = WinampWindow(contentSize: WinampEqualizerLayout.size)
         super.init()
-        window.title = String(localized: "Winamp Equalizer")
+        window.title = String(localized: "Miniamp Equalizer")
         window.contentView = view
         window.delegate = self
         window.closeHandler = { [weak host] in host?.close(.equalizer) }
@@ -361,7 +361,7 @@ final class WinampEqualizerWindowController: NSObject, NSWindowDelegate, WinampS
     private func exportEQF() {
         let panel = NSSavePanel()
         panel.allowedContentTypes = [Self.eqfType]
-        panel.nameFieldStringValue = "Minidisc.eqf"
+        panel.nameFieldStringValue = "Hi-MD.eqf"
         guard panel.runModal() == .OK, let url = panel.url else { return }
         var preset = currentPreset
         preset.name = url.deletingPathExtension().lastPathComponent

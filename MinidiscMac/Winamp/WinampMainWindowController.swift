@@ -287,7 +287,7 @@ final class WinampMainWindowController: NSObject, NSWindowDelegate, WinampMainVi
             return WinampMarquee.songTitle(artist: track.artist, title: track.title,
                                            duration: track.duration > 0 ? track.duration : player.duration)
         }
-        return "Minidisc"
+        return "Hi-MD"
     }
 
     private func updateTimers(title: String) {
@@ -637,8 +637,8 @@ final class WinampMainWindowController: NSObject, NSWindowDelegate, WinampMainVi
         menu.addItem(item(String(localized: "Load Skin…")) { $0.host?.chooseSkin() })
         menu.addItem(item(String(localized: "Default Skin"), isOn: host?.isUsingDefaultSkin ?? true) { $0.host?.useDefaultSkin() })
         menu.addItem(.separator())
-        menu.addItem(item(String(localized: "Winamp Equalizer"), isOn: host?.isVisible(.equalizer) == true) { $0.host?.toggle(.equalizer) })
-        menu.addItem(item(String(localized: "Winamp Playlist"), isOn: host?.isVisible(.playlist) == true) { $0.host?.toggle(.playlist) })
+        menu.addItem(item(String(localized: "Miniamp Equalizer"), isOn: host?.isVisible(.equalizer) == true) { $0.host?.toggle(.equalizer) })
+        menu.addItem(item(String(localized: "Miniamp Playlist"), isOn: host?.isVisible(.playlist) == true) { $0.host?.toggle(.playlist) })
         menu.addItem(item(String(localized: "Windowshade"), isOn: isShaded) { $0.toggleShade() })
         menu.addItem(.separator())
         menu.addItem(item(String(localized: "Always on Top"), isOn: preferences.isAlwaysOnTop) { $0.host?.toggleAlwaysOnTop() })

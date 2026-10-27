@@ -18,7 +18,7 @@ final class WinampWindow: NSWindow {
         // Winamp mode reopens and places the window itself.
         isRestorable = false
         collectionBehavior = [.fullScreenNone]
-        title = "Winamp"
+        title = "Miniamp"
     }
 
     override var canBecomeKey: Bool { true }
@@ -82,7 +82,7 @@ final class WinampMainView: NSView {
         layerContentsRedrawPolicy = .onSetNeedsDisplay
         setAccessibilityElement(true)
         setAccessibilityRole(.group)
-        setAccessibilityLabel(String(localized: "Winamp Mode"))
+        setAccessibilityLabel(String(localized: "Miniamp"))
     }
 
     @available(*, unavailable)

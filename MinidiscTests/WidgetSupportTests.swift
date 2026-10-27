@@ -17,8 +17,21 @@ struct WidgetSupportTests {
         #expect(HomeDestination(url: artist.url) == .artistById(id: "ar-3", name: "Band", coverArtId: nil))
     }
 
+    @Test("A himd:// link opens the same page as its minidisc:// twin")
+    func himdAliasOpensTheSameDestination() throws {
+        let album = WidgetSnapshot.Collection(id: "al-1", kind: .album, title: "Live & Loud", coverArtId: "al-1")
+        var components = try #require(URLComponents(url: album.url, resolvingAgainstBaseURL: false))
+        #expect(components.scheme == "minidisc")
+        components.scheme = "himd"
+        let alias = try #require(components.url)
+        #expect(HomeDestination(url: alias) == HomeDestination(url: album.url))
+        #expect(HomeDestination(url: URL(string: "HIMD://artist/ar-3?name=Band")!) == .artistById(id: "ar-3", name: "Band", coverArtId: nil))
+    }
+
     @Test("Other links are ignored")
     func foreignLinksAreIgnored() {
+        #expect(HomeDestination(url: URL(string: "himd://song/1")!) == nil)
+        #expect(HomeDestination(url: URL(string: "hi-md://album/1")!) == nil)
         #expect(HomeDestination(url: URL(string: "https://example.com/album/1")!) == nil)
         #expect(HomeDestination(url: URL(string: "minidisc://song/1")!) == nil)
         #expect(HomeDestination(url: URL(string: "minidisc://album/")!) == nil)

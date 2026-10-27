@@ -3,7 +3,7 @@ import Foundation
 
 /// The skin Winamp mode draws with.
 nonisolated enum WinampSkinChoice: Sendable, Hashable {
-    /// Minidisc Gold, bundled with the app.
+    /// Hi-MD Gold, bundled with the app.
     case bundled
     /// A `.wsz` the listener opened. `bookmark` locates it again after a relaunch; it is
     /// security-scoped when `isSecurityScoped`, or a plain bookmark to a copy in the container.

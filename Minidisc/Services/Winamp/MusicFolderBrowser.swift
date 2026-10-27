@@ -52,7 +52,7 @@ nonisolated enum MusicFolderBrowserError {
         if let error = error as? SwiftSonicError {
             switch error {
             case .decoding:
-                return String(localized: "Your server sent a folder listing Minidisc couldn't read.")
+                return String(localized: "Your server sent a folder listing Hi-MD couldn't read.")
             case .api(let apiError) where !error.isAuthenticationFailure && apiError.code != .notFound:
                 return String(localized: "Your server couldn't list this folder: \(apiError.message)")
             default:

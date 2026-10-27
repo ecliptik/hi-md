@@ -520,8 +520,8 @@ private struct LibraryIndexStorageSection: View {
             "The album count will be determined after metadata synchronization."
         }
         let warning = activeServerAlbumCount >= LibraryIndexMaintenanceService.largeLibraryAlbumThreshold
-            ? " This is a large library; keep Minidisc open and connected to Wi-Fi. You can cancel and resume later."
-            : " Keep Minidisc open until it finishes. You can cancel and resume later."
+            ? " This is a large library; keep Hi-MD open and connected to Wi-Fi. You can cancel and resume later."
+            : " Keep Hi-MD open until it finishes. You can cancel and resume later."
         return "\(scope) All metadata will be synchronized, then album recommendations will be precomputed one at a time.\(warning)"
     }
 

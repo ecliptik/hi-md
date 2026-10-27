@@ -1160,54 +1160,54 @@
         }
       }
     },
-    "AutoEQ has no profile for these headphones that Minidisc can read." : {
+    "AutoEQ has no profile for these headphones that Hi-MD can read." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "AutoEQ hat für diese Kopfhörer kein Profil, das Minidisc lesen kann."
+            "value" : "AutoEQ hat für diese Kopfhörer kein Profil, das Hi-MD lesen kann."
           }
         },
         "el" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Το AutoEQ δεν έχει προφίλ για αυτά τα ακουστικά που να μπορεί να διαβάσει το Minidisc."
+            "value" : "Το AutoEQ δεν έχει προφίλ για αυτά τα ακουστικά που να μπορεί να διαβάσει το Hi-MD."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "AutoEQ no tiene un perfil para estos auriculares que Minidisc pueda leer."
+            "value" : "AutoEQ no tiene un perfil para estos auriculares que Hi-MD pueda leer."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "AutoEQ n’a pas de profil lisible par Minidisc pour ce casque."
+            "value" : "AutoEQ n’a pas de profil lisible par Hi-MD pour ce casque."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "AutoEQ non ha un profilo per queste cuffie che Minidisc possa leggere."
+            "value" : "AutoEQ non ha un profilo per queste cuffie che Hi-MD possa leggere."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "AutoEQには、このヘッドフォン用にMinidiscが読み込めるプロファイルがありません。"
+            "value" : "AutoEQには、このヘッドフォン用にHi-MDが読み込めるプロファイルがありません。"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "AutoEQ 没有 Minidisc 可读取的此耳机配置。"
+            "value" : "AutoEQ 没有 Hi-MD 可读取的此耳机配置。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "AutoEQ 沒有 Minidisc 可讀取的此耳機設定檔。"
+            "value" : "AutoEQ 沒有 Hi-MD 可讀取的此耳機設定檔。"
           }
         }
       }
@@ -1264,36 +1264,36 @@
         }
       }
     },
-    "AutoEQ sent something Minidisc couldn't read. Try again later." : {
+    "AutoEQ sent something Hi-MD couldn't read. Try again later." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "AutoEQ hat etwas gesendet, das Minidisc nicht lesen konnte. Versuche es später erneut."
+            "value" : "AutoEQ hat etwas gesendet, das Hi-MD nicht lesen konnte. Versuche es später erneut."
           }
         },
         "el" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Το AutoEQ έστειλε κάτι που το Minidisc δεν μπόρεσε να διαβάσει. Δοκιμάστε ξανά αργότερα."
+            "value" : "Το AutoEQ έστειλε κάτι που το Hi-MD δεν μπόρεσε να διαβάσει. Δοκιμάστε ξανά αργότερα."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "AutoEQ envió algo que Minidisc no pudo leer. Inténtalo de nuevo más tarde."
+            "value" : "AutoEQ envió algo que Hi-MD no pudo leer. Inténtalo de nuevo más tarde."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "AutoEQ a envoyé un contenu que Minidisc n’a pas pu lire. Réessayez plus tard."
+            "value" : "AutoEQ a envoyé un contenu que Hi-MD n’a pas pu lire. Réessayez plus tard."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "AutoEQ ha inviato qualcosa che Minidisc non è riuscito a leggere. Riprova più tardi."
+            "value" : "AutoEQ ha inviato qualcosa che Hi-MD non è riuscito a leggere. Riprova più tardi."
           }
         },
         "ja" : {
@@ -1305,13 +1305,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "AutoEQ 返回了 Minidisc 无法读取的内容。请稍后再试。"
+            "value" : "AutoEQ 返回了 Hi-MD 无法读取的内容。请稍后再试。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "AutoEQ 傳回了 Minidisc 無法讀取的內容。請稍後再試。"
+            "value" : "AutoEQ 傳回了 Hi-MD 無法讀取的內容。請稍後再試。"
           }
         }
       }
@@ -4488,54 +4488,54 @@
         }
       }
     },
-    "Minidisc couldn't read the files or folders you chose." : {
+    "Hi-MD couldn't read the files or folders you chose." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidisc konnte die gewählten Dateien oder Ordner nicht lesen."
+            "value" : "Hi-MD konnte die gewählten Dateien oder Ordner nicht lesen."
           }
         },
         "el" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Το Minidisc δεν μπόρεσε να διαβάσει τα αρχεία ή τους φακέλους που επιλέξατε."
+            "value" : "Το Hi-MD δεν μπόρεσε να διαβάσει τα αρχεία ή τους φακέλους που επιλέξατε."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidisc no pudo leer los archivos o carpetas que elegiste."
+            "value" : "Hi-MD no pudo leer los archivos o carpetas que elegiste."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidisc n’a pas pu lire les fichiers ou dossiers choisis."
+            "value" : "Hi-MD n’a pas pu lire les fichiers ou dossiers choisis."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidisc non è riuscito a leggere i file o le cartelle che hai scelto."
+            "value" : "Hi-MD non è riuscito a leggere i file o le cartelle che hai scelto."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "選択したファイルまたはフォルダをMinidiscが読み取れませんでした。"
+            "value" : "選択したファイルまたはフォルダをHi-MDが読み取れませんでした。"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidisc 无法读取你选择的文件或文件夹。"
+            "value" : "Hi-MD 无法读取你选择的文件或文件夹。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidisc 無法讀取你選擇的檔案或檔案夾。"
+            "value" : "Hi-MD 無法讀取你選擇的檔案或檔案夾。"
           }
         }
       }
@@ -5476,54 +5476,54 @@
         }
       }
     },
-    "There are no audio files there that Minidisc can play." : {
+    "There are no audio files there that Hi-MD can play." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dort gibt es keine Audiodateien, die Minidisc abspielen kann."
+            "value" : "Dort gibt es keine Audiodateien, die Hi-MD abspielen kann."
           }
         },
         "el" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Δεν υπάρχουν εκεί αρχεία ήχου που μπορεί να αναπαραγάγει το Minidisc."
+            "value" : "Δεν υπάρχουν εκεί αρχεία ήχου που μπορεί να αναπαραγάγει το Hi-MD."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ahí no hay archivos de audio que Minidisc pueda reproducir."
+            "value" : "Ahí no hay archivos de audio que Hi-MD pueda reproducir."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Il n’y a là aucun fichier audio que Minidisc peut lire."
+            "value" : "Il n’y a là aucun fichier audio que Hi-MD peut lire."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Non ci sono file audio che Minidisc possa riprodurre."
+            "value" : "Non ci sono file audio che Hi-MD possa riprodurre."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidiscで再生できるオーディオファイルが見つかりませんでした。"
+            "value" : "Hi-MDで再生できるオーディオファイルが見つかりませんでした。"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "那里没有 Minidisc 可以播放的音频文件。"
+            "value" : "那里没有 Hi-MD 可以播放的音频文件。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "那裡沒有 Minidisc 可以播放的音訊檔案。"
+            "value" : "那裡沒有 Hi-MD 可以播放的音訊檔案。"
           }
         }
       }
@@ -6308,54 +6308,54 @@
         }
       }
     },
-    "Quit Minidisc" : {
+    "Quit Hi-MD" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidisc beenden"
+            "value" : "Hi-MD beenden"
           }
         },
         "el" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Τερματισμός Minidisc"
+            "value" : "Τερματισμός Hi-MD"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Salir de Minidisc"
+            "value" : "Salir de Hi-MD"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Quitter Minidisc"
+            "value" : "Quitter Hi-MD"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Esci da Minidisc"
+            "value" : "Esci da Hi-MD"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidiscを終了"
+            "value" : "Hi-MDを終了"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "退出 Minidisc"
+            "value" : "退出 Hi-MD"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "結束 Minidisc"
+            "value" : "結束 Hi-MD"
           }
         }
       }
@@ -6776,54 +6776,54 @@
         }
       }
     },
-    "Show Minidisc" : {
+    "Show Hi-MD" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidisc zeigen"
+            "value" : "Hi-MD zeigen"
           }
         },
         "el" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Εμφάνιση Minidisc"
+            "value" : "Εμφάνιση Hi-MD"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mostrar Minidisc"
+            "value" : "Mostrar Hi-MD"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Afficher Minidisc"
+            "value" : "Afficher Hi-MD"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mostra Minidisc"
+            "value" : "Mostra Hi-MD"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidiscを表示"
+            "value" : "Hi-MDを表示"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "显示 Minidisc"
+            "value" : "显示 Hi-MD"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "顯示 Minidisc"
+            "value" : "顯示 Hi-MD"
           }
         }
       }
@@ -8136,54 +8136,54 @@
         }
       }
     },
-    "Reconnect to browse Lidarr and manage your music library. Your offline music is still available in Minidisc." : {
+    "Reconnect to browse Lidarr and manage your music library. Your offline music is still available in Hi-MD." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Stelle die Verbindung wieder her, um Lidarr zu durchsuchen und deine Musikbibliothek zu verwalten. Deine Offline-Musik bleibt in Minidisc verfügbar."
+            "value" : "Stelle die Verbindung wieder her, um Lidarr zu durchsuchen und deine Musikbibliothek zu verwalten. Deine Offline-Musik bleibt in Hi-MD verfügbar."
           }
         },
         "el" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Συνδέσου ξανά για περιήγηση στο Lidarr και διαχείριση της μουσικής βιβλιοθήκης σου. Η μουσική σου εκτός σύνδεσης παραμένει διαθέσιμη στο Minidisc."
+            "value" : "Συνδέσου ξανά για περιήγηση στο Lidarr και διαχείριση της μουσικής βιβλιοθήκης σου. Η μουσική σου εκτός σύνδεσης παραμένει διαθέσιμη στο Hi-MD."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Vuelve a conectarte para explorar Lidarr y gestionar tu biblioteca musical. Tu música sin conexión sigue disponible en Minidisc."
+            "value" : "Vuelve a conectarte para explorar Lidarr y gestionar tu biblioteca musical. Tu música sin conexión sigue disponible en Hi-MD."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Reconnectez-vous pour consulter Lidarr et gérer votre bibliothèque musicale. Votre musique hors ligne reste disponible dans Minidisc."
+            "value" : "Reconnectez-vous pour consulter Lidarr et gérer votre bibliothèque musicale. Votre musique hors ligne reste disponible dans Hi-MD."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Riconnettiti per esplorare Lidarr e gestire la tua libreria musicale. La musica offline resta disponibile in Minidisc."
+            "value" : "Riconnettiti per esplorare Lidarr e gestire la tua libreria musicale. La musica offline resta disponibile in Hi-MD."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "再接続すると、Lidarrの閲覧や音楽ライブラリの管理ができます。オフラインの音楽は引き続きMinidiscで再生できます。"
+            "value" : "再接続すると、Lidarrの閲覧や音楽ライブラリの管理ができます。オフラインの音楽は引き続きHi-MDで再生できます。"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "重新连接后即可浏览 Lidarr 并管理音乐库。你仍可在 Minidisc 中收听离线音乐。"
+            "value" : "重新连接后即可浏览 Lidarr 并管理音乐库。你仍可在 Hi-MD 中收听离线音乐。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "重新連線即可瀏覽 Lidarr 並管理音樂資料庫。你仍可在 Minidisc 中收聽離線音樂。"
+            "value" : "重新連線即可瀏覽 Lidarr 並管理音樂資料庫。你仍可在 Hi-MD 中收聽離線音樂。"
           }
         }
       }
@@ -8916,54 +8916,54 @@
         }
       }
     },
-    "Songs are saved by artist, album and title, so Minidisc can find them on the server again." : {
+    "Songs are saved by artist, album and title, so Hi-MD can find them on the server again." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Titel werden nach Künstler, Album und Titel gesichert, damit Minidisc sie auf dem Server wiederfindet."
+            "value" : "Titel werden nach Künstler, Album und Titel gesichert, damit Hi-MD sie auf dem Server wiederfindet."
           }
         },
         "el" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Τα τραγούδια αποθηκεύονται κατά καλλιτέχνη, άλμπουμ και τίτλο, ώστε το Minidisc να τα βρίσκει ξανά στον διακομιστή."
+            "value" : "Τα τραγούδια αποθηκεύονται κατά καλλιτέχνη, άλμπουμ και τίτλο, ώστε το Hi-MD να τα βρίσκει ξανά στον διακομιστή."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Las canciones se guardan por artista, álbum y título para que Minidisc vuelva a encontrarlas en el servidor."
+            "value" : "Las canciones se guardan por artista, álbum y título para que Hi-MD vuelva a encontrarlas en el servidor."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Les titres sont enregistrés par artiste, album et titre, pour que Minidisc les retrouve sur le serveur."
+            "value" : "Les titres sont enregistrés par artiste, album et titre, pour que Hi-MD les retrouve sur le serveur."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "I brani vengono salvati per artista, album e titolo, così Minidisc può ritrovarli sul server."
+            "value" : "I brani vengono salvati per artista, album e titolo, così Hi-MD può ritrovarli sul server."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "曲はアーティスト、アルバム、タイトルで保存されるので、Minidiscがサーバ上で再び見つけられます。"
+            "value" : "曲はアーティスト、アルバム、タイトルで保存されるので、Hi-MDがサーバ上で再び見つけられます。"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "歌曲按艺人、专辑和标题存储，以便 Minidisc 能在服务器上再次找到它们。"
+            "value" : "歌曲按艺人、专辑和标题存储，以便 Hi-MD 能在服务器上再次找到它们。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "歌曲依藝人、專輯和標題儲存，讓 Minidisc 能在伺服器上再次找到它們。"
+            "value" : "歌曲依藝人、專輯和標題儲存，讓 Hi-MD 能在伺服器上再次找到它們。"
           }
         }
       }
@@ -9436,54 +9436,54 @@
         }
       }
     },
-    "This deletes your Minidisc mood playlists from the current server and disables automatic generation. Other playlists and downloaded music are kept." : {
+    "This deletes your Hi-MD mood playlists from the current server and disables automatic generation. Other playlists and downloaded music are kept." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Deine Minidisc-Stimmungsplaylists werden vom aktuellen Server gelöscht und die automatische Erstellung wird deaktiviert. Andere Playlists und heruntergeladene Musik bleiben erhalten."
+            "value" : "Deine Hi-MD-Stimmungsplaylists werden vom aktuellen Server gelöscht und die automatische Erstellung wird deaktiviert. Andere Playlists und heruntergeladene Musik bleiben erhalten."
           }
         },
         "el" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Οι λίστες διάθεσης Minidisc θα διαγραφούν από τον τρέχοντα διακομιστή και η αυτόματη δημιουργία θα απενεργοποιηθεί. Οι άλλες λίστες και η ληφθείσα μουσική διατηρούνται."
+            "value" : "Οι λίστες διάθεσης Hi-MD θα διαγραφούν από τον τρέχοντα διακομιστή και η αυτόματη δημιουργία θα απενεργοποιηθεί. Οι άλλες λίστες και η ληφθείσα μουσική διατηρούνται."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Se eliminarán tus playlists por estado de ánimo de Minidisc del servidor actual y se desactivará la generación automática. Se conservarán las demás playlists y la música descargada."
+            "value" : "Se eliminarán tus playlists por estado de ánimo de Hi-MD del servidor actual y se desactivará la generación automática. Se conservarán las demás playlists y la música descargada."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Vos playlists d’ambiance Minidisc seront supprimées du serveur actuel et la génération automatique sera désactivée. Les autres playlists et la musique téléchargée seront conservées."
+            "value" : "Vos playlists d’ambiance Hi-MD seront supprimées du serveur actuel et la génération automatique sera désactivée. Les autres playlists et la musique téléchargée seront conservées."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Le tue playlist per umore di Minidisc verranno eliminate dal server attuale e la generazione automatica verrà disattivata. Le altre playlist e la musica scaricata verranno mantenute."
+            "value" : "Le tue playlist per umore di Hi-MD verranno eliminate dal server attuale e la generazione automatica verrà disattivata. Le altre playlist e la musica scaricata verranno mantenute."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "現在のサーバーから自分のMinidiscムードプレイリストを削除し、自動生成をオフにします。他のプレイリストとダウンロード済みの音楽は保持されます。"
+            "value" : "現在のサーバーから自分のHi-MDムードプレイリストを削除し、自動生成をオフにします。他のプレイリストとダウンロード済みの音楽は保持されます。"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "这将从当前服务器删除你的 Minidisc 心情歌单，并关闭自动生成。其他歌单和已下载的音乐将保留。"
+            "value" : "这将从当前服务器删除你的 Hi-MD 心情歌单，并关闭自动生成。其他歌单和已下载的音乐将保留。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "這會從目前的伺服器刪除你的 Minidisc 心情播放清單，並關閉自動產生功能。其他播放清單和已下載的音樂將保留。"
+            "value" : "這會從目前的伺服器刪除你的 Hi-MD 心情播放清單，並關閉自動產生功能。其他播放清單和已下載的音樂將保留。"
           }
         }
       }
@@ -10112,158 +10112,158 @@
         }
       }
     },
-    "Winamp Equalizer" : {
+    "Miniamp Equalizer" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Winamp-Equalizer"
+            "value" : "Miniamp-Equalizer"
           }
         },
         "el" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ισοσταθμιστής Winamp"
+            "value" : "Ισοσταθμιστής Miniamp"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ecualizador de Winamp"
+            "value" : "Ecualizador de Miniamp"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Égaliseur Winamp"
+            "value" : "Égaliseur Miniamp"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Equalizzatore Winamp"
+            "value" : "Equalizzatore Miniamp"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Winampイコライザ"
+            "value" : "Miniampイコライザ"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Winamp 均衡器"
+            "value" : "Miniamp 均衡器"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Winamp 等化器"
+            "value" : "Miniamp 等化器"
           }
         }
       }
     },
-    "Winamp Playlist" : {
+    "Miniamp Playlist" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Winamp-Wiedergabeliste"
+            "value" : "Miniamp-Wiedergabeliste"
           }
         },
         "el" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Λίστα αναπαραγωγής Winamp"
+            "value" : "Λίστα αναπαραγωγής Miniamp"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lista de Winamp"
+            "value" : "Lista de Miniamp"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Liste de lecture Winamp"
+            "value" : "Liste de lecture Miniamp"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Playlist Winamp"
+            "value" : "Playlist Miniamp"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Winampプレイリスト"
+            "value" : "Miniampプレイリスト"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Winamp 播放列表"
+            "value" : "Miniamp 播放列表"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Winamp 播放列表"
+            "value" : "Miniamp 播放列表"
           }
         }
       }
     },
-    "Winamp Zoom" : {
+    "Miniamp Zoom" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Winamp-Zoom"
+            "value" : "Miniamp-Zoom"
           }
         },
         "el" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Μεγέθυνση Winamp"
+            "value" : "Μεγέθυνση Miniamp"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zoom de Winamp"
+            "value" : "Zoom de Miniamp"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zoom Winamp"
+            "value" : "Zoom Miniamp"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zoom Winamp"
+            "value" : "Zoom Miniamp"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Winampの拡大"
+            "value" : "Miniampの拡大"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Winamp 缩放"
+            "value" : "Miniamp 缩放"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Winamp 縮放"
+            "value" : "Miniamp 縮放"
           }
         }
       }
@@ -10476,54 +10476,54 @@
         }
       }
     },
-    "Your server sent a folder listing Minidisc couldn't read." : {
+    "Your server sent a folder listing Hi-MD couldn't read." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Der Server hat eine Ordnerliste gesendet, die Minidisc nicht lesen konnte."
+            "value" : "Der Server hat eine Ordnerliste gesendet, die Hi-MD nicht lesen konnte."
           }
         },
         "el" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ο διακομιστής σας έστειλε μια λίστα φακέλων που το Minidisc δεν μπόρεσε να διαβάσει."
+            "value" : "Ο διακομιστής σας έστειλε μια λίστα φακέλων που το Hi-MD δεν μπόρεσε να διαβάσει."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tu servidor envió una lista de carpetas que Minidisc no pudo leer."
+            "value" : "Tu servidor envió una lista de carpetas que Hi-MD no pudo leer."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Votre serveur a envoyé une liste de dossiers que Minidisc n’a pas pu lire."
+            "value" : "Votre serveur a envoyé une liste de dossiers que Hi-MD n’a pas pu lire."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Il tuo server ha inviato un elenco di cartelle che Minidisc non è riuscito a leggere."
+            "value" : "Il tuo server ha inviato un elenco di cartelle che Hi-MD non è riuscito a leggere."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "サーバから送られたフォルダ一覧をMinidiscが読み取れませんでした。"
+            "value" : "サーバから送られたフォルダ一覧をHi-MDが読み取れませんでした。"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "你的服务器发送的文件夹列表无法被 Minidisc 读取。"
+            "value" : "你的服务器发送的文件夹列表无法被 Hi-MD 读取。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "你的伺服器傳送的檔案夾列表無法被 Minidisc 讀取。"
+            "value" : "你的伺服器傳送的檔案夾列表無法被 Hi-MD 讀取。"
           }
         }
       }
@@ -16456,36 +16456,36 @@
         }
       }
     },
-    "AudioMuse-AI analyses how your music actually sounds, which lets Minidisc build a playlist for a mood rather than for a tag." : {
+    "AudioMuse-AI analyses how your music actually sounds, which lets Hi-MD build a playlist for a mood rather than for a tag." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "AudioMuse-AI analysiert, wie deine Musik tatsächlich klingt. So kann Minidisc eine Playlist für eine Stimmung erstellen statt für ein Tag."
+            "value" : "AudioMuse-AI analysiert, wie deine Musik tatsächlich klingt. So kann Hi-MD eine Playlist für eine Stimmung erstellen statt für ein Tag."
           }
         },
         "el" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Το AudioMuse-AI αναλύει πώς ακούγεται πραγματικά η μουσική σου, ώστε το Minidisc να φτιάχνει λίστα για μια διάθεση αντί για μια ετικέτα."
+            "value" : "Το AudioMuse-AI αναλύει πώς ακούγεται πραγματικά η μουσική σου, ώστε το Hi-MD να φτιάχνει λίστα για μια διάθεση αντί για μια ετικέτα."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "AudioMuse-AI analiza cómo suena realmente tu música, lo que permite a Minidisc crear una lista para un estado de ánimo en vez de para una etiqueta."
+            "value" : "AudioMuse-AI analiza cómo suena realmente tu música, lo que permite a Hi-MD crear una lista para un estado de ánimo en vez de para una etiqueta."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "AudioMuse-AI analyse la sonorité réelle de ta musique, ce qui permet à Minidisc de construire une playlist pour une ambiance plutôt que pour un tag."
+            "value" : "AudioMuse-AI analyse la sonorité réelle de ta musique, ce qui permet à Hi-MD de construire une playlist pour une ambiance plutôt que pour un tag."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "AudioMuse-AI analizza come suona davvero la tua musica, così Minidisc può creare una playlist per un'atmosfera anziché per un tag."
+            "value" : "AudioMuse-AI analizza come suona davvero la tua musica, così Hi-MD può creare una playlist per un'atmosfera anziché per un tag."
           }
         },
         "ja" : {
@@ -16497,13 +16497,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "AudioMuse-AI 分析音乐的实际听感，让 Minidisc 能按心情而非标签生成播放列表。"
+            "value" : "AudioMuse-AI 分析音乐的实际听感，让 Hi-MD 能按心情而非标签生成播放列表。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "AudioMuse-AI 分析音樂的實際聽感，讓 Minidisc 能依心情而非標籤產生播放列表。"
+            "value" : "AudioMuse-AI 分析音樂的實際聽感，讓 Hi-MD 能依心情而非標籤產生播放列表。"
           }
         }
       }
@@ -29369,54 +29369,54 @@
         }
       }
     },
-    "Lidarr manages your music collection and downloads new releases for you. Connect it to check its status from Minidisc." : {
+    "Lidarr manages your music collection and downloads new releases for you. Connect it to check its status from Hi-MD." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lidarr verwaltet deine Musiksammlung und lädt neue Releases für dich herunter. Verbinde es, um seinen Status in Minidisc zu prüfen."
+            "value" : "Lidarr verwaltet deine Musiksammlung und lädt neue Releases für dich herunter. Verbinde es, um seinen Status in Hi-MD zu prüfen."
           }
         },
         "el" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Το Lidarr διαχειρίζεται τη μουσική σας συλλογή και κατεβάζει νέες κυκλοφορίες για εσάς. Συνδέστε το για να ελέγχετε την κατάστασή του από το Minidisc."
+            "value" : "Το Lidarr διαχειρίζεται τη μουσική σας συλλογή και κατεβάζει νέες κυκλοφορίες για εσάς. Συνδέστε το για να ελέγχετε την κατάστασή του από το Hi-MD."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lidarr gestiona tu colección de música y descarga los nuevos lanzamientos por ti. Conéctalo para comprobar su estado desde Minidisc."
+            "value" : "Lidarr gestiona tu colección de música y descarga los nuevos lanzamientos por ti. Conéctalo para comprobar su estado desde Hi-MD."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lidarr gère votre collection musicale et télécharge les nouvelles sorties pour vous. Connectez-le pour consulter son état depuis Minidisc."
+            "value" : "Lidarr gère votre collection musicale et télécharge les nouvelles sorties pour vous. Connectez-le pour consulter son état depuis Hi-MD."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lidarr gestisce la tua collezione musicale e scarica le nuove release per te. Collegalo per controllarne lo stato da Minidisc."
+            "value" : "Lidarr gestisce la tua collezione musicale e scarica le nuove release per te. Collegalo per controllarne lo stato da Hi-MD."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lidarrは音楽コレクションを管理し、新しいリリースを自動でダウンロードします。接続すると、Minidiscからその状態を確認できます。"
+            "value" : "Lidarrは音楽コレクションを管理し、新しいリリースを自動でダウンロードします。接続すると、Hi-MDからその状態を確認できます。"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lidarr 管理你的音乐收藏并为你下载新发行版。连接后即可从 Minidisc 查看其状态。"
+            "value" : "Lidarr 管理你的音乐收藏并为你下载新发行版。连接后即可从 Hi-MD 查看其状态。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lidarr 管理你的音樂收藏並為你下載新發行版。連接後即可從 Minidisc 查看其狀態。"
+            "value" : "Lidarr 管理你的音樂收藏並為你下載新發行版。連接後即可從 Hi-MD 查看其狀態。"
           }
         }
       }
@@ -29837,54 +29837,54 @@
         }
       }
     },
-    "ListenBrainz is an open-source music recommendation service by the MetaBrainz Foundation. Minidisc uses it for personalized fresh releases and similar artists; your server sends it your plays." : {
+    "ListenBrainz is an open-source music recommendation service by the MetaBrainz Foundation. Hi-MD uses it for personalized fresh releases and similar artists; your server sends it your plays." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ListenBrainz ist ein quelloffener Musikempfehlungsdienst der MetaBrainz Foundation. Minidisc nutzt ihn für personalisierte neue Veröffentlichungen und ähnliche Künstler; dein Server übermittelt ihm deine Wiedergaben."
+            "value" : "ListenBrainz ist ein quelloffener Musikempfehlungsdienst der MetaBrainz Foundation. Hi-MD nutzt ihn für personalisierte neue Veröffentlichungen und ähnliche Künstler; dein Server übermittelt ihm deine Wiedergaben."
           }
         },
         "el" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Το ListenBrainz είναι μια υπηρεσία ανοιχτού κώδικα για προτάσεις μουσικής από το MetaBrainz Foundation. Το Minidisc το χρησιμοποιεί για εξατομικευμένες νέες κυκλοφορίες και παρόμοιους καλλιτέχνες· ο διακομιστής σας του στέλνει τις ακροάσεις σας."
+            "value" : "Το ListenBrainz είναι μια υπηρεσία ανοιχτού κώδικα για προτάσεις μουσικής από το MetaBrainz Foundation. Το Hi-MD το χρησιμοποιεί για εξατομικευμένες νέες κυκλοφορίες και παρόμοιους καλλιτέχνες· ο διακομιστής σας του στέλνει τις ακροάσεις σας."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ListenBrainz es un servicio de código abierto de recomendaciones de música de la MetaBrainz Foundation. Minidisc lo usa para mostrarte novedades y artistas similares personalizados; tu servidor le envía tus reproducciones."
+            "value" : "ListenBrainz es un servicio de código abierto de recomendaciones de música de la MetaBrainz Foundation. Hi-MD lo usa para mostrarte novedades y artistas similares personalizados; tu servidor le envía tus reproducciones."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ListenBrainz est un service open source de recommandations musicales de la MetaBrainz Foundation. Minidisc l'utilise pour proposer des nouveautés et des artistes similaires personnalisés ; votre serveur lui envoie vos écoutes."
+            "value" : "ListenBrainz est un service open source de recommandations musicales de la MetaBrainz Foundation. Hi-MD l'utilise pour proposer des nouveautés et des artistes similaires personnalisés ; votre serveur lui envoie vos écoutes."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ListenBrainz è un servizio open-source di consigli musicali della MetaBrainz Foundation. Minidisc lo usa per mostrare uscite recenti e artisti simili personalizzati; il tuo server gli invia i tuoi ascolti."
+            "value" : "ListenBrainz è un servizio open-source di consigli musicali della MetaBrainz Foundation. Hi-MD lo usa per mostrare uscite recenti e artisti simili personalizzati; il tuo server gli invia i tuoi ascolti."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ListenBrainzは、MetaBrainz Foundationによるオープンソースの音楽おすすめサービスです。Minidiscはパーソナライズされた新着リリースや類似アーティストの表示に使用します。再生履歴はサーバーから送信されます。"
+            "value" : "ListenBrainzは、MetaBrainz Foundationによるオープンソースの音楽おすすめサービスです。Hi-MDはパーソナライズされた新着リリースや類似アーティストの表示に使用します。再生履歴はサーバーから送信されます。"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ListenBrainz 是由 MetaBrainz Foundation 提供的开源音乐推荐服务。Minidisc 用它呈现个性化的最新发行和相似艺人；你的收听记录由服务器发送给它。"
+            "value" : "ListenBrainz 是由 MetaBrainz Foundation 提供的开源音乐推荐服务。Hi-MD 用它呈现个性化的最新发行和相似艺人；你的收听记录由服务器发送给它。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ListenBrainz 是由 MetaBrainz Foundation 提供的開源音樂推薦服務。Minidisc 用它呈現個人化的最新發行和相似藝人；你的聆聽記錄由伺服器傳送給它。"
+            "value" : "ListenBrainz 是由 MetaBrainz Foundation 提供的開源音樂推薦服務。Hi-MD 用它呈現個人化的最新發行和相似藝人；你的聆聽記錄由伺服器傳送給它。"
           }
         }
       }
@@ -30895,262 +30895,262 @@
         }
       }
     },
-    "Minidisc" : {
+    "Hi-MD" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidisc"
+            "value" : "Hi-MD"
           }
         },
         "el" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidisc"
+            "value" : "Hi-MD"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidisc"
+            "value" : "Hi-MD"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidisc"
+            "value" : "Hi-MD"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidisc"
+            "value" : "Hi-MD"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidisc"
+            "value" : "Hi-MD"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidisc"
+            "value" : "Hi-MD"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidisc"
+            "value" : "Hi-MD"
           }
         }
       }
     },
-    "Minidisc couldn't open its local data. You can try again without restarting the app." : {
+    "Hi-MD couldn't open its local data. You can try again without restarting the app." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidisc konnte seine lokalen Daten nicht öffnen. Du kannst es erneut versuchen, ohne die App neu zu starten."
+            "value" : "Hi-MD konnte seine lokalen Daten nicht öffnen. Du kannst es erneut versuchen, ohne die App neu zu starten."
           }
         },
         "el" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Το Minidisc δεν μπόρεσε να ανοίξει τα τοπικά δεδομένα του. Μπορείτε να δοκιμάσετε ξανά χωρίς επανεκκίνηση της εφαρμογής."
+            "value" : "Το Hi-MD δεν μπόρεσε να ανοίξει τα τοπικά δεδομένα του. Μπορείτε να δοκιμάσετε ξανά χωρίς επανεκκίνηση της εφαρμογής."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidisc no ha podido abrir sus datos locales. Puedes volver a intentarlo sin reiniciar la app."
+            "value" : "Hi-MD no ha podido abrir sus datos locales. Puedes volver a intentarlo sin reiniciar la app."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidisc n’a pas pu ouvrir ses données locales. Vous pouvez réessayer sans redémarrer l’app."
+            "value" : "Hi-MD n’a pas pu ouvrir ses données locales. Vous pouvez réessayer sans redémarrer l’app."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidisc non è riuscito ad aprire i dati locali. Puoi riprovare senza riavviare l’app."
+            "value" : "Hi-MD non è riuscito ad aprire i dati locali. Puoi riprovare senza riavviare l’app."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidiscはローカルデータを開けませんでした。アプリを再起動せずに再試行できます。"
+            "value" : "Hi-MDはローカルデータを開けませんでした。アプリを再起動せずに再試行できます。"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidisc 无法打开本地数据。你可以直接重试，无需重新启动 App。"
+            "value" : "Hi-MD 无法打开本地数据。你可以直接重试，无需重新启动 App。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidisc 無法開啟本機資料。你可以直接重試，無需重新啟動 App。"
+            "value" : "Hi-MD 無法開啟本機資料。你可以直接重試，無需重新啟動 App。"
           }
         }
       }
     },
-    "Minidisc forgets the address and the API key. Your Lidarr instance is not changed." : {
+    "Hi-MD forgets the address and the API key. Your Lidarr instance is not changed." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidisc vergisst die Adresse und den API-Schlüssel. Deine Lidarr-Instanz wird nicht verändert."
+            "value" : "Hi-MD vergisst die Adresse und den API-Schlüssel. Deine Lidarr-Instanz wird nicht verändert."
           }
         },
         "el" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Το Minidisc ξεχνά τη διεύθυνση και το κλειδί API. Η παρουσία Lidarr σας δεν αλλάζει."
+            "value" : "Το Hi-MD ξεχνά τη διεύθυνση και το κλειδί API. Η παρουσία Lidarr σας δεν αλλάζει."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidisc olvida la dirección y la clave API. Tu instancia de Lidarr no se modifica."
+            "value" : "Hi-MD olvida la dirección y la clave API. Tu instancia de Lidarr no se modifica."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidisc oublie l'adresse et la clé API. Votre instance Lidarr n'est pas modifiée."
+            "value" : "Hi-MD oublie l'adresse et la clé API. Votre instance Lidarr n'est pas modifiée."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidisc dimentica l'indirizzo e la chiave API. La tua istanza Lidarr non viene modificata."
+            "value" : "Hi-MD dimentica l'indirizzo e la chiave API. La tua istanza Lidarr non viene modificata."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "MinidiscはアドレスとAPIキーを破棄します。Lidarrインスタンス自体は変更されません。"
+            "value" : "Hi-MDはアドレスとAPIキーを破棄します。Lidarrインスタンス自体は変更されません。"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidisc 会忘记地址和 API 密钥。你的 Lidarr 实例不会更改。"
+            "value" : "Hi-MD 会忘记地址和 API 密钥。你的 Lidarr 实例不会更改。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidisc 會忘記位址和 API 金鑰。你的 Lidarr 執行個體不會變更。"
+            "value" : "Hi-MD 會忘記位址和 API 金鑰。你的 Lidarr 執行個體不會變更。"
           }
         }
       }
     },
-    "Minidisc Wrapped" : {
+    "Hi-MD Wrapped" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidisc Wrapped"
+            "value" : "Hi-MD Wrapped"
           }
         },
         "el" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidisc Wrapped"
+            "value" : "Hi-MD Wrapped"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidisc Wrapped"
+            "value" : "Hi-MD Wrapped"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidisc Wrapped"
+            "value" : "Hi-MD Wrapped"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidisc Wrapped"
+            "value" : "Hi-MD Wrapped"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidisc Wrapped"
+            "value" : "Hi-MD Wrapped"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidisc Wrapped"
+            "value" : "Hi-MD Wrapped"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidisc Wrapped"
+            "value" : "Hi-MD Wrapped"
           }
         }
       }
     },
-    "Minidisc Wrapped %@" : {
+    "Hi-MD Wrapped %@" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidisc Wrapped %@"
+            "value" : "Hi-MD Wrapped %@"
           }
         },
         "el" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidisc Wrapped %@"
+            "value" : "Hi-MD Wrapped %@"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidisc Wrapped %@"
+            "value" : "Hi-MD Wrapped %@"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidisc Wrapped %@"
+            "value" : "Hi-MD Wrapped %@"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidisc Wrapped %@"
+            "value" : "Hi-MD Wrapped %@"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidisc Wrapped %@"
+            "value" : "Hi-MD Wrapped %@"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidisc Wrapped %@"
+            "value" : "Hi-MD Wrapped %@"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidisc Wrapped %@"
+            "value" : "Hi-MD Wrapped %@"
           }
         }
       }
@@ -52477,55 +52477,55 @@
         }
       }
     },
-    "Open Minidisc and connect to your music server first." : {
+    "Open Hi-MD and connect to your music server first." : {
       "extractionState" : "manual",
       "localizations" : {
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ouvrez Minidisc et connectez-vous d’abord à votre serveur musical."
+            "value" : "Ouvrez Hi-MD et connectez-vous d’abord à votre serveur musical."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Öffne Minidisc und verbinde dich zuerst mit deinem Musikserver."
+            "value" : "Öffne Hi-MD und verbinde dich zuerst mit deinem Musikserver."
           }
         },
         "el" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ανοίξτε το Minidisc και συνδεθείτε πρώτα στον διακομιστή μουσικής σας."
+            "value" : "Ανοίξτε το Hi-MD και συνδεθείτε πρώτα στον διακομιστή μουσικής σας."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Abre Minidisc y conéctate primero a tu servidor de música."
+            "value" : "Abre Hi-MD y conéctate primero a tu servidor de música."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Apri Minidisc e connettiti prima al tuo server musicale."
+            "value" : "Apri Hi-MD e connettiti prima al tuo server musicale."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "まずMinidiscを開き、音楽サーバーに接続してください。"
+            "value" : "まずHi-MDを開き、音楽サーバーに接続してください。"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "请先打开 Minidisc 并连接到音乐服务器。"
+            "value" : "请先打开 Hi-MD 并连接到音乐服务器。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "請先開啟 Minidisc 並連線至音樂伺服器。"
+            "value" : "請先開啟 Hi-MD 並連線至音樂伺服器。"
           }
         }
       }
@@ -52795,55 +52795,55 @@
         }
       }
     },
-    "Play a song, album, artist or playlist from your Minidisc library." : {
+    "Play a song, album, artist or playlist from your Hi-MD library." : {
       "extractionState" : "manual",
       "localizations" : {
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lire un morceau, un album, un artiste ou une playlist de votre bibliothèque Minidisc."
+            "value" : "Lire un morceau, un album, un artiste ou une playlist de votre bibliothèque Hi-MD."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Einen Titel, ein Album, einen Künstler oder eine Playlist aus deiner Minidisc-Mediathek abspielen."
+            "value" : "Einen Titel, ein Album, einen Künstler oder eine Playlist aus deiner Hi-MD-Mediathek abspielen."
           }
         },
         "el" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Αναπαραγωγή κομματιού, άλμπουμ, καλλιτέχνη ή λίστας από τη βιβλιοθήκη Minidisc."
+            "value" : "Αναπαραγωγή κομματιού, άλμπουμ, καλλιτέχνη ή λίστας από τη βιβλιοθήκη Hi-MD."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Reproduce una canción, un álbum, un artista o una playlist de tu biblioteca de Minidisc."
+            "value" : "Reproduce una canción, un álbum, un artista o una playlist de tu biblioteca de Hi-MD."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Riproduci un brano, un album, un artista o una playlist dalla libreria Minidisc."
+            "value" : "Riproduci un brano, un album, un artista o una playlist dalla libreria Hi-MD."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidiscライブラリの曲、アルバム、アーティスト、プレイリストを再生します。"
+            "value" : "Hi-MDライブラリの曲、アルバム、アーティスト、プレイリストを再生します。"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "播放 Minidisc 音乐库中的歌曲、专辑、艺人或歌单。"
+            "value" : "播放 Hi-MD 音乐库中的歌曲、专辑、艺人或歌单。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "播放 Minidisc 音樂庫中的歌曲、專輯、藝人或播放清單。"
+            "value" : "播放 Hi-MD 音樂庫中的歌曲、專輯、藝人或播放清單。"
           }
         }
       }
@@ -53007,55 +53007,55 @@
         }
       }
     },
-    "Select the server used by this shortcut in Minidisc, then try again." : {
+    "Select the server used by this shortcut in Hi-MD, then try again." : {
       "extractionState" : "manual",
       "localizations" : {
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sélectionnez le serveur associé à ce raccourci dans Minidisc, puis réessayez."
+            "value" : "Sélectionnez le serveur associé à ce raccourci dans Hi-MD, puis réessayez."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Wähle in Minidisc den Server dieses Kurzbefehls aus und versuche es erneut."
+            "value" : "Wähle in Hi-MD den Server dieses Kurzbefehls aus und versuche es erneut."
           }
         },
         "el" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Επιλέξτε στο Minidisc τον διακομιστή αυτής της συντόμευσης και δοκιμάστε ξανά."
+            "value" : "Επιλέξτε στο Hi-MD τον διακομιστή αυτής της συντόμευσης και δοκιμάστε ξανά."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Selecciona en Minidisc el servidor de este atajo e inténtalo de nuevo."
+            "value" : "Selecciona en Hi-MD el servidor de este atajo e inténtalo de nuevo."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Seleziona in Minidisc il server usato da questo comando rapido e riprova."
+            "value" : "Seleziona in Hi-MD il server usato da questo comando rapido e riprova."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidiscでこのショートカットのサーバーを選択し、もう一度お試しください。"
+            "value" : "Hi-MDでこのショートカットのサーバーを選択し、もう一度お試しください。"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "请在 Minidisc 中选择此快捷指令使用的服务器，然后重试。"
+            "value" : "请在 Hi-MD 中选择此快捷指令使用的服务器，然后重试。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "請在 Minidisc 中選取此捷徑使用的伺服器，然後再試一次。"
+            "value" : "請在 Hi-MD 中選取此捷徑使用的伺服器，然後再試一次。"
           }
         }
       }
@@ -53113,161 +53113,161 @@
         }
       }
     },
-    "There is no music to resume. Choose music in Minidisc first." : {
+    "There is no music to resume. Choose music in Hi-MD first." : {
       "extractionState" : "manual",
       "localizations" : {
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Aucune lecture à reprendre. Choisissez d’abord de la musique dans Minidisc."
+            "value" : "Aucune lecture à reprendre. Choisissez d’abord de la musique dans Hi-MD."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Es gibt keine Wiedergabe zum Fortsetzen. Wähle zuerst Musik in Minidisc."
+            "value" : "Es gibt keine Wiedergabe zum Fortsetzen. Wähle zuerst Musik in Hi-MD."
           }
         },
         "el" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Δεν υπάρχει μουσική για συνέχιση. Επιλέξτε πρώτα μουσική στο Minidisc."
+            "value" : "Δεν υπάρχει μουσική για συνέχιση. Επιλέξτε πρώτα μουσική στο Hi-MD."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "No hay música que reanudar. Elige primero música en Minidisc."
+            "value" : "No hay música que reanudar. Elige primero música en Hi-MD."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Non c’è musica da riprendere. Scegli prima della musica in Minidisc."
+            "value" : "Non c’è musica da riprendere. Scegli prima della musica in Hi-MD."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "再開する音楽がありません。まずMinidiscで音楽を選んでください。"
+            "value" : "再開する音楽がありません。まずHi-MDで音楽を選んでください。"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "没有可继续播放的音乐。请先在 Minidisc 中选择音乐。"
+            "value" : "没有可继续播放的音乐。请先在 Hi-MD 中选择音乐。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "沒有可繼續播放的音樂。請先在 Minidisc 中選取音樂。"
+            "value" : "沒有可繼續播放的音樂。請先在 Hi-MD 中選取音樂。"
           }
         }
       }
     },
-    "This Mood playlist is unavailable. Open Discover in Minidisc to check your Moods." : {
+    "This Mood playlist is unavailable. Open Discover in Hi-MD to check your Moods." : {
       "extractionState" : "manual",
       "localizations" : {
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cette playlist Mood est indisponible. Ouvrez Discover dans Minidisc pour vérifier vos Moods."
+            "value" : "Cette playlist Mood est indisponible. Ouvrez Discover dans Hi-MD pour vérifier vos Moods."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Diese Mood-Playlist ist nicht verfügbar. Prüfe deine Moods unter Discover in Minidisc."
+            "value" : "Diese Mood-Playlist ist nicht verfügbar. Prüfe deine Moods unter Discover in Hi-MD."
           }
         },
         "el" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Αυτή η λίστα Mood δεν είναι διαθέσιμη. Ανοίξτε το Discover στο Minidisc για να ελέγξετε τα Moods."
+            "value" : "Αυτή η λίστα Mood δεν είναι διαθέσιμη. Ανοίξτε το Discover στο Hi-MD για να ελέγξετε τα Moods."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Esta playlist Mood no está disponible. Abre Discover en Minidisc para comprobar tus Moods."
+            "value" : "Esta playlist Mood no está disponible. Abre Discover en Hi-MD para comprobar tus Moods."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Questa playlist Mood non è disponibile. Apri Discover in Minidisc per controllare i tuoi Moods."
+            "value" : "Questa playlist Mood non è disponibile. Apri Discover in Hi-MD per controllare i tuoi Moods."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "このMoodプレイリストは利用できません。MinidiscのDiscoverでMoodsを確認してください。"
+            "value" : "このMoodプレイリストは利用できません。Hi-MDのDiscoverでMoodsを確認してください。"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "此心情歌单不可用。请打开 Minidisc 的 Discover 查看 Moods。"
+            "value" : "此心情歌单不可用。请打开 Hi-MD 的 Discover 查看 Moods。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "此心情播放清單無法使用。請開啟 Minidisc 的 Discover 查看 Moods。"
+            "value" : "此心情播放清單無法使用。請開啟 Hi-MD 的 Discover 查看 Moods。"
           }
         }
       }
     },
-    "This music is unavailable. Check your connection or downloads in Minidisc." : {
+    "This music is unavailable. Check your connection or downloads in Hi-MD." : {
       "extractionState" : "manual",
       "localizations" : {
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cette musique est indisponible. Vérifiez votre connexion ou vos téléchargements dans Minidisc."
+            "value" : "Cette musique est indisponible. Vérifiez votre connexion ou vos téléchargements dans Hi-MD."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Diese Musik ist nicht verfügbar. Prüfe deine Verbindung oder Downloads in Minidisc."
+            "value" : "Diese Musik ist nicht verfügbar. Prüfe deine Verbindung oder Downloads in Hi-MD."
           }
         },
         "el" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Αυτή η μουσική δεν είναι διαθέσιμη. Ελέγξτε τη σύνδεση ή τις λήψεις σας στο Minidisc."
+            "value" : "Αυτή η μουσική δεν είναι διαθέσιμη. Ελέγξτε τη σύνδεση ή τις λήψεις σας στο Hi-MD."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Esta música no está disponible. Comprueba la conexión o las descargas en Minidisc."
+            "value" : "Esta música no está disponible. Comprueba la conexión o las descargas en Hi-MD."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Questa musica non è disponibile. Controlla la connessione o i download in Minidisc."
+            "value" : "Questa musica non è disponibile. Controlla la connessione o i download in Hi-MD."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "この音楽は利用できません。Minidiscで接続やダウンロードを確認してください。"
+            "value" : "この音楽は利用できません。Hi-MDで接続やダウンロードを確認してください。"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "此音乐不可用。请在 Minidisc 中检查连接或下载内容。"
+            "value" : "此音乐不可用。请在 Hi-MD 中检查连接或下载内容。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "此音樂無法使用。請在 Minidisc 中檢查連線或下載內容。"
+            "value" : "此音樂無法使用。請在 Hi-MD 中檢查連線或下載內容。"
           }
         }
       }
@@ -53330,60 +53330,60 @@
         }
       }
     },
-    "Allow Siri to search your Minidisc library and control music playback." : {
+    "Allow Siri to search your Hi-MD library and control music playback." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Allow Siri to search your Minidisc library and control music playback."
+            "value" : "Allow Siri to search your Hi-MD library and control music playback."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Autorisez Siri à rechercher dans votre bibliothèque Minidisc et à contrôler la lecture musicale."
+            "value" : "Autorisez Siri à rechercher dans votre bibliothèque Hi-MD et à contrôler la lecture musicale."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Erlaube Siri, deine Minidisc-Mediathek zu durchsuchen und die Musikwiedergabe zu steuern."
+            "value" : "Erlaube Siri, deine Hi-MD-Mediathek zu durchsuchen und die Musikwiedergabe zu steuern."
           }
         },
         "el" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Επιτρέψτε στο Siri να κάνει αναζήτηση στη βιβλιοθήκη σας στο Minidisc και να ελέγχει την αναπαραγωγή μουσικής."
+            "value" : "Επιτρέψτε στο Siri να κάνει αναζήτηση στη βιβλιοθήκη σας στο Hi-MD και να ελέγχει την αναπαραγωγή μουσικής."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Permite que Siri busque en tu biblioteca de Minidisc y controle la reproducción de música."
+            "value" : "Permite que Siri busque en tu biblioteca de Hi-MD y controle la reproducción de música."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Consenti a Siri di cercare nella tua libreria Minidisc e controllare la riproduzione musicale."
+            "value" : "Consenti a Siri di cercare nella tua libreria Hi-MD e controllare la riproduzione musicale."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "SiriによるMinidiscライブラリの検索と音楽再生の操作を許可します。"
+            "value" : "SiriによるHi-MDライブラリの検索と音楽再生の操作を許可します。"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "允许 Siri 搜索你的 Minidisc 音乐库并控制音乐播放。"
+            "value" : "允许 Siri 搜索你的 Hi-MD 音乐库并控制音乐播放。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "允許 Siri 搜尋你的 Minidisc 音樂資料庫並控制音樂播放。"
+            "value" : "允許 Siri 搜尋你的 Hi-MD 音樂資料庫並控制音樂播放。"
           }
         }
       }
@@ -54088,54 +54088,54 @@
         }
       }
     },
-    "Minidisc isn't ready yet. Try again in a moment." : {
+    "Hi-MD isn't ready yet. Try again in a moment." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidisc ist noch nicht bereit. Gleich noch einmal versuchen."
+            "value" : "Hi-MD ist noch nicht bereit. Gleich noch einmal versuchen."
           }
         },
         "el" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Το Minidisc δεν είναι ακόμη έτοιμο. Δοκιμάστε ξανά σε λίγο."
+            "value" : "Το Hi-MD δεν είναι ακόμη έτοιμο. Δοκιμάστε ξανά σε λίγο."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidisc aún no está listo. Inténtalo de nuevo en un momento."
+            "value" : "Hi-MD aún no está listo. Inténtalo de nuevo en un momento."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidisc n'est pas encore prêt. Réessayez dans un instant."
+            "value" : "Hi-MD n'est pas encore prêt. Réessayez dans un instant."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidisc non è ancora pronto. Riprova tra un momento."
+            "value" : "Hi-MD non è ancora pronto. Riprova tra un momento."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidiscの準備ができていません。しばらくしてからもう一度お試しください。"
+            "value" : "Hi-MDの準備ができていません。しばらくしてからもう一度お試しください。"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidisc 尚未准备就绪。请稍后再试。"
+            "value" : "Hi-MD 尚未准备就绪。请稍后再试。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidisc 尚未準備就緒。請稍後再試。"
+            "value" : "Hi-MD 尚未準備就緒。請稍後再試。"
           }
         }
       }
@@ -54504,106 +54504,106 @@
         }
       }
     },
-    "Nothing from your library is playing in Minidisc." : {
+    "Nothing from your library is playing in Hi-MD." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "In Minidisc wird gerade nichts aus deiner Mediathek abgespielt."
+            "value" : "In Hi-MD wird gerade nichts aus deiner Mediathek abgespielt."
           }
         },
         "el" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Δεν παίζει τίποτα από τη βιβλιοθήκη σας στο Minidisc."
+            "value" : "Δεν παίζει τίποτα από τη βιβλιοθήκη σας στο Hi-MD."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "No se está reproduciendo nada de tu biblioteca en Minidisc."
+            "value" : "No se está reproduciendo nada de tu biblioteca en Hi-MD."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Rien de votre bibliothèque n'est en cours de lecture dans Minidisc."
+            "value" : "Rien de votre bibliothèque n'est en cours de lecture dans Hi-MD."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "In Minidisc non è in riproduzione nulla della tua libreria."
+            "value" : "In Hi-MD non è in riproduzione nulla della tua libreria."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidiscでライブラリの曲が再生されていません。"
+            "value" : "Hi-MDでライブラリの曲が再生されていません。"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidisc 中没有正在播放资料库中的音乐。"
+            "value" : "Hi-MD 中没有正在播放资料库中的音乐。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidisc 中沒有正在播放資料庫中的音樂。"
+            "value" : "Hi-MD 中沒有正在播放資料庫中的音樂。"
           }
         }
       }
     },
-    "Minidisc can't do that with this item." : {
+    "Hi-MD can't do that with this item." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Das kann Minidisc mit diesem Objekt nicht tun."
+            "value" : "Das kann Hi-MD mit diesem Objekt nicht tun."
           }
         },
         "el" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Το Minidisc δεν μπορεί να το κάνει αυτό με αυτό το στοιχείο."
+            "value" : "Το Hi-MD δεν μπορεί να το κάνει αυτό με αυτό το στοιχείο."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidisc no puede hacer eso con este elemento."
+            "value" : "Hi-MD no puede hacer eso con este elemento."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidisc ne peut pas faire cela avec cet élément."
+            "value" : "Hi-MD ne peut pas faire cela avec cet élément."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidisc non può farlo con questo elemento."
+            "value" : "Hi-MD non può farlo con questo elemento."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidiscはこの項目ではその操作を実行できません。"
+            "value" : "Hi-MDはこの項目ではその操作を実行できません。"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidisc 无法对此项目执行该操作。"
+            "value" : "Hi-MD 无法对此项目执行该操作。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidisc 無法對此項目執行該操作。"
+            "value" : "Hi-MD 無法對此項目執行該操作。"
           }
         }
       }
@@ -54868,54 +54868,54 @@
         }
       }
     },
-    "Ask Minidisc" : {
+    "Ask Hi-MD" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidisc fragen"
+            "value" : "Hi-MD fragen"
           }
         },
         "el" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ρωτήστε το Minidisc"
+            "value" : "Ρωτήστε το Hi-MD"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Preguntar a Minidisc"
+            "value" : "Preguntar a Hi-MD"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Demander à Minidisc"
+            "value" : "Demander à Hi-MD"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Chiedi a Minidisc"
+            "value" : "Chiedi a Hi-MD"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidiscに聞く"
+            "value" : "Hi-MDに聞く"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "询问 Minidisc"
+            "value" : "询问 Hi-MD"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "詢問 Minidisc"
+            "value" : "詢問 Hi-MD"
           }
         }
       }
@@ -55232,54 +55232,54 @@
         }
       }
     },
-    "Minidisc couldn't turn that into a search. Try naming a genre, decade, artist or mood." : {
+    "Hi-MD couldn't turn that into a search. Try naming a genre, decade, artist or mood." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidisc konnte daraus keine Suche machen. Nenne ein Genre, ein Jahrzehnt, einen Künstler oder eine Stimmung."
+            "value" : "Hi-MD konnte daraus keine Suche machen. Nenne ein Genre, ein Jahrzehnt, einen Künstler oder eine Stimmung."
           }
         },
         "el" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Το Minidisc δεν μπόρεσε να το μετατρέψει σε αναζήτηση. Δοκιμάστε ένα είδος, δεκαετία, καλλιτέχνη ή διάθεση."
+            "value" : "Το Hi-MD δεν μπόρεσε να το μετατρέψει σε αναζήτηση. Δοκιμάστε ένα είδος, δεκαετία, καλλιτέχνη ή διάθεση."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidisc no pudo convertir eso en una búsqueda. Prueba a indicar un género, una década, un artista o un estado de ánimo."
+            "value" : "Hi-MD no pudo convertir eso en una búsqueda. Prueba a indicar un género, una década, un artista o un estado de ánimo."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidisc n'a pas pu en faire une recherche. Essayez d'indiquer un genre, une décennie, un artiste ou une ambiance."
+            "value" : "Hi-MD n'a pas pu en faire une recherche. Essayez d'indiquer un genre, une décennie, un artiste ou une ambiance."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidisc non è riuscito a trasformarlo in una ricerca. Prova a indicare un genere, un decennio, un artista o un'atmosfera."
+            "value" : "Hi-MD non è riuscito a trasformarlo in una ricerca. Prova a indicare un genere, un decennio, un artista o un'atmosfera."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidiscはそれを検索に変換できませんでした。ジャンル、年代、アーティスト、雰囲気を指定してみてください。"
+            "value" : "Hi-MDはそれを検索に変換できませんでした。ジャンル、年代、アーティスト、雰囲気を指定してみてください。"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidisc 无法将其转换为搜索。请尝试指定风格、年代、艺人或情绪。"
+            "value" : "Hi-MD 无法将其转换为搜索。请尝试指定风格、年代、艺人或情绪。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidisc 無法將其轉換為搜尋。請嘗試指定風格、年代、藝人或情緒。"
+            "value" : "Hi-MD 無法將其轉換為搜尋。請嘗試指定風格、年代、藝人或情緒。"
           }
         }
       }
@@ -55544,54 +55544,54 @@
         }
       }
     },
-    "Open Minidisc on your iPhone to connect to your music server." : {
+    "Open Hi-MD on your iPhone to connect to your music server." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Öffne Minidisc auf deinem iPhone, um dich mit deinem Musikserver zu verbinden."
+            "value" : "Öffne Hi-MD auf deinem iPhone, um dich mit deinem Musikserver zu verbinden."
           }
         },
         "el" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ανοίξτε το Minidisc στο iPhone σας για να συνδεθείτε με τον διακομιστή μουσικής σας."
+            "value" : "Ανοίξτε το Hi-MD στο iPhone σας για να συνδεθείτε με τον διακομιστή μουσικής σας."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Abre Minidisc en tu iPhone para conectarte a tu servidor de música."
+            "value" : "Abre Hi-MD en tu iPhone para conectarte a tu servidor de música."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ouvrez Minidisc sur votre iPhone pour vous connecter à votre serveur de musique."
+            "value" : "Ouvrez Hi-MD sur votre iPhone pour vous connecter à votre serveur de musique."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Apri Minidisc sul tuo iPhone per collegarti al tuo server musicale."
+            "value" : "Apri Hi-MD sul tuo iPhone per collegarti al tuo server musicale."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "iPhoneでMinidiscを開いて音楽サーバに接続してください。"
+            "value" : "iPhoneでHi-MDを開いて音楽サーバに接続してください。"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在 iPhone 上打开 Minidisc 以连接你的音乐服务器。"
+            "value" : "在 iPhone 上打开 Hi-MD 以连接你的音乐服务器。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在 iPhone 上打開 Minidisc 以連接你的音樂伺服器。"
+            "value" : "在 iPhone 上打開 Hi-MD 以連接你的音樂伺服器。"
           }
         }
       }
@@ -55700,54 +55700,54 @@
         }
       }
     },
-    "Your library hasn't synced yet. Open Minidisc on your iPhone." : {
+    "Your library hasn't synced yet. Open Hi-MD on your iPhone." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Deine Mediathek wurde noch nicht synchronisiert. Öffne Minidisc auf deinem iPhone."
+            "value" : "Deine Mediathek wurde noch nicht synchronisiert. Öffne Hi-MD auf deinem iPhone."
           }
         },
         "el" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Η βιβλιοθήκη σας δεν έχει συγχρονιστεί ακόμη. Ανοίξτε το Minidisc στο iPhone σας."
+            "value" : "Η βιβλιοθήκη σας δεν έχει συγχρονιστεί ακόμη. Ανοίξτε το Hi-MD στο iPhone σας."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tu biblioteca aún no se ha sincronizado. Abre Minidisc en tu iPhone."
+            "value" : "Tu biblioteca aún no se ha sincronizado. Abre Hi-MD en tu iPhone."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Votre bibliothèque n'est pas encore synchronisée. Ouvrez Minidisc sur votre iPhone."
+            "value" : "Votre bibliothèque n'est pas encore synchronisée. Ouvrez Hi-MD sur votre iPhone."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "La tua libreria non è ancora sincronizzata. Apri Minidisc sul tuo iPhone."
+            "value" : "La tua libreria non è ancora sincronizzata. Apri Hi-MD sul tuo iPhone."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ライブラリはまだ同期されていません。iPhoneでMinidiscを開いてください。"
+            "value" : "ライブラリはまだ同期されていません。iPhoneでHi-MDを開いてください。"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "你的资料库尚未同步。请在 iPhone 上打开 Minidisc。"
+            "value" : "你的资料库尚未同步。请在 iPhone 上打开 Hi-MD。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "你的資料庫尚未同步。請在 iPhone 上打開 Minidisc。"
+            "value" : "你的資料庫尚未同步。請在 iPhone 上打開 Hi-MD。"
           }
         }
       }
@@ -59860,7 +59860,7 @@
         }
       }
     },
-    "The recommendation service sent an answer Minidisc couldn't read. Try again." : {
+    "The recommendation service sent an answer Hi-MD couldn't read. Try again." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -60432,106 +60432,106 @@
         }
       }
     },
-    "What Minidisc sends to %@" : {
+    "What Hi-MD sends to %@" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Was Minidisc an %@ sendet"
+            "value" : "Was Hi-MD an %@ sendet"
           }
         },
         "el" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Τι στέλνει το Minidisc στην %@"
+            "value" : "Τι στέλνει το Hi-MD στην %@"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Qué envía Minidisc a %@"
+            "value" : "Qué envía Hi-MD a %@"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ce que Minidisc envoie à %@"
+            "value" : "Ce que Hi-MD envoie à %@"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cosa invia Minidisc a %@"
+            "value" : "Cosa invia Hi-MD a %@"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidiscが%@に送信する情報"
+            "value" : "Hi-MDが%@に送信する情報"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidisc 会向 %@ 发送什么"
+            "value" : "Hi-MD 会向 %@ 发送什么"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidisc 會向 %@ 傳送什麼"
+            "value" : "Hi-MD 會向 %@ 傳送什麼"
           }
         }
       }
     },
-    "To suggest albums, Minidisc sends %@ the names of up to 20 recently played albums, 15 favourite albums, your 25 most collected artists and 15 playlists. Nothing else is sent: no server address, account details or play counts. The terms of your API key apply." : {
+    "To suggest albums, Hi-MD sends %@ the names of up to 20 recently played albums, 15 favourite albums, your 25 most collected artists and 15 playlists. Nothing else is sent: no server address, account details or play counts. The terms of your API key apply." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Für Albumvorschläge sendet Minidisc an %@ die Namen von bis zu 20 zuletzt gespielten Alben, 15 Lieblingsalben, deinen 25 meistgesammelten Künstlern und 15 Playlists. Sonst wird nichts gesendet: keine Serveradresse, keine Kontodaten und keine Wiedergabezahlen. Es gelten die Bedingungen deines API-Schlüssels."
+            "value" : "Für Albumvorschläge sendet Hi-MD an %@ die Namen von bis zu 20 zuletzt gespielten Alben, 15 Lieblingsalben, deinen 25 meistgesammelten Künstlern und 15 Playlists. Sonst wird nichts gesendet: keine Serveradresse, keine Kontodaten und keine Wiedergabezahlen. Es gelten die Bedingungen deines API-Schlüssels."
           }
         },
         "el" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Για να προτείνει άλμπουμ, το Minidisc στέλνει στην %@ τα ονόματα έως 20 πρόσφατων άλμπουμ, 15 αγαπημένων άλμπουμ, των 25 καλλιτεχνών με τα περισσότερα άλμπουμ και 15 λιστών σας. Δεν στέλνεται τίποτε άλλο: ούτε διεύθυνση διακομιστή, ούτε στοιχεία λογαριασμού, ούτε αριθμοί αναπαραγωγών. Ισχύουν οι όροι του κλειδιού API σας."
+            "value" : "Για να προτείνει άλμπουμ, το Hi-MD στέλνει στην %@ τα ονόματα έως 20 πρόσφατων άλμπουμ, 15 αγαπημένων άλμπουμ, των 25 καλλιτεχνών με τα περισσότερα άλμπουμ και 15 λιστών σας. Δεν στέλνεται τίποτε άλλο: ούτε διεύθυνση διακομιστή, ούτε στοιχεία λογαριασμού, ούτε αριθμοί αναπαραγωγών. Ισχύουν οι όροι του κλειδιού API σας."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Para sugerir álbumes, Minidisc envía a %@ los nombres de hasta 20 álbumes recientes, 15 álbumes favoritos, tus 25 artistas más coleccionados y 15 playlists. No se envía nada más: ni la dirección del servidor, ni los datos de la cuenta, ni el número de reproducciones. Se aplican las condiciones de tu clave de API."
+            "value" : "Para sugerir álbumes, Hi-MD envía a %@ los nombres de hasta 20 álbumes recientes, 15 álbumes favoritos, tus 25 artistas más coleccionados y 15 playlists. No se envía nada más: ni la dirección del servidor, ni los datos de la cuenta, ni el número de reproducciones. Se aplican las condiciones de tu clave de API."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pour suggérer des albums, Minidisc envoie à %@ les noms de 20 albums récents au plus, de 15 albums favoris, de vos 25 artistes les plus présents et de 15 playlists. Rien d'autre n'est envoyé : ni l'adresse du serveur, ni les informations de compte, ni le nombre d'écoutes. Les conditions de votre clé d'API s'appliquent."
+            "value" : "Pour suggérer des albums, Hi-MD envoie à %@ les noms de 20 albums récents au plus, de 15 albums favoris, de vos 25 artistes les plus présents et de 15 playlists. Rien d'autre n'est envoyé : ni l'adresse du serveur, ni les informations de compte, ni le nombre d'écoutes. Les conditions de votre clé d'API s'appliquent."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Per suggerire album, Minidisc invia a %@ i nomi di un massimo di 20 album recenti, 15 album preferiti, dei tuoi 25 artisti più presenti e di 15 playlist. Non viene inviato nient'altro: né l'indirizzo del server, né i dati dell'account, né il numero di ascolti. Si applicano le condizioni della tua chiave API."
+            "value" : "Per suggerire album, Hi-MD invia a %@ i nomi di un massimo di 20 album recenti, 15 album preferiti, dei tuoi 25 artisti più presenti e di 15 playlist. Non viene inviato nient'altro: né l'indirizzo del server, né i dati dell'account, né il numero di ascolti. Si applicano le condizioni della tua chiave API."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "アルバムを提案するために、Minidiscは最近再生したアルバム最大20件、お気に入りのアルバム15件、よく集めているアーティスト25組、プレイリスト15件の名前を%@に送信します。それ以外は送信されません。サーバーのアドレス、アカウント情報、再生回数は含まれません。APIキーの利用規約が適用されます。"
+            "value" : "アルバムを提案するために、Hi-MDは最近再生したアルバム最大20件、お気に入りのアルバム15件、よく集めているアーティスト25組、プレイリスト15件の名前を%@に送信します。それ以外は送信されません。サーバーのアドレス、アカウント情報、再生回数は含まれません。APIキーの利用規約が適用されます。"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "为了推荐专辑，Minidisc 会向 %@ 发送最多 20 张最近播放的专辑、15 张收藏专辑、你收藏最多的 25 位艺人和 15 个播放列表的名称。不会发送其他任何内容：没有服务器地址、账户信息或播放次数。适用你的 API 密钥的条款。"
+            "value" : "为了推荐专辑，Hi-MD 会向 %@ 发送最多 20 张最近播放的专辑、15 张收藏专辑、你收藏最多的 25 位艺人和 15 个播放列表的名称。不会发送其他任何内容：没有服务器地址、账户信息或播放次数。适用你的 API 密钥的条款。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "為了推薦專輯，Minidisc 會向 %@ 傳送最多 20 張最近播放的專輯、15 張收藏專輯、你收藏最多的 25 位藝人和 15 個播放列表的名稱。不會傳送其他任何內容：沒有伺服器位址、帳號資料或播放次數。適用你的 API 金鑰的條款。"
+            "value" : "為了推薦專輯，Hi-MD 會向 %@ 傳送最多 20 張最近播放的專輯、15 張收藏專輯、你收藏最多的 25 位藝人和 15 個播放列表的名稱。不會傳送其他任何內容：沒有伺服器位址、帳號資料或播放次數。適用你的 API 金鑰的條款。"
           }
         }
       }
@@ -60900,54 +60900,54 @@
         }
       }
     },
-    "Winamp Mode" : {
+    "Miniamp" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Winamp-Modus"
+            "value" : "Miniamp"
           }
         },
         "el" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Λειτουργία Winamp"
+            "value" : "Miniamp"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Modo Winamp"
+            "value" : "Miniamp"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mode Winamp"
+            "value" : "Miniamp"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Modalità Winamp"
+            "value" : "Miniamp"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Winampモード"
+            "value" : "Miniamp"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Winamp 模式"
+            "value" : "Miniamp"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Winamp 模式"
+            "value" : "Miniamp"
           }
         }
       }
@@ -62824,36 +62824,36 @@
         }
       }
     },
-    "Minidisc couldn't confirm any of the suggested albums with MusicBrainz. Try again in a moment." : {
+    "Hi-MD couldn't confirm any of the suggested albums with MusicBrainz. Try again in a moment." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidisc konnte keines der vorgeschlagenen Alben bei MusicBrainz bestätigen. Versuch es gleich noch einmal."
+            "value" : "Hi-MD konnte keines der vorgeschlagenen Alben bei MusicBrainz bestätigen. Versuch es gleich noch einmal."
           }
         },
         "el" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Το Minidisc δεν μπόρεσε να επιβεβαιώσει κανένα από τα προτεινόμενα άλμπουμ στο MusicBrainz. Δοκιμάστε ξανά σε λίγο."
+            "value" : "Το Hi-MD δεν μπόρεσε να επιβεβαιώσει κανένα από τα προτεινόμενα άλμπουμ στο MusicBrainz. Δοκιμάστε ξανά σε λίγο."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidisc no pudo confirmar ninguno de los álbumes sugeridos en MusicBrainz. Inténtalo de nuevo en un momento."
+            "value" : "Hi-MD no pudo confirmar ninguno de los álbumes sugeridos en MusicBrainz. Inténtalo de nuevo en un momento."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidisc n'a pu confirmer aucun des albums suggérés auprès de MusicBrainz. Réessayez dans un instant."
+            "value" : "Hi-MD n'a pu confirmer aucun des albums suggérés auprès de MusicBrainz. Réessayez dans un instant."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidisc non è riuscito a confermare nessuno degli album suggeriti su MusicBrainz. Riprova tra poco."
+            "value" : "Hi-MD non è riuscito a confermare nessuno degli album suggeriti su MusicBrainz. Riprova tra poco."
           }
         },
         "ja" : {
@@ -62865,13 +62865,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidisc 无法在 MusicBrainz 上确认任何推荐的专辑。请稍后重试。"
+            "value" : "Hi-MD 无法在 MusicBrainz 上确认任何推荐的专辑。请稍后重试。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minidisc 無法在 MusicBrainz 上確認任何推薦的專輯。請稍後再試。"
+            "value" : "Hi-MD 無法在 MusicBrainz 上確認任何推薦的專輯。請稍後再試。"
           }
         }
       }

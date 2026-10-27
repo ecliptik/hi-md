@@ -158,10 +158,10 @@ nonisolated enum AIRecommendationError: Error, CustomLocalizedStringResourceConv
         case .http(let provider, let status, _):
             "\(provider.title) returned an error (\(status)). Check the model name in Settings > Integrations > AI Recommendations."
         case .unavailable: "Apple Intelligence isn't available on this device right now."
-        case .badResponse: "The recommendation service sent an answer Minidisc couldn't read. Try again."
+        case .badResponse: "The recommendation service sent an answer Hi-MD couldn't read. Try again."
         case .notEnoughListening: "Play some music first, so there's something to base recommendations on."
         case .timedOut: "Recommendations took too long. Try again."
-        case .unverified: "Minidisc couldn't confirm any of the suggested albums with MusicBrainz. Try again in a moment."
+        case .unverified: "Hi-MD couldn't confirm any of the suggested albums with MusicBrainz. Try again in a moment."
         }
     }
 

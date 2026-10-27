@@ -1,10 +1,10 @@
 # Third-party notices
 
-Minidisc is licensed under the Mozilla Public License 2.0 (see `LICENSE`, `NOTICE` and `COPYRIGHT`). This file lists the third-party code and data it uses, and the terms they come under.
+Hi-MD is licensed under the Mozilla Public License 2.0 (see `LICENSE`, `NOTICE` and `COPYRIGHT`). This file lists the third-party code and data it uses, and the terms they come under.
 
 ## Upstream projects
 
-- **Minidisc** by NO HIT Dev, <https://github.com/Loriage/Minidisc>. MPL-2.0. This repository is a fork of it.
+- **Minidisc** by NO HIT Dev, <https://github.com/Loriage/Minidisc>. MPL-2.0. This repository is a fork of it, renamed Hi-MD.
 - **Cassette** by Mathieu Dubart, <https://github.com/CassetteLab/cassette>. MPL-2.0. Minidisc is a fork of Cassette; `NOTICE` asks modified versions to acknowledge it, which the README and the in-app Acknowledgements screen do.
 
 ## Swift packages
@@ -73,15 +73,15 @@ The app can talk to these services when you turn the matching feature on. None o
 
 ## Audio
 
-### Winamp mode demo clip
+### Miniamp demo clip
 
-`Minidisc/Resources/Winamp/MinidiscDemo.mp3` ("Minidisc. Minidisc. Minidisc. It really whips the llama's ass!") is an original recording made with text-to-speech, as a homage to Winamp's demo.mp3; it contains no audio from Winamp.
+`Minidisc/Resources/Winamp/MinidiscDemo.mp3` ("Minidisc. Minidisc. Minidisc. It really whips the llama's ass!") is an original recording made with text-to-speech for Miniamp, as a homage to Winamp's demo.mp3; it contains no audio from Winamp. It still says "Minidisc", the app's name when it was recorded.
 
 Voice: Piper TTS "en_US-libritts-high" (speaker 6505), trained on LibriTTS by Heiga Zen et al. (CC BY 4.0, http://www.openslr.org/60/), from LibriVox public-domain recordings read by "Elena". Model files from https://huggingface.co/rhasspy/piper-voices (MIT).
 
 ## Artwork and trademarks
 
-- The app icon, logo and no-artwork placeholder are photographs of a MiniDisc taken by the fork's author.
-- "MiniDisc" is a trademark of Sony Group Corporation. Minidisc is not affiliated with or endorsed by Sony; the name and the photographed disc are used descriptively.
-- The Minidisc Gold Winamp skin (`Minidisc/Resources/Winamp/MinidiscGold.wsz`) is original artwork made for this fork, under the project's MPL-2.0 licence.
-- "Winamp" is a trademark of its owner. Winamp mode is an homage to Winamp 2; Minidisc is not affiliated with or endorsed by Winamp, and it ships no Winamp code, skins or audio.
+- The app icon, logo and no-artwork placeholder are photographs of a MiniDisc taken by the fork's author; the hand-lettered "Hi-MD" on its label is set in Reenie Beanie by James Grieshaber (SIL Open Font License 1.1) and composited onto the photo. No font file is included.
+- "MiniDisc" and "Hi-MD" are trademarks of Sony Group Corporation. Hi-MD, this app, is not affiliated with or endorsed by Sony; the names and the photographed disc are used descriptively, and the name nods to Sony's 2004 Hi-MD format, a revamp of the MiniDisc.
+- The Hi-MD Gold skin (`Minidisc/Resources/Winamp/MinidiscGold.wsz`, a classic Winamp 2 format skin) is original artwork made for this fork, under the project's MPL-2.0 licence.
+- "Winamp" is a trademark of its owner. Miniamp is an homage to Winamp 2 that loads skins in its classic format; Hi-MD and Miniamp are not affiliated with or endorsed by Winamp or Llama Group, and they ship no Winamp code, skins or audio.

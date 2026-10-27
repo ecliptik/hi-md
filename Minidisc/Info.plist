@@ -16,7 +16,21 @@
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>minidisc</string>
+				<string>himd</string>
 			</array>
+		</dict>
+	</array>
+	<key>INAlternativeAppNames</key>
+	<array>
+		<dict>
+			<key>INAlternativeAppName</key>
+			<string>Minidisc</string>
+		</dict>
+		<dict>
+			<key>INAlternativeAppName</key>
+			<string>High MD</string>
+			<key>INAlternativeAppNamePronunciationHint</key>
+			<string>high em dee</string>
 		</dict>
 	</array>
 	<key>INIntentsSupported</key>

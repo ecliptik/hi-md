@@ -269,8 +269,8 @@ struct QueueFlushTests {
         let body = try JSONSerialization.jsonObject(with: reqs.last?.httpBody ?? Data()) as? [String: Any]
         let meta = (body?["payload"] as? [[String: Any]])?.first?["track_metadata"] as? [String: Any]
         let info = meta?["additional_info"] as? [String: Any]
-        #expect(info?["submission_client"] as? String == "Minidisc")
-        #expect(info?["media_player"] as? String == "Minidisc")
+        #expect(info?["submission_client"] as? String == "Hi-MD")
+        #expect(info?["media_player"] as? String == "Hi-MD")
         #expect(info?["duration_ms"] as? Int == 154_000)
     }
 

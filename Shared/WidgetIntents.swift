@@ -34,7 +34,7 @@ final class WidgetCommandRelay {
 nonisolated enum WidgetCommandError: Error, CustomLocalizedStringResourceConvertible {
     case appUnavailable
 
-    var localizedStringResource: LocalizedStringResource { "Minidisc isn't ready yet. Try again in a moment." }
+    var localizedStringResource: LocalizedStringResource { "Hi-MD isn't ready yet. Try again in a moment." }
 }
 
 /// The five Mood playlists, in a form widgets and controls can offer as a choice.

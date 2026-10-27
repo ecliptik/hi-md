@@ -49,7 +49,7 @@ private struct WrappedCoverImage: View {
 
     private var overlay: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("Minidisc Wrapped")
+            Text("Hi-MD Wrapped")
                 .font(.system(size: 32, weight: .bold, design: .rounded))
                 .foregroundStyle(.white)
             Spacer()
