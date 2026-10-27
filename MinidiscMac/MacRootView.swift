@@ -22,10 +22,16 @@ struct MacRootView: View {
                 // The player sits below the content, centred and clear of the sidebar, in a glass
                 // capsule. Not an overlay or safe-area inset: pages opened above a section are
                 // AppKit-backed (song tables) and drew over it, hiding the controls.
+                // The page always fills the space above, and the bar always keeps its own height:
+                // otherwise a short page (an empty search) left the bar mid-window, and a long
+                // song table pushed it off the bottom.
                 VStack(spacing: 0) {
                     MacDetailColumn(container: container)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
                     MacPlayerBar()
                         .padding(.top, 6)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .layoutPriority(1)
                 }
             }
             .searchable(text: $bindableNavigator.searchText, placement: .toolbar, prompt: Text("Artists, Albums, Songs"))
