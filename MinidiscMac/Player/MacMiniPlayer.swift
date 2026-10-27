@@ -11,8 +11,8 @@ import SwiftUI
 /// The window hugs its content: without a pane it's only the artwork, square, and resizing it
 /// scales the artwork; Lyrics or Queue grows it by a pane under the artwork (or beside it, when
 /// the screen has no room below, or the window is dragged wide), and closing the pane puts it
-/// back as it was. The ⋯ menu also opens the Library and Related Songs panes. Clicking the
-/// artwork shows the spinning MiniDisc. Opening the MiniPlayer closes Now Playing in the main
+/// back as it was. The ⋯ menu also opens the Library and Related Songs panes. Clicking the middle
+/// of the artwork, away from the controls, shows the spinning MiniDisc. Opening the MiniPlayer closes Now Playing in the main
 /// window, so there's one player on screen; closing it leaves playback alone. It's separate from
 /// the menu bar player and Miniamp.
 ///
@@ -59,6 +59,8 @@ private struct MacMiniPlayerContent: View {
     @State private var chrome = MacPlayerChrome()
     @State private var sizing = MiniPlayerWindowSizing()
     @State private var showsSpinningDisc = false
+    /// Where the song's controls lie over the artwork, which a click there mustn't swap.
+    @State private var controlsFrame: CGRect = .null
     @State private var isVolumeShown = false
     /// The window's frame before a pane opened, to put it back exactly where it was.
     @State private var frameBeforeOpening: CGRect?
@@ -193,18 +195,34 @@ private struct MacMiniPlayerContent: View {
 
     // MARK: Artwork
 
-    /// The artwork, edge to edge, which clicking swaps for the spinning MiniDisc, and the song's
-    /// controls over its bottom while the pointer is on the window.
+    /// The artwork, edge to edge, which a click in its middle swaps for the spinning MiniDisc, and
+    /// the song's controls over its bottom while the pointer is on the window. The traffic lights
+    /// and the glass capsule have the band across its top; clicks there and around the controls
+    /// don't swap it.
     private func artworkStage(side: Double) -> some View {
-        ZStack(alignment: .bottom) {
-            MacSpinningDiscArtwork(showsDisc: $showsSpinningDisc, cornerRadius: 0, artworkSize: 1200)
+        let topBand = CGRect(x: 0, y: 0, width: side, height: Self.capsuleRow)
+        // The scrim fades in above the controls; the click keeps off it too.
+        let scrim = controlsFrame.isNull ? CGRect.null
+            : CGRect(x: 0, y: controlsFrame.minY - Self.scrimFade, width: side, height: side - controlsFrame.minY + Self.scrimFade)
+        return ZStack(alignment: .bottom) {
+            MacSpinningDiscArtwork(showsDisc: $showsSpinningDisc, cornerRadius: 0, artworkSize: 1200,
+                                   controls: hasSong ? [topBand, controlsFrame] : [topBand],
+                                   covered: hasSong ? [scrim] : [])
             if hasSong {
                 artworkControls
+                    .onGeometryChange(for: CGRect.self) { proxy in
+                        proxy.frame(in: .named(Self.artworkSpace))
+                    } action: { frame in
+                        controlsFrame = frame
+                    }
             }
         }
         .frame(width: side, height: side)
+        .coordinateSpace(.named(Self.artworkSpace))
         .clipped()
     }
+
+    private nonisolated static let artworkSpace = "miniPlayerArtwork"
 
     /// The song with its heart and menu, the waveform scrubber with the times, and the transport,
     /// over a scrim that keeps them legible on any artwork.

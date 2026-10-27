@@ -401,13 +401,19 @@ struct MacSongButtons: View {
 }
 
 /// The playing song's artwork, which clicking swaps for the spinning MiniDisc, as tapping the
-/// cover does on the iPhone; clicking again brings the artwork back. The disc's hub turns while
-/// music plays, unless Reduce Motion is on. With nothing playing it shows the disc at rest.
+/// cover does on the iPhone; clicking again brings the artwork back. Only a click in the middle
+/// of the artwork does it, clear of `controls` (`MacArtworkDiscTarget`), so dragging the window by
+/// the artwork or missing a button leaves it alone. The disc's hub turns while music plays,
+/// unless Reduce Motion is on. With nothing playing it shows the disc at rest.
 struct MacSpinningDiscArtwork: View {
     @Binding var showsDisc: Bool
     var cornerRadius: Double = 10
     /// The pixel size asked of the server.
     var artworkSize: Int = 1200
+    /// The controls laid over the artwork, in its own coordinates; clicks near them don't count.
+    var controls: [CGRect] = []
+    /// Other parts of the artwork that don't take the click, such as the scrim under the controls.
+    var covered: [CGRect] = []
 
     @Environment(MacPlayback.self) private var playback
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -415,26 +421,36 @@ struct MacSpinningDiscArtwork: View {
     var body: some View {
         let state = playback.state
         let hasArtwork = state.currentTrack != nil || state.currentRadio != nil
-        Button {
-            withAnimation(reduceMotion ? nil : .smooth(duration: 0.35)) { showsDisc.toggle() }
-        } label: {
-            ZStack {
-                if showsDisc || !hasArtwork {
-                    MinidiscLogoView(isSpinning: state.playbackState == .playing)
-                        .padding(hasArtwork ? 0 : 12)
-                        .transition(reduceMotion ? .opacity : .scale(scale: 0.9).combined(with: .opacity))
-                } else {
-                    cover(state)
-                        .transition(.opacity)
+        let title = showsDisc ? Text("Show Artwork") : Text("Show Spinning Disc")
+        ZStack {
+            if showsDisc || !hasArtwork {
+                MinidiscLogoView(isSpinning: state.playbackState == .playing)
+                    .padding(hasArtwork ? 0 : 12)
+                    .transition(reduceMotion ? .opacity : .scale(scale: 0.9).combined(with: .opacity))
+            } else {
+                cover(state)
+                    .transition(.opacity)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .overlay {
+            if hasArtwork {
+                GeometryReader { proxy in
+                    MacArtworkDiscTarget(area: ArtworkDiscHitArea(size: proxy.size, controls: controls, covered: covered),
+                                         title: title, action: toggle)
                 }
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        // VoiceOver reaches the swap from anywhere on the artwork.
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(title)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityAction { if hasArtwork { toggle() } }
         .disabled(!hasArtwork)
-        .accessibilityLabel(showsDisc ? Text("Show Artwork") : Text("Show Spinning Disc"))
-        .help(showsDisc ? Text("Show Artwork") : Text("Show Spinning Disc"))
+    }
+
+    private func toggle() {
+        withAnimation(reduceMotion ? nil : .smooth(duration: 0.35)) { showsDisc.toggle() }
     }
 
     @ViewBuilder private func cover(_ state: PlayerState) -> some View {
