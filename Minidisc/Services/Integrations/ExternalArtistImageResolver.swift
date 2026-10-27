@@ -319,7 +319,7 @@ actor ExternalArtistImageResolver {
         guard let url = components.url else { return nil }
 
         var req = URLRequest(url: url)
-        req.setValue("Minidisc/1.0 (https://github.com/ecliptik/Minidisc)", forHTTPHeaderField: "User-Agent")
+        req.setValue("Hi-MD/1.0 (https://github.com/ecliptik/hi-md)", forHTTPHeaderField: "User-Agent")
         req.timeoutInterval = 10
 
         do {
@@ -360,7 +360,7 @@ actor ExternalArtistImageResolver {
             return nil
         }
         var req = URLRequest(url: reqURL)
-        req.setValue("Minidisc/1.0 (https://github.com/ecliptik/Minidisc)", forHTTPHeaderField: "User-Agent")
+        req.setValue("Hi-MD/1.0 (https://github.com/ecliptik/hi-md)", forHTTPHeaderField: "User-Agent")
         req.timeoutInterval = 10
 
         do {

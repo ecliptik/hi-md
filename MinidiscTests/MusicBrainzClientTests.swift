@@ -65,7 +65,7 @@ struct MusicBrainzClientTests {
         #expect(first == second)
         #expect(http.requestCount == 1)
         let request = try #require(http.firstRequest)
-        #expect(request.value(forHTTPHeaderField: "User-Agent")?.hasPrefix("Minidisc/") == true)
+        #expect(request.value(forHTTPHeaderField: "User-Agent")?.hasPrefix("Hi-MD/") == true)
         #expect(request.url?.host == "musicbrainz.org")
         let query = URLComponents(url: try #require(request.url), resolvingAgainstBaseURL: false)?
             .queryItems?.first { $0.name == "query" }?.value

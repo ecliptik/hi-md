@@ -33,7 +33,7 @@ nonisolated protocol MusicBrainzAlbumLookup: Sendable {
 /// and is remembered for the rest of the session, so a refresh only asks about new albums.
 actor MusicBrainzClient: MusicBrainzAlbumLookup {
     static let shared = MusicBrainzClient()
-    nonisolated static let userAgent = "Minidisc/1.0 (https://github.com/ecliptik/Minidisc)"
+    nonisolated static let userAgent = "Hi-MD/1.0 (https://github.com/ecliptik/hi-md)"
     nonisolated static let baseURL = URL(string: "https://musicbrainz.org/ws/2/release-group")!
 
     private let httpClient: any ArtistImageHTTPClient

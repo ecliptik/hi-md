@@ -183,6 +183,6 @@ actor LRCLIBClient: LRCLIBLyricsFetching {
     nonisolated private static func defaultClientIdentifier() -> String {
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
             ?? "development"
-        return "Minidisc/\(version) (https://github.com/ecliptik/Minidisc)"
+        return "Hi-MD/\(version) (https://github.com/ecliptik/hi-md)"
     }
 }
