@@ -376,3 +376,115 @@ struct AIRecommendationReasonCheckTests {
         #expect(!check("   "))
     }
 }
+
+// MARK: - Reasons stay on the pick and its seed
+
+/// The screenshots' reasons: real albums, but reasons that wove in the listener's playlists and
+/// other albums. Only the pick's facts and the artist it was found through may be named.
+@Suite("AI recommendation reasons name only the pick and its seed")
+struct AIRecommendationSeedReasonTests {
+    private let listener: AIListeningProfile = {
+        var profile = AIListeningProfile()
+        profile.recentAlbums = ["Ozma – Spending Time on the Borderline", "Various Artists – Garden State",
+                                "Arcade Fire – Funeral"]
+        profile.topArtists = ["Ozma", "The National", "Pavement"]
+        profile.playlists = ["City Pop", "Garden State", "Chill"]
+        return profile
+    }()
+    private let known = ["Ozma", "The National", "Pavement", "Arcade Fire", "Neutral Milk Hotel"]
+
+    /// What `choose` checks a grounded pick's reason against.
+    private func pick(_ reason: String, album: String, artist: String, seeds: [String]) -> Bool {
+        AIRecommendationReasonCheck.isGrounded(
+            reason, allowed: [album, artist] + seeds, known: known, denied: listener.deniedNames, year: nil
+        )
+    }
+
+    @Test func playlistAndAlbumNamesFromTheProfileAreDenied() {
+        #expect(Set(listener.deniedNames) == ["City Pop", "Garden State", "Chill", "Spending Time on the Borderline", "Funeral"])
+    }
+
+    @Test func funeralWithCityPopVibesIsRejected() {
+        #expect(!pick("Combines the anthemic energy of City Pop vibes.", album: "Funeral", artist: "Arcade Fire", seeds: ["The National"]))
+        // Opening the sentence doesn't hide a playlist's name.
+        #expect(!pick("City Pop vibes meet Arcade Fire's anthems.", album: "Funeral", artist: "Arcade Fire", seeds: ["The National"]))
+    }
+
+    @Test func aeroplaneWithOzmasAlbumIsRejected() {
+        #expect(!pick("Captures the surrealism in Ozma's Spending Time On The Border Line.",
+                      album: "In the Aeroplane Over the Sea", artist: "Neutral Milk Hotel", seeds: ["Ozma"]))
+        #expect(!pick("Captures the surrealism of Spending Time on the Borderline.",
+                      album: "In the Aeroplane Over the Sea", artist: "Neutral Milk Hotel", seeds: ["Ozma"]))
+    }
+
+    @Test func gardenStateTracksAreRejected() {
+        #expect(!pick("Shares the introspective edge in Garden State tracks.", album: "Boxer", artist: "The National", seeds: ["Arcade Fire"]))
+        #expect(!pick("Shares the introspective edge of your garden state playlist.", album: "Boxer", artist: "The National", seeds: ["Arcade Fire"]))
+    }
+
+    @Test func anArtistThatIsntTheSeedIsRejected() {
+        // Ozma is the listener's, but this pick came from The National.
+        #expect(!pick("As fuzzy and sincere as Ozma.", album: "Funeral", artist: "Arcade Fire", seeds: ["The National"]))
+    }
+
+    @Test func reasonsAboutTheSoundNextToTheSeedPass() {
+        #expect(pick("Arcade Fire's Funeral swells with the same anthemic yearning as The National.",
+                     album: "Funeral", artist: "Arcade Fire", seeds: ["The National"]))
+        #expect(pick("Like Ozma, it's fuzzy, sincere and full of horns.",
+                     album: "In the Aeroplane Over the Sea", artist: "Neutral Milk Hotel", seeds: ["Ozma"]))
+        // The pick's own title may be in the profile; it is still the pick's.
+        #expect(pick("Funeral is as anthemic as The National at their biggest.",
+                     album: "Funeral", artist: "Arcade Fire", seeds: ["The National"]))
+        // An ordinary word that happens to be a playlist's name, uncapitalised.
+        #expect(pick("Hushed and chill, like Arcade Fire at their quietest.", album: "Boxer", artist: "The National", seeds: ["Arcade Fire"]))
+    }
+
+    @Test func aFreeSuggestionMayNameTheListenersArtistsButNotTheirPlaylists() {
+        func free(_ reason: String) -> Bool {
+            AIRecommendationReasonCheck.isGrounded(
+                reason, allowed: ["Funeral", "Arcade Fire"] + listener.artistNames, known: known,
+                denied: listener.deniedNames, year: nil
+            )
+        }
+        #expect(free("As cathartic as The National."))
+        #expect(!free("Echoes your Garden State playlist."))
+        #expect(!free("Pure City Pop energy."))
+    }
+
+    @Test func rejectedPicksGetTheSeedFallback() async throws {
+        var withPlaylists = profile
+        withPlaylists.playlists = ["City Pop", "Garden State"]
+        var pipeline = AIRecommendationPipeline(
+            model: StubModel(picks: { candidates in
+                [AIRecommendationPick(id: candidates[0].id, reason: "Combines the anthemic energy of City Pop vibes."),
+                 AIRecommendationPick(id: candidates[1].id, reason: "Shares the introspective edge in Garden State tracks."),
+                 AIRecommendationPick(id: candidates[2].id, reason: "Scrappy and noisy, like Pavement.")]
+            }),
+            musicBrainz: StubMusicBrainz(), library: library
+        )
+        pipeline.graph = StubGraph(
+            top: [AIRecommendationArtist(name: "Pavement", mbid: "a-pavement")],
+            similar: ["a-pavement": [
+                AIRecommendationArtist(name: "Sonic Youth", mbid: "a-sonicyouth"),
+                AIRecommendationArtist(name: "Guided by Voices", mbid: "a-gbv"),
+                AIRecommendationArtist(name: "Built to Spill", mbid: "a-bts")
+            ]]
+        )
+        pipeline.username = "listener"
+        let results = try await pipeline.recommend(withPlaylists)
+        let fallback = String(localized: "Similar to \("Pavement"), which you listen to.")
+        #expect(results[0].recommendation.reason == fallback)
+        #expect(results[1].recommendation.reason == fallback)
+        #expect(results[2].recommendation.reason == "Scrappy and noisy, like Pavement.")
+    }
+
+    @Test func thePromptsAskForTheSoundNextToTheSeedOnly() {
+        let candidate = AIRecommendationCandidate(id: "c1", album: MB.goo, seeds: ["Pavement"])
+        let prompt = listener.choicePrompt([candidate], count: 5)
+        #expect(prompt.contains("similar to Pavement"))
+        #expect(prompt.contains("Don't mention playlists, songs or"))
+        #expect(!prompt.contains("City Pop"), "the choice prompt never lists playlists")
+        #expect(AIListeningProfile.choiceSystemPrompt.contains("never a playlist, a"))
+        #expect(AIListeningProfile.systemPrompt.contains("Never mention their playlists,"))
+    }
+}

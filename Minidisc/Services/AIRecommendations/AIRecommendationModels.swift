@@ -76,15 +76,18 @@ nonisolated struct AIListeningProfile: Sendable, Equatable {
     static let systemPrompt = """
         You are a music recommender. Suggest studio albums (not songs or singles) the listener \
         doesn't own yet, based on their listening. Prefer real, well-known albums whose artist and \
-        title you are certain of, mix artists they own with new ones, and keep each reason to one \
-        short sentence that names what in their listening it connects to. Never invent albums.
+        title you are certain of, and mix artists they own with new ones. Keep each reason to one \
+        short sentence about how the album sounds next to one of the listener's artists, naming \
+        only that artist and the album's own artist and title. Never mention their playlists, \
+        songs or other albums, and never invent albums.
         """
 
     /// For choosing from verified candidates: the model explains, it doesn't supply facts.
     static let choiceSystemPrompt = """
         You are a music recommender. You choose albums for a listener from a list of real albums \
-        and say in one short sentence why each fits. Use only the facts you are given: never \
-        mention an artist, album, year or genre that isn't in the list or the listener's profile.
+        and say in one short sentence how each one sounds next to the listener's artist it is \
+        similar to. Name only the album, its artist and that similar artist: never a playlist, a \
+        song, another album, or any artist, year or genre that isn't on that album's line.
         """
 
     func prompt(count: Int) -> String {
@@ -114,9 +117,11 @@ nonisolated struct AIListeningProfile: Sendable, Equatable {
             + """
 
 
-            Choose up to \(count) albums from the candidates, best first. Give each one's id exactly as \
-            listed and one short sentence on why it fits, naming only that album, its artist, its year \
-            or the listener's artists it is similar to. Answer with JSON only, in this shape:
+            Choose up to \(count) albums from the candidates, best first; the listener's albums and \
+            artists above are only to help you choose. Give each one's id exactly as listed and one \
+            short sentence about the album's sound next to the artist after "similar to" on its line, \
+            naming only that album, its artist and that artist. Don't mention playlists, songs or \
+            the listener's albums. Answer with JSON only, in this shape:
             {"picks": [{"id": "c1", "reason": "…"}]}
             """
     }

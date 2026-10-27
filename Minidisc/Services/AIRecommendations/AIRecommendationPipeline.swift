@@ -141,7 +141,9 @@ nonisolated struct AIRecommendationLibrary: Sendable {
 /// 2. Verification: title, artist and year always come from MusicBrainz. Suggestions that don't
 ///    resolve, or whose title is really an artist's name, are dropped.
 /// 3. Library match: owned albums open in the library; at most `maxOwned` are kept.
-/// 4. Reasons: kept only when they name nothing outside the facts given; otherwise replaced.
+/// 4. Reasons: kept only when they name nothing but the album, its artist and the listener's
+///    artists it was found through, never a playlist or another album; otherwise replaced by a
+///    factual one.
 nonisolated struct AIRecommendationPipeline: Sendable {
     /// Asked of the model; more than are shown, since some won't verify.
     static let requested = 12
@@ -269,8 +271,11 @@ nonisolated struct AIRecommendationPipeline: Sendable {
                 Logger.ui.info("AI recommendations: dropped a pick that isn't on the candidate list")
                 continue
             }
-            let allowed = Self.facts(of: candidate.album) + candidate.seeds + profile.names
-            let grounded = AIRecommendationReasonCheck.isGrounded(pick.reason, allowed: allowed, known: known, year: candidate.album.year)
+            // Only the album's own facts and the listener's artists it was found through.
+            let allowed = Self.facts(of: candidate.album) + candidate.seeds
+            let grounded = AIRecommendationReasonCheck.isGrounded(
+                pick.reason, allowed: allowed, known: known, denied: profile.deniedNames, year: candidate.album.year
+            )
             chosen.append((candidate, grounded ? pick.reason : nil))
         }
         // Too few valid picks: the rest of the list, one album per artist first.
@@ -338,9 +343,12 @@ nonisolated struct AIRecommendationPipeline: Sendable {
                 guard owned < Self.maxOwned else { continue }
                 owned += 1
             }
-            // A corrected artist means the reason was written about the wrong one.
+            // A corrected artist means the reason was written about the wrong one. A free
+            // suggestion wasn't found through one artist, so the listener's artists stand in for
+            // its seeds; their albums and playlists don't.
             let grounded = !verified.corrected && AIRecommendationReasonCheck.isGrounded(
-                suggestion.reason, allowed: Self.facts(of: album) + profile.names, known: known, year: album.year
+                suggestion.reason, allowed: Self.facts(of: album) + profile.artistNames, known: known,
+                denied: profile.deniedNames, year: album.year
             )
             results.append(Self.result(album, reason: grounded ? suggestion.reason : nil, seeds: [], availability: availability))
         }
@@ -452,34 +460,47 @@ nonisolated struct AIRecommendationPipeline: Sendable {
 }
 
 extension AIListeningProfile {
-    /// Every name the profile mentions, album entries split into artist and title.
-    nonisolated var names: [String] {
-        let albums = (recentAlbums + favoriteAlbums).flatMap { $0.components(separatedBy: " – ") }
-        return albums + topArtists + playlists
-    }
-
     /// Artist names only.
     nonisolated var artistNames: [String] {
         let albumArtists = (recentAlbums + favoriteAlbums).compactMap { $0.components(separatedBy: " – ").first }
         return topArtists + albumArtists.filter { $0 != "Unknown" }
     }
+
+    /// Names a reason must never mention: the listener's playlists ("City Pop", "Garden State")
+    /// and the titles of the albums in the profile. They help the model choose, but a reason that
+    /// weaves them in links the pick to something it has nothing to do with. The pick's own title
+    /// is still allowed, as an allowed name always wins.
+    nonisolated var deniedNames: [String] {
+        let albumTitles = (recentAlbums + favoriteAlbums).compactMap { entry -> String? in
+            let parts = entry.components(separatedBy: " – ")
+            return parts.count > 1 ? parts.dropFirst().joined(separator: " – ") : nil
+        }
+        return playlists + albumTitles
+    }
 }
 
 /// Decides whether a model-written reason sticks to the facts it was given.
 ///
-/// A reason is rejected when it quotes something not in the facts, names an artist (from the
-/// library, the profile or the model's other answers) that isn't one of them, strings together a
-/// capitalised name that isn't one of them ("The Fall", "Boards of Canada"), or gives a year other
-/// than the album's.
+/// The allowed names are the pick's own facts (title, artist) and the listener's artists it was
+/// found through. A reason is rejected when it quotes something not among them, names an artist
+/// (from the library, the profile or the model's other answers) that isn't one of them, mentions a
+/// denied name (the listener's playlists, the albums in their profile), strings together a
+/// capitalised name that isn't one of them ("The Fall", "City Pop", "Spending Time on the
+/// Borderline"), or gives a year other than the album's.
 nonisolated enum AIRecommendationReasonCheck {
     private static let connectors: Set<String> = ["of", "the", "and", "&", "a", "an", "in", "on", "de", "la", "le", "du", "des", "van", "von", "y"]
 
-    static func isGrounded(_ reason: String, allowed: [String], known: [String], year: Int?) -> Bool {
+    static func isGrounded(_ reason: String, allowed: [String], known: [String], denied: [String] = [], year: Int?) -> Bool {
         let text = reason.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return false }
         let allowedKeys = allowed.map { AIRecommendationMatcher.key(stripPossessives($0)) }
             .filter { $0.count >= 2 }
             .sorted { $0.count > $1.count }
+
+        // Playlist and album names from the profile, unless they are the pick's own facts.
+        for name in Set(denied) where name.count >= 3 && !covered(name, by: allowedKeys) {
+            if mentions(text, name) { return false }
+        }
 
         // Years must be the album's.
         for match in text.matches(of: /\b(19|20)\d{2}\b/) {

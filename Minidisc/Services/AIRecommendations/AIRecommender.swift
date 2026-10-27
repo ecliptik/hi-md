@@ -243,7 +243,7 @@ nonisolated struct GeneratedPicks {
 nonisolated struct GeneratedPick {
     @Guide(description: "The candidate's id exactly as listed, such as c3")
     var id: String
-    @Guide(description: "One short sentence on why it fits, naming only the album, its artist, its year or the listener's artists it is similar to")
+    @Guide(description: "One short sentence about the album's sound next to the listener's artist it is similar to, naming only the album, its artist and that artist; no playlists, songs or other albums")
     var reason: String
 }
 
@@ -255,6 +255,6 @@ nonisolated struct GeneratedRecommendation {
     var album: String
     @Guide(description: "Release year, or 0 if unsure")
     var year: Int
-    @Guide(description: "One short sentence on why it fits this listener")
+    @Guide(description: "One short sentence about the album's sound next to one of the listener's artists, naming only that artist and the album's own artist and title; no playlists, songs or other albums")
     var reason: String
 }
