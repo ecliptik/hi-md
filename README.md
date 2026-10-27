@@ -36,7 +36,7 @@ Hi-MD is a revamp of Minidisc, like [Hi-MD](https://www.minidisc.org/keep/sony_h
 
 <p align="center">
   <img src="docs/screenshots/ios/01-home.jpg" alt="Hi-MD on iPhone: Home with playlists and favourite songs" height="390">&emsp;&emsp;
-  <img src="docs/screenshots/mac/01-home.jpg" alt="Hi-MD on Mac: Home with the sidebar, shelves and the floating player" height="390">
+  <img src="docs/screenshots/mac/01-home.webp" alt="Hi-MD on Mac: Home with the sidebar, shelves and the floating player" height="390">
 </p>
 
 ## Features
@@ -86,11 +86,11 @@ Hi-MD is a revamp of Minidisc, like [Hi-MD](https://www.minidisc.org/keep/sony_h
 
 <table>
   <tr>
-    <td align="center" width="50%"><img src="docs/screenshots/mac/06-albums.jpg" alt="The album grid" width="420"><br>Albums</td>
-    <td align="center" width="50%"><img src="docs/screenshots/mac/02-now-playing-queue.jpg" alt="Now Playing with Playing Next" width="420"><br>Now Playing</td>
+    <td align="center" width="50%"><img src="docs/screenshots/mac/06-albums.webp" alt="The album grid" width="420"><br>Albums</td>
+    <td align="center" width="50%"><img src="docs/screenshots/mac/02-now-playing-queue.webp" alt="Now Playing with Playing Next" width="420"><br>Now Playing</td>
   </tr>
   <tr>
-    <td align="center" width="50%"><img src="docs/screenshots/mac/03-now-playing-lyrics.jpg" alt="Now Playing with synced lyrics" width="420"><br>Synced lyrics</td>
+    <td align="center" width="50%"><img src="docs/screenshots/mac/03-now-playing-lyrics.webp" alt="Now Playing with synced lyrics" width="420"><br>Synced lyrics</td>
     <td align="center" width="50%"><img src="docs/screenshots/mac/09-miniamp.jpg" alt="Miniamp with the Hi-MD Gold skin and its playlist" width="420"><br>Miniamp, with the Hi-MD Gold skin</td>
   </tr>
 </table>
