@@ -109,7 +109,7 @@ Hi-MD is a revamp of Minidisc, like [Hi-MD](https://www.minidisc.org/keep/sony_h
 
 ## Build from source
 
-You need:
+The Mac app can also be downloaded from [Releases](https://github.com/ecliptik/hi-md/releases/latest) (Apple silicon, macOS 27). To build it, or the iPhone and iPad app, you need:
 
 - A Mac with Xcode 27 or later.
 - A Subsonic, OpenSubsonic or Navidrome server.
@@ -167,7 +167,7 @@ Run the `MinidiscTests` scheme for unit tests. The UI tests in `MinidiscUITests`
 
 Hi-MD began as a fork of [Loriage/Minidisc](https://github.com/Loriage/Minidisc), itself a fork of [Cassette](https://github.com/CassetteLab/cassette) by Mathieu Dubart, and was renamed Hi-MD in October 2026. It follows its own direction and doesn't send changes upstream, but merges upstream work from time to time.
 
-It is shared as source only, with no App Store listing, TestFlight or prebuilt builds; for the original app, go to [upstream Minidisc](https://github.com/Loriage/Minidisc). [FORK.md](FORK.md) lists what differs from upstream and how upstream changes are merged.
+The Mac app is available from [Releases](https://github.com/ecliptik/hi-md/releases/latest); the iPhone and iPad app is shared as source only, with no App Store listing or TestFlight. For the original app, go to [upstream Minidisc](https://github.com/Loriage/Minidisc). [FORK.md](FORK.md) lists what differs from upstream and how upstream changes are merged.
 
 ## Issues
 
