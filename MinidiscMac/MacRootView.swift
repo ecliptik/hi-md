@@ -107,6 +107,7 @@ private struct MacSectionView: View {
             case .home: MacHomeView(container: container)
             case .search: MacSearchView(container: container)
             case .discover: MacDiscoverView(container: container)
+            case .radio: MacRadioView(container: container)
             case .albums: MacAlbumsView(container: container)
             case .artists: MacArtistsView(container: container)
             case .songs: MacSongsView(container: container)
