@@ -117,7 +117,7 @@ struct MacNowPlayingView: View {
         .foregroundStyle(.white)
         .tint(.white)
         .task(id: coverArtID) {
-            await backdrop.updateColors(for: coverArtID, colorExtractor: colorExtractor,
+            await backdrop.updateColors(for: coverArtID, discWhenMissing: !state.isLiveStream, colorExtractor: colorExtractor,
                                         container: container, reduceMotion: reduceMotion)
         }
         .onExitCommand(perform: escape)
@@ -442,7 +442,9 @@ struct MacSpinningDiscArtwork: View {
             CoverArtView(id: radio.coverArt ?? radio.id, size: artworkSize, cornerRadius: cornerRadius,
                          placeholderSystemImage: "dot.radiowaves.left.and.right")
         } else if let track = state.currentTrack {
-            CoverArtView(id: track.coverArtId ?? track.id, size: artworkSize, cornerRadius: cornerRadius)
+            // A song without a cover shows the disc, turning while it plays.
+            CoverArtView(id: track.coverArtId ?? track.id, size: artworkSize, cornerRadius: cornerRadius,
+                         spinningDisc: state.playbackState == .playing)
                 .id(track.coverArtId ?? track.id)
                 .transition(reduceMotion ? .identity : .opacity)
         }

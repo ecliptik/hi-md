@@ -5,15 +5,23 @@ import SwiftUI
 // on the first pass; everything else resolves from a task.
 /// Resolves cover art through the shared cache, then falls back to AsyncImage.
 /// Sizes of at least 480 points use the hero tier unless `tier` overrides it.
+///
+/// While a cover loads it shows a neutral tile. Once the cover is known to be missing (no id, or
+/// the cache recorded that it can't be loaded; see `CoverArtPhase`) albums, songs and playlists
+/// show the MiniDisc, and artists and stations their placeholder symbol.
 struct CoverArtView: View {
     let id: String
     let size: Int?
     var tier: ArtworkTier? = nil
     var cornerRadius: CGFloat = 0
-    var placeholderSystemImage: String = "music.note"
+    var placeholderSystemImage: String = CoverArtPlaceholder.defaultSymbol
     var initialImage: PlatformImage? = nil
     /// Defers loading for mounted rows that are not yet visible.
     var loadingEnabled: Bool = true
+    /// For the one large cover of the current song (Now Playing, the MiniPlayer, full-screen
+    /// lyrics): a missing cover shows the logo on its own, turning while this is true, instead of
+    /// the still disc on a tile.
+    var spinningDisc: Bool? = nil
 
     /// A cover that arrives from disk or the server fades in over the placeholder, so a screen
     /// filling on a cold launch doesn't flash. RAM hits render on the first pass and never animate.
@@ -27,7 +35,8 @@ struct CoverArtView: View {
             cornerRadius: cornerRadius,
             placeholderSystemImage: placeholderSystemImage,
             initialImage: initialImage,
-            loadingEnabled: loadingEnabled
+            loadingEnabled: loadingEnabled,
+            spinningDisc: spinningDisc
         )
     }
 }
@@ -41,6 +50,7 @@ private struct CoverArtViewContent: View {
     let cornerRadius: CGFloat
     let placeholderSystemImage: String
     let loadingEnabled: Bool
+    let spinningDisc: Bool?
 
     @Environment(\.appContainer) private var container
     @Environment(ArtworkImageCache.self) private var artworkCache
@@ -49,19 +59,21 @@ private struct CoverArtViewContent: View {
     @State private var url: URL?
     /// Associates local image state with its source id to prevent stale artwork.
     @State private var displayedId: String?
-    /// The server has no artwork for this id (it answered with its stand-in image).
-    @State private var hasNoArtwork = false
+    /// The id the task found to have no cover, so it shows the placeholder.
+    @State private var missingId: String?
     @State private var ramHit = RAMSnapshot()
     /// Re-runs the body after the task drops a snapshot it was showing.
     @State private var snapshotClears = 0
 
-    init(id: String, size: Int?, tier: ArtworkTier?, cornerRadius: CGFloat, placeholderSystemImage: String, initialImage: PlatformImage?, loadingEnabled: Bool = true) {
+    init(id: String, size: Int?, tier: ArtworkTier?, cornerRadius: CGFloat, placeholderSystemImage: String,
+         initialImage: PlatformImage?, loadingEnabled: Bool = true, spinningDisc: Bool? = nil) {
         self.id = id
         self.size = size
         self.tier = tier
         self.cornerRadius = cornerRadius
         self.placeholderSystemImage = placeholderSystemImage
         self.loadingEnabled = loadingEnabled
+        self.spinningDisc = spinningDisc
         _cachedImage = State(initialValue: initialImage)
         _displayedId = State(initialValue: initialImage == nil ? nil : id)
     }
@@ -89,19 +101,30 @@ private struct CoverArtViewContent: View {
     var body: some View {
         let _ = snapshotClears
         let snapshot = ramSnapshot()
+        let shown = shownImage(snapshot: snapshot)
+        // The missing-cover record is read like the RAM cache, as a snapshot, so a cover already
+        // known to be missing shows its placeholder on the first pass instead of the loading tile.
+        let knownMissing = missingId == id || artworkCache.isMissing(id)
+        // An earlier id's image gives way at once to a cover known to be missing.
+        let ownsShown = displayedId == id || snapshot != nil
+        let phase = CoverArtPhase.resolve(id: id, hasImage: shown != nil && (ownsShown || !knownMissing),
+                                          isKnownMissing: knownMissing)
         ZStack {
-            if let cached = shownImage(snapshot: snapshot) {
-                // Keyed by the cover it shows, so an animated change of id (an album cover giving
-                // way to an artist photo) cross-fades instead of swapping in place.
-                Image(platformImage: cached)
-                    .resizable()
-                    .scaledToFill()
-                    .id(displayedId == id || snapshot != nil ? id : displayedId ?? id)
+            switch phase {
+            case .image:
+                if let shown {
+                    // Keyed by the cover it shows, so an animated change of id (an album cover giving
+                    // way to an artist photo) cross-fades instead of swapping in place.
+                    Image(platformImage: shown)
+                        .resizable()
+                        .scaledToFill()
+                        .id(ownsShown ? id : displayedId ?? id)
+                        .transition(.opacity)
+                }
+            case .missing:
+                missing
                     .transition(.opacity)
-            } else if id.hasPrefix("local:") || hasNoArtwork {
-                placeholder
-                    .transition(.opacity)
-            } else {
+            case .loading:
                 AsyncImage(url: url, transaction: Transaction(animation: CoverArtView.arrival)) { phase in
                     switch phase {
                     case .success(let image):
@@ -110,12 +133,13 @@ private struct CoverArtViewContent: View {
                             .scaledToFill()
                             .transition(.opacity)
                     case .failure:
-                        placeholder
+                        missing
+                            .onAppear {
+                                artworkCache.noteLoadFailed(id)
+                                missingId = id
+                            }
                     case .empty:
-                        // Static: a repeating pulse per cover kept the render loop busy while scrolling.
-                        // Visible on a black background, so a loading cover reads as a tile, not a hole.
-                        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                            .fill(Color.primary.opacity(0.08))
+                        loadingTile
                     @unknown default:
                         EmptyView()
                     }
@@ -125,8 +149,11 @@ private struct CoverArtViewContent: View {
         .task(id: "\(loadingEnabled):\(id):\(coverArtUploadVersion)") {
             guard loadingEnabled else { return }
             if url != nil { url = nil }
-            if hasNoArtwork { hasNoArtwork = false }
+            // A cover invalidated since (a new upload) loads again rather than staying missing.
+            if missingId == id, !artworkCache.isMissing(id) { missingId = nil }
+            guard !id.isEmpty else { return }
             let t = resolvedTier
+            let isLocal = id.hasPrefix("local:")
             let online = container?.serverState.isOnline ?? true
 
             // A RAM hit applies at once, without waiting on the load path. When the body already
@@ -136,19 +163,15 @@ private struct CoverArtViewContent: View {
                 return
             }
 
-            if online || id.hasPrefix("local:"), let image = await artworkCache.load(coverArtId: id, tier: t) {
+            if online || isLocal, let image = await artworkCache.load(coverArtId: id, tier: t) {
                 guard !Task.isCancelled else { return }
                 apply(image, for: id, animated: true)
                 return
             }
+            guard !Task.isCancelled else { return }
 
-            if id.hasPrefix("local:") || artworkCache.hasNoArtwork(id) {
-                if ramHit.clear() { snapshotClears += 1 }
-                withAnimation(CoverArtView.arrival) {
-                    cachedImage = nil
-                    displayedId = nil
-                    hasNoArtwork = !id.hasPrefix("local:")
-                }
+            if isLocal || artworkCache.hasNoArtwork(id) {
+                showMissing()
                 return
             }
             if displayedId == id || ramSnapshot() != nil { return }
@@ -160,11 +183,7 @@ private struct CoverArtViewContent: View {
                     guard !Task.isCancelled else { return }
                     // A download from before the app recognised the server's stand-in image.
                     if decoded.isServerPlaceholder {
-                        withAnimation(CoverArtView.arrival) {
-                            cachedImage = nil
-                            displayedId = nil
-                            hasNoArtwork = true
-                        }
+                        showMissing()
                         return
                     }
                     apply(decoded.image, for: id, animated: true)
@@ -175,6 +194,13 @@ private struct CoverArtViewContent: View {
 
             if t != .thumb, let ramThumb = artworkCache.cachedImage(for: id, tier: .thumb) {
                 apply(ramThumb, for: id, animated: true)
+                return
+            }
+
+            // The load failed on the way (offline, a timeout, a server error) and there's no copy
+            // on disk: the disc, until the cache's recheck time lets the next pass ask again.
+            if artworkCache.isMissing(id) {
+                showMissing()
                 return
             }
 
@@ -190,7 +216,18 @@ private struct CoverArtViewContent: View {
         withAnimation(animated ? CoverArtView.arrival : nil) {
             cachedImage = image
             displayedId = resolvedId
+            missingId = nil
             url = nil
+        }
+    }
+
+    /// The cover is missing: the placeholder fades in over the loading tile.
+    private func showMissing() {
+        if ramHit.clear() { snapshotClears += 1 }
+        withAnimation(CoverArtView.arrival) {
+            cachedImage = nil
+            displayedId = nil
+            missingId = id
         }
     }
 
@@ -203,30 +240,37 @@ private struct CoverArtViewContent: View {
         }.value
     }
 
-    private var placeholder: some View {
-        ZStack {
-            LinearGradient(
-                colors: [MinidiscColors.accent.opacity(0.25), MinidiscColors.accent.opacity(0.08)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            if placeholderSystemImage == Self.musicPlaceholder {
-                // Albums and songs without artwork get the Minidisc logo.
-                Image(.minidiscLogoThumb)
-                    .resizable()
-                    .scaledToFit()
-                    .scaleEffect(0.78)
-                    .shadow(color: .black.opacity(0.18), radius: 3, y: 1)
+    /// Static: a repeating pulse per cover kept the render loop busy while scrolling. Visible on a
+    /// black background, so a loading cover reads as a tile, not a hole.
+    private var loadingTile: some View {
+        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+            .fill(MissingCoverDisc.tileFill)
+    }
+
+    /// What stands in for the missing cover; decorative, as the item's title labels it.
+    @ViewBuilder private var missing: some View {
+        switch CoverArtPlaceholder(symbol: placeholderSystemImage) {
+        case .disc:
+            if let spinningDisc {
+                MinidiscLogoView(isSpinning: spinningDisc)
                     .accessibilityHidden(true)
             } else {
-                Image(symbol: placeholderSystemImage)
+                MissingCoverDisc(cornerRadius: cornerRadius, isLarge: resolvedTier == .hero)
+            }
+        case .symbol(let name):
+            ZStack {
+                LinearGradient(
+                    colors: [MinidiscColors.accent.opacity(0.25), MinidiscColors.accent.opacity(0.08)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                Image(symbol: name)
                     .font(.title2)
                     .foregroundStyle(.secondary)
             }
+            .accessibilityHidden(true)
         }
     }
-
-    private static let musicPlaceholder = "music.note"
 }
 
 /// The RAM hit a cover's body last showed, read once per id, tier and upload version. A miss after

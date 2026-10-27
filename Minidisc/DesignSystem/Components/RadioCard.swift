@@ -28,7 +28,7 @@ struct RadioCard: View {
         if let coverArt = station.coverArt, !coverArt.isEmpty {
             ZStack {
                 Color.black
-                CoverArtCard(id: coverArt, size: 140)
+                CoverArtCard(id: coverArt, size: 140, placeholderSystemImage: "antenna.radiowaves.left.and.right")
             }
             .frame(width: 140, height: 140)
             .clipped()

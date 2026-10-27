@@ -157,7 +157,7 @@ struct FreshReleaseAlbumCell: View {
             Color.clear
                 .aspectRatio(1, contentMode: .fit)
                 .overlay {
-                    ExternalCoverView(url: release.coverArtURL) {
+                    ExternalCoverView(url: release.coverArtURL, showsDiscWhenMissing: true) {
                         Color.secondary.opacity(0.2)
                     }
                 }

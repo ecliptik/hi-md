@@ -197,10 +197,19 @@ final class ArtworkImageCache {
     /// Ids whose revalidation failed this run (offline / error). Skipped until relaunch so an
     /// offline session doesn't fire a HEAD per cover on every scroll.
     @ObservationIgnored private var revalidationDeferred: Set<String> = []
-    /// Covers the server answered with its own stand-in image, and when to ask again. A `no-store`
+    /// Covers that couldn't be loaded, and when to ask again, so a list scrolling past them shows
+    /// the MiniDisc instead of requesting them on every pass. `serverHasNone` marks the server's own
+    /// answer (its stand-in image, an error status, bytes that aren't an image, a local file without
+    /// artwork); otherwise the request failed on the way and is retried sooner. A `no-store`
     /// stand-in means the server is still resolving the artwork, so it is asked for again at once.
-    @ObservationIgnored private var missingArtwork: [String: Date] = [:]
+    private struct MissingArtwork {
+        let recheckAfter: Date
+        let serverHasNone: Bool
+    }
+    @ObservationIgnored private var missingArtwork: [String: MissingArtwork] = [:]
     private static let missingArtworkRecheck: TimeInterval = 10 * 60
+    /// A cover whose request failed (offline, a timeout, a server error) is retried after this.
+    static let failedArtworkRecheck: TimeInterval = 60
 
     convenience init(
         downloadService: any DownloadServiceProtocol,
@@ -306,7 +315,11 @@ final class ArtworkImageCache {
         let key = cacheKey(id: coverArtId, tier: tier)
         if coverArtId.hasPrefix("local:") {
             if let hit = cache[key] { touch(key); return hit }
-            guard let data = await localArtworkProvider?(coverArtId) else { return nil }
+            if let missing = missingArtwork[coverArtId], missing.recheckAfter > .now { return nil }
+            guard let data = await localArtworkProvider?(coverArtId) else {
+                if !Task.isCancelled { noteMissingArtwork(coverArtId, recheckAfter: Self.missingArtworkRecheck) }
+                return nil
+            }
             let image = await Task.detached(priority: .userInitiated) {
                 Self.thumbnailImage(from: data, maxDimension: tier.decodePixels)
             }.value
@@ -320,7 +333,7 @@ final class ArtworkImageCache {
             revalidateIfDue(coverArtId: coverArtId, tier: tier)
             return hit
         }
-        if let recheck = missingArtwork[coverArtId], recheck > .now { return nil }
+        if let missing = missingArtwork[coverArtId], missing.recheckAfter > .now { return nil }
 
         let waiterID = UUID()
         if let existing = inFlight[key] {
@@ -498,7 +511,7 @@ final class ArtworkImageCache {
 
         guard await fetchGate.acquireOrCancel() else { return nil }
         Logger.artworkCache.debug("[NET-COVER] start id=\(coverArtId, privacy: .public) tier=\(tier.rawValue, privacy: .public) size=\(maxDim)px")
-        let serverArtwork = await fetchServerArtwork(coverArtId: coverArtId, tier: tier)
+        let serverArtwork = await fetchServerArtwork(coverArtId: coverArtId, tier: tier, notesFailures: true)
         await fetchGate.release()
         guard let serverArtwork,
               canCommitLoad(
@@ -541,7 +554,9 @@ final class ArtworkImageCache {
         return request
     }
 
-    private func fetchServerArtwork(coverArtId: String, tier: ArtworkTier) async -> ServerArtwork? {
+    /// `notesFailures`: a first load records a failed request or an error status as a missing
+    /// cover. A revalidation doesn't: the cover it refreshes is still cached.
+    private func fetchServerArtwork(coverArtId: String, tier: ArtworkTier, notesFailures: Bool) async -> ServerArtwork? {
         let maxDim = tier.decodePixels
         guard !Task.isCancelled,
               let serverURL = await coverArtURLProvider(coverArtId, maxDim),
@@ -556,12 +571,19 @@ final class ArtworkImageCache {
         } catch {
             guard !Task.isCancelled else { return nil }
             Logger.artworkCache.warning("[NET-COVER] failed id=\(coverArtId, privacy: .public) duration=\(Int(Date().timeIntervalSince(t0) * 1000))ms")
+            if notesFailures { noteMissingArtwork(coverArtId, recheckAfter: Self.failedArtworkRecheck, serverHasNone: false) }
             return nil
         }
         guard !Task.isCancelled else { return nil }
         if let http = response as? HTTPURLResponse,
            !(200..<300).contains(http.statusCode) {
             Logger.artworkCache.warning("[NET-COVER] failed status=\(http.statusCode) id=\(coverArtId, privacy: .public)")
+            // A 4xx is the server's answer that it has no such cover; a 5xx may pass.
+            if notesFailures {
+                let serverHasNone = (400..<500).contains(http.statusCode)
+                noteMissingArtwork(coverArtId, recheckAfter: serverHasNone ? Self.missingArtworkRecheck : Self.failedArtworkRecheck,
+                                   serverHasNone: serverHasNone)
+            }
             return nil
         }
         if ArtworkResponsePolicy.isTransient(response) {
@@ -569,8 +591,10 @@ final class ArtworkImageCache {
             return nil
         }
         let image = await imageDecoder(data, maxDim)
-        guard !Task.isCancelled, let image else {
+        guard !Task.isCancelled else { return nil }
+        guard let image else {
             Logger.artworkCache.warning("[NET-COVER] failed (decode) id=\(coverArtId, privacy: .public) duration=\(Int(Date().timeIntervalSince(t0) * 1000))ms")
+            if notesFailures { noteMissingArtwork(coverArtId, recheckAfter: Self.missingArtworkRecheck) }
             return nil
         }
         if await DecodedArtwork.isServerPlaceholder(image) {
@@ -729,7 +753,7 @@ final class ArtworkImageCache {
         }
 
         guard await fetchGate.acquireOrCancel() else { return }
-        let refreshedArtwork = await fetchServerArtwork(coverArtId: coverArtId, tier: tier)
+        let refreshedArtwork = await fetchServerArtwork(coverArtId: coverArtId, tier: tier, notesFailures: false)
         await fetchGate.release()
         guard let refreshedArtwork,
               isCurrentRevalidation(
@@ -770,14 +794,39 @@ final class ArtworkImageCache {
         )
     }
 
-    /// Whether the server answered the last request for this cover with its own stand-in image, so
-    /// callers show the app's placeholder rather than loading the URL themselves.
+    /// Whether the server answered the last request for this cover with no artwork (its own
+    /// stand-in image, an error status, bytes that aren't an image), so callers show the app's
+    /// placeholder rather than loading the URL themselves.
     func hasNoArtwork(_ coverArtId: String) -> Bool {
+        missingArtwork[coverArtId]?.serverHasNone == true
+    }
+
+    /// Whether the last attempt to load this cover came back without one, for any reason: the
+    /// server has none, or the request failed. Views show the MiniDisc for it (`CoverArtPhase`);
+    /// `load` asks again once the entry's recheck time has passed.
+    func isMissing(_ coverArtId: String) -> Bool {
         missingArtwork[coverArtId] != nil
     }
 
-    private func noteMissingArtwork(_ coverArtId: String, recheckAfter interval: TimeInterval) {
-        missingArtwork[coverArtId] = Date.now.addingTimeInterval(interval)
+    /// What a cover shows right now, from the RAM cache and the missing-cover record alone: no
+    /// fetch, no observation.
+    func phase(for coverArtId: String?, tier: ArtworkTier = .thumb) -> CoverArtPhase {
+        CoverArtPhase.resolve(
+            id: coverArtId,
+            hasImage: coverArtId.map { cachedImage(for: $0, tier: tier) != nil } ?? false,
+            isKnownMissing: coverArtId.map(isMissing) ?? true
+        )
+    }
+
+    /// A view's own request for the cover (the AsyncImage fallback) failed: remember it like a
+    /// failed load, so the cover isn't requested again on every scroll.
+    func noteLoadFailed(_ coverArtId: String) {
+        guard !coverArtId.isEmpty, missingArtwork[coverArtId] == nil else { return }
+        noteMissingArtwork(coverArtId, recheckAfter: Self.failedArtworkRecheck, serverHasNone: false)
+    }
+
+    private func noteMissingArtwork(_ coverArtId: String, recheckAfter interval: TimeInterval, serverHasNone: Bool = true) {
+        missingArtwork[coverArtId] = MissingArtwork(recheckAfter: Date.now.addingTimeInterval(interval), serverHasNone: serverHasNone)
     }
 
     func invalidate(for coverArtId: String) async {

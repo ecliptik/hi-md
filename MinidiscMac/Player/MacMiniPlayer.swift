@@ -161,7 +161,7 @@ private struct MacMiniPlayerContent: View {
         .foregroundStyle(.white)
         .tint(Color.minidiscAccent)
         .task(id: coverArtID) {
-            await backdrop.updateColors(for: coverArtID, colorExtractor: colorExtractor,
+            await backdrop.updateColors(for: coverArtID, discWhenMissing: !state.isLiveStream, colorExtractor: colorExtractor,
                                         container: container, reduceMotion: reduceMotion)
         }
         .task(id: track?.id) {

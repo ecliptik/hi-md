@@ -178,7 +178,7 @@ final class CarPlayController {
         }
         let item = CPListItem(text: title, detailText: detail, image: UIImage.symbol(symbol))
         item.accessoryType = .disclosureIndicator
-        item.userInfo = coverArtId
+        item.userInfo = CarPlayArtwork(coverArtId: coverArtId, showsDiscWhenMissing: reference.kind != .artist)
         item.handler = { [weak self] _, completion in
             Task { [weak self] in
                 await self?.showSongs(of: reference, title: title)
@@ -251,10 +251,22 @@ final class CarPlayController {
     private func loadArtwork(for items: [any CPListTemplateItem]) {
         guard let cache = container?.artworkImageCache else { return }
         for case let item as CPListItem in items.prefix(Self.artworkLimit) {
-            guard let coverArtId = item.userInfo as? String else { continue }
+            guard let artwork = item.userInfo as? CarPlayArtwork else { continue }
             Task {
-                if let image = await cache.load(coverArtId: coverArtId, tier: .thumb) { item.setImage(image) }
+                if let coverArtId = artwork.coverArtId, let image = await cache.load(coverArtId: coverArtId, tier: .thumb) {
+                    item.setImage(image)
+                } else if artwork.showsDiscWhenMissing, cache.phase(for: artwork.coverArtId) == .missing,
+                          let disc = UIImage(named: "MinidiscLogoThumb") {
+                    // An album or playlist without a cover shows the MiniDisc, as in the app.
+                    item.setImage(disc)
+                }
             }
         }
     }
+}
+
+/// A list item's cover, kept on the item until its artwork loads.
+private struct CarPlayArtwork {
+    let coverArtId: String?
+    let showsDiscWhenMissing: Bool
 }

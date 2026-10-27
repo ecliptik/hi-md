@@ -35,7 +35,7 @@ private struct NowPlayingWidgetView: View {
                 }
             case .systemMedium:
                 HStack(spacing: 12) {
-                    WidgetArtwork(file: track.artworkFile).aspectRatio(1, contentMode: .fit)
+                    WidgetArtwork(file: track.artworkFile, showsDisc: true).aspectRatio(1, contentMode: .fit)
                     VStack(alignment: .leading, spacing: 4) {
                         Text(track.title).font(.headline).lineLimit(2)
                         Text(track.artist).font(.subheadline).foregroundStyle(.secondary).lineLimit(1)
@@ -45,7 +45,7 @@ private struct NowPlayingWidgetView: View {
                 }
             default:
                 VStack(alignment: .leading, spacing: 4) {
-                    WidgetArtwork(file: track.artworkFile).frame(width: 56, height: 56)
+                    WidgetArtwork(file: track.artworkFile, showsDisc: true).frame(width: 56, height: 56)
                     Spacer(minLength: 0)
                     Text(track.title).font(.caption.weight(.semibold)).lineLimit(1)
                     Text(track.artist).font(.caption2).foregroundStyle(.secondary).lineLimit(1)

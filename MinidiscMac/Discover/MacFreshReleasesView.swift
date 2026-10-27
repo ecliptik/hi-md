@@ -61,7 +61,7 @@ struct MacFreshReleaseDetailView: View {
     var body: some View {
         ScrollView {
             HStack(alignment: .top, spacing: 28) {
-                ExternalCoverView(url: release.coverArtURL) {
+                ExternalCoverView(url: release.coverArtURL, showsDiscWhenMissing: true) {
                     Color.secondary.opacity(0.2)
                 }
                 .frame(width: 260, height: 260)

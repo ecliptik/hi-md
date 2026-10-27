@@ -16,14 +16,9 @@ struct CollectionContextPreview: View {
                         .resizable()
                         .aspectRatio(1, contentMode: .fit)
                 } else {
-                    Rectangle()
-                        .fill(.secondary.opacity(0.15))
+                    // An album, playlist or song without a cover: the MiniDisc, as in the lists.
+                    MissingCoverDisc(isLarge: true)
                         .aspectRatio(1, contentMode: .fit)
-                        .overlay {
-                            Image(systemName: "music.note")
-                                .font(.system(size: 60))
-                                .foregroundStyle(.secondary)
-                        }
                 }
             }
             .frame(maxWidth: 280, maxHeight: 280)
@@ -60,14 +55,9 @@ struct SongContextPreview: View {
                         .resizable()
                         .aspectRatio(1, contentMode: .fit)
                 } else {
-                    Rectangle()
-                        .fill(.secondary.opacity(0.15))
+                    // An album, playlist or song without a cover: the MiniDisc, as in the lists.
+                    MissingCoverDisc(isLarge: true)
                         .aspectRatio(1, contentMode: .fit)
-                        .overlay {
-                            Image(systemName: "music.note")
-                                .font(.system(size: 60))
-                                .foregroundStyle(.secondary)
-                        }
                 }
             }
             .frame(maxWidth: 240, maxHeight: 240)

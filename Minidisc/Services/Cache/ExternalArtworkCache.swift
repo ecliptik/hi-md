@@ -53,7 +53,9 @@ actor ExternalArtworkCache {
         case network
         case corrupt
         case cancelled
-        case failed(String)
+        /// `serverAnswered`: the server answered with an error status rather than the request
+        /// failing on the way.
+        case failed(String, serverAnswered: Bool)
     }
 
     private struct LoadResult: Sendable {
@@ -95,6 +97,11 @@ actor ExternalArtworkCache {
     /// Incremented when memory is explicitly cleared so older pipelines cannot repopulate it.
     private var memoryGeneration: UInt64 = 0
     private var completedPipelineCount = 0
+    /// Covers that couldn't be loaded, and when to ask again, so a shelf scrolling past them
+    /// shows the MiniDisc instead of requesting them on every pass.
+    private var missing: [URL: Date] = [:]
+    private static let missingRecheck: TimeInterval = 10 * 60
+    private static let failedRecheck: TimeInterval = 60
 
     // MARK: - Init
 
@@ -130,6 +137,7 @@ actor ExternalArtworkCache {
             Logger.externalArtwork.debug("ExternalArtworkCache: memory hit \(url.lastPathComponent, privacy: .public)")
             return hit
         }
+        if let recheck = missing[url], recheck > .now { return nil }
 
         let waiterID = UUID()
         if let existing = inFlight[url] {
@@ -240,6 +248,7 @@ actor ExternalArtworkCache {
         let image = canCommit ? result.image : nil
         if let image {
             storeMemory(image, for: url)
+            missing.removeValue(forKey: url)
         }
         switch result.source {
         case .disk:
@@ -248,8 +257,12 @@ actor ExternalArtworkCache {
             Logger.externalArtwork.debug("ExternalArtworkCache: fetched + cached \(url.lastPathComponent, privacy: .public)")
         case .corrupt:
             Logger.externalArtwork.warning("ExternalArtworkCache: corrupt data from \(url, privacy: .public)")
-        case .failed(let message):
+            if canCommit { missing[url] = Date.now.addingTimeInterval(Self.missingRecheck) }
+        case .failed(let message, let serverAnswered):
             Logger.externalArtwork.warning("ExternalArtworkCache: fetch failed for \(url, privacy: .public) — \(message, privacy: .public)")
+            if canCommit {
+                missing[url] = Date.now.addingTimeInterval(serverAnswered ? Self.missingRecheck : Self.failedRecheck)
+            }
         case .cancelled:
             break
         }
@@ -266,6 +279,12 @@ actor ExternalArtworkCache {
         }
         memoryCache.removeAll()
         accessOrder.removeAll()
+        missing.removeAll()
+    }
+
+    /// Whether the last attempt to load this cover failed, so views show the MiniDisc for it.
+    func isMissing(_ url: URL) -> Bool {
+        missing[url] != nil
     }
 
     func inFlightWaiterCount(for url: URL) -> Int {
@@ -398,7 +417,8 @@ actor ExternalArtworkCache {
             guard !Task.isCancelled else {
                 return LoadResult(image: nil, source: .cancelled)
             }
-            return LoadResult(image: nil, source: .failed(String(describing: error)))
+            let serverAnswered = (error as? URLError)?.code == .badServerResponse
+            return LoadResult(image: nil, source: .failed(String(describing: error), serverAnswered: serverAnswered))
         }
     }
 

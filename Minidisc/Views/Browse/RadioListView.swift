@@ -84,7 +84,7 @@ private struct RadioStationRow: View {
     var body: some View {
         HStack(spacing: MinidiscSpacing.m) {
             if let coverArt = station.coverArt, !coverArt.isEmpty {
-                CoverArtCard(id: coverArt, size: 56)
+                CoverArtCard(id: coverArt, size: 56, placeholderSystemImage: "antenna.radiowaves.left.and.right")
             } else {
                 ZStack {
                     RoundedRectangle(cornerRadius: MinidiscCornerRadius.standard, style: .continuous)

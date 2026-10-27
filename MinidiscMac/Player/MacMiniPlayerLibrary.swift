@@ -333,8 +333,7 @@ private struct MiniPlayerLibraryRow: View {
             CoverArtView(id: item.coverArtID ?? id, size: 64, cornerRadius: 16, placeholderSystemImage: "music.microphone")
                 .clipShape(Circle())
         case .playlist(let playlist):
-            CoverArtView(id: item.coverArtID ?? playlist.id, size: 64, cornerRadius: 3,
-                         placeholderSystemImage: "music.note.list")
+            CoverArtView(id: item.coverArtID ?? playlist.id, size: 64, cornerRadius: 3)
         default:
             CoverArtView(id: item.coverArtID ?? item.id, size: 64, cornerRadius: 3)
         }

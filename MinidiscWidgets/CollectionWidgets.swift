@@ -77,7 +77,7 @@ private struct CollectionGrid: View {
 
     private func cell(_ item: WidgetSnapshot.Collection) -> some View {
         VStack(alignment: .leading, spacing: 2) {
-            WidgetArtwork(file: item.artworkFile, cornerRadius: item.kind == .artist ? 100 : 8)
+            WidgetArtwork(file: item.artworkFile, cornerRadius: item.kind == .artist ? 100 : 8, showsDisc: item.kind != .artist)
                 .aspectRatio(1, contentMode: .fit)
                 .overlay(alignment: .bottomTrailing) {
                     if showsPlayButton {

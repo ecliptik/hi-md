@@ -62,7 +62,7 @@ struct MiniPlayerAccessoryView: View {
 
     private func inlineBar(coverArtId: String, title: String, artist: String?, isPlaying: Bool, isAvailable: Bool, isLiveStream: Bool, status: String?) -> some View {
         HStack(spacing: MinidiscSpacing.m) {
-            miniArtwork(coverArtId)
+            miniArtwork(coverArtId, isLiveStream: isLiveStream)
                 .opacity(isAvailable ? 1.0 : 0.5)
             VStack(alignment: .leading, spacing: 1) {
                 Text(title)
@@ -103,7 +103,7 @@ struct MiniPlayerAccessoryView: View {
             : playerState.position / playerState.duration
         return VStack(spacing: 0) {
             HStack(alignment: .center, spacing: MinidiscSpacing.m) {
-                miniArtwork(coverArtId, size: 40)
+                miniArtwork(coverArtId, size: 40, isLiveStream: isLiveStream)
                     .opacity(isAvailable ? 1.0 : 0.5)
 
                 VStack(alignment: .leading, spacing: 2) {
@@ -212,8 +212,9 @@ struct MiniPlayerAccessoryView: View {
             AlbumDetailPalette(dominantColor: dominantColor, appearance: .dark).backgroundBottomColor)
     }
 
-    private func miniArtwork(_ coverArtId: String, size: CGFloat = 30) -> some View {
+    private func miniArtwork(_ coverArtId: String, size: CGFloat = 30, isLiveStream: Bool) -> some View {
         CoverArtView(id: coverArtId, size: 120,
+                     placeholderSystemImage: isLiveStream ? FullPlayerView.radioPlaceholder : CoverArtPlaceholder.defaultSymbol,
                      initialImage: initialArtwork?.id == coverArtId ? initialArtwork?.image : nil)
             .minidiscCoverStyle()
             .modifier(PlayerArtworkTransition(namespace: artworkNamespace))

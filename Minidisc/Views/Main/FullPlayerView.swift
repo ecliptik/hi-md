@@ -56,6 +56,8 @@ struct FullPlayerView: View {
     private static let playerCoverToTitleGap: CGFloat = MinidiscSpacing.xl
     private static let playerControlsSpacing: CGFloat = MinidiscSpacing.xl
     private static let headerArtworkSide: CGFloat = 56
+    /// A station's placeholder, as the Radio list shows it.
+    static let radioPlaceholder = "antenna.radiowaves.left.and.right"
     private static let headerInsets = EdgeInsets(top: MinidiscSpacing.s, leading: MinidiscSpacing.l, bottom: 0, trailing: 0)
 
     var body: some View {
@@ -73,7 +75,7 @@ struct FullPlayerView: View {
                 : (playerState.currentTrack?.coverArtId ?? playerState.currentTrack?.id)
             content(playerState)
                 .task(id: PlayerThemeKey(coverId: themeCoverId, override: colorExtractor.colorOverride(for: themeCoverId ?? ""))) {
-                    await vm.updateColors(for: themeCoverId, colorExtractor: colorExtractor, container: container, reduceMotion: reduceMotion)
+                    await vm.updateColors(for: themeCoverId, discWhenMissing: !playerState.isLiveStream, colorExtractor: colorExtractor, container: container, reduceMotion: reduceMotion)
                 }
                 .task(id: lyricsLoadKey) {
                     if playerState.currentTrack?.isLocalFile == true {
@@ -338,8 +340,13 @@ struct FullPlayerView: View {
                     MinidiscLogoView(isSpinning: playerState.playbackState == .playing)
                         .transition(.scale(scale: 0.9).combined(with: .opacity))
                 } else {
+                    // A song without a cover shows the disc, turning while it plays; a station keeps
+                    // its radio placeholder.
                     CoverArtView(id: coverArtId, size: 1000,
-                                 initialImage: initialArtwork?.id == coverArtId ? initialArtwork?.image : nil)
+                                 placeholderSystemImage: playerState.isLiveStream
+                                    ? Self.radioPlaceholder : CoverArtPlaceholder.defaultSymbol,
+                                 initialImage: initialArtwork?.id == coverArtId ? initialArtwork?.image : nil,
+                                 spinningDisc: playerState.playbackState == .playing)
                         .clipShape(
                             RoundedRectangle(
                                 cornerRadius: isSource ? MinidiscCornerRadius.large : MinidiscCornerRadius.standard,

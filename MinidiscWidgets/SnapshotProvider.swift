@@ -40,16 +40,27 @@ extension WidgetSnapshot {
     )
 }
 
-/// A cover from the App Group, or a neutral placeholder. Decorative: every use sits beside, or
-/// inside a link named after, the title it shows.
+/// A cover from the App Group, or a placeholder. Decorative: every use sits beside, or inside a
+/// link named after, the title it shows.
 struct WidgetArtwork: View {
     let file: String?
     var cornerRadius: CGFloat = 8
+    /// Albums, songs and playlists without a cover show the MiniDisc, as they do in the app. The
+    /// app writes a snapshot only after loading its covers, so a missing file is a missing cover.
+    var showsDisc = false
 
     var body: some View {
         Group {
             if let url = WidgetSnapshotStore.artworkURL(file), let image = UIImage(contentsOfFile: url.path) {
                 Image(uiImage: image).resizable().scaledToFill()
+            } else if showsDisc {
+                ZStack {
+                    Color.secondary.opacity(0.2)
+                    Image("MinidiscLogoThumb")
+                        .resizable()
+                        .scaledToFit()
+                        .scaleEffect(0.84)
+                }
             } else {
                 ZStack {
                     Color.secondary.opacity(0.2)

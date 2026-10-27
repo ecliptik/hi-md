@@ -25,7 +25,8 @@ struct SearchHistoryEntryRow: View, Equatable {
 
     var body: some View {
         HStack(spacing: MinidiscSpacing.m) {
-            CoverArtView(id: data.coverArtId ?? data.itemId, size: 88)
+            CoverArtView(id: data.coverArtId ?? data.itemId, size: 88,
+                         placeholderSystemImage: data.itemType == "artist" ? "person.fill" : CoverArtPlaceholder.defaultSymbol)
                 .frame(width: 44, height: 44)
                 .clipShape(
                     data.itemType == "artist"

@@ -44,7 +44,7 @@ struct MacFreshReleaseCard: View {
     var body: some View {
         NavigationLink(value: MacDestination.freshRelease(release)) {
             VStack(alignment: .leading, spacing: 4) {
-                ExternalCoverView(url: release.coverArtURL) {
+                ExternalCoverView(url: release.coverArtURL, showsDiscWhenMissing: true) {
                     Color.secondary.opacity(0.2)
                 }
                 .frame(width: MacShelfMetrics.albumSide, height: MacShelfMetrics.albumSide)
@@ -429,7 +429,7 @@ struct MacRadioArtwork: View {
             if let coverArt = station.coverArt, !coverArt.isEmpty {
                 ZStack {
                     Color.black
-                    CoverArtView(id: coverArt, size: Int(side * 2))
+                    CoverArtView(id: coverArt, size: Int(side * 2), placeholderSystemImage: "antenna.radiowaves.left.and.right")
                 }
             } else {
                 LinearGradient(colors: [Color(red: 0.161, green: 0.475, blue: 1.0),
