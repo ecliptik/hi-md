@@ -50,7 +50,7 @@ Hi-MD is a revamp of Minidisc, like [Hi-MD](https://www.minidisc.org/keep/sony_h
 
 - Home shelves; Discover with artist stations, Smart Shuffle, moods and Wrapped; internet radio; and a library of albums, artists, songs, genres, playlists and favourites synced with your server.
 - Album recommendations from Apple Intelligence on the device, or from Anthropic or OpenAI with your own key, checked against MusicBrainz and your library.
-- Lidarr: add artists, find missing albums and follow the download queue. AudioMuse-AI mood playlists.
+- [AudioMuse-AI](https://github.com/NeptuneHub/AudioMuse-AI) mood playlists.
 
 **On the Mac**
 
@@ -99,11 +99,11 @@ Hi-MD is a revamp of Minidisc, like [Hi-MD](https://www.minidisc.org/keep/sony_h
 - Hi-MD does not track you. Library and playback traffic goes directly to your server.
 - Credentials are kept only in the Keychain. Custom HTTP headers are supported for servers behind a reverse proxy such as Cloudflare Access or Authelia.
 - Some features talk to other services, and only when you use them:
-  - LRCLIB, for lyrics: the track's title, artist, album and duration.
-  - MusicBrainz, Wikidata and Wikimedia Commons, for artist images.
-  - GitHub, to search AutoEq headphone corrections.
-  - ListenBrainz, AudioMuse-AI and Lidarr, at the addresses you configure.
-  - Anthropic or OpenAI, for recommendations. The names of recent and favourite albums, top artists and playlists are sent, and the app lists them and asks before the first request.
+  - [LRCLIB](https://lrclib.net), for lyrics: the track's title, artist, album and duration.
+  - [MusicBrainz](https://musicbrainz.org), [Wikidata](https://www.wikidata.org) and [Wikimedia Commons](https://commons.wikimedia.org), for artist images and to check recommended albums.
+  - GitHub, to search [AutoEq](https://github.com/jaakkopasanen/AutoEq) headphone corrections.
+  - [ListenBrainz](https://listenbrainz.org) and [AudioMuse-AI](https://github.com/NeptuneHub/AudioMuse-AI), at the addresses you configure.
+  - [Anthropic](https://www.anthropic.com) or [OpenAI](https://openai.com), for recommendations. The names of recent and favourite albums, top artists and playlists are sent, and the app lists them and asks before the first request.
 - Server credentials, custom headers and server identifiers are never sent to these services.
 
 ## Build from source
