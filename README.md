@@ -25,19 +25,6 @@
   <a href="https://swift.org"><img src="https://img.shields.io/badge/Swift-6-orange.svg" alt="Swift 6"></a>
 </p>
 
-### "Hi-MD" Established: The Minidisc Music Player Has Evolved into a Versatile Listening App for the Self-Hosted Era
-
-*October 2026* — ecliptik today announced the development of "Hi-MD," marking an evolution of the Minidisc music player into a versatile listening app that also delivers synced lyrics, an Apple Watch remote and a native Mac app, while maintaining playback compatibility with current Subsonic and Navidrome servers and keeping your music between your devices and your own server.
-
-With the introduction of "Hi-MD," your Navidrome server is poised to meet the demands of a growing broadband era with a versatile player capable of playing a variety of content, such as music and lyrics, while maintaining high quality sound and resolution.
-
-- **High capacity:** songs buffer four minutes ahead on both decks, and the playing one downloads in full from its first second; upcoming, recently played, pinned and favourite songs can be cached for offline listening, and albums download for the commute.
-- **High quality sound:** original-quality streaming on Wi-Fi; gapless playback and real crossfades on a two-deck engine; a 10-band equalizer with AutoEq headphone corrections; loudness leveling.
-- **Versatile recording media:** iPhone, iPad and a native Mac app, and Miniamp, a Winamp-like player, loads classic skins (.wsz). Leverage Apple Intelligence, Anthropic or OpenAI to provide recommendations based on your unique taste.
-- **Copyright protection technology:** no OpenMG, no MagicGate, no accounts and no tracking. Your server, your music.
-
-ecliptik will proactively promote the "Hi-MD" format household-wide.
-
 Hi-MD is a revamp of Minidisc, like [Hi-MD](https://www.minidisc.org/keep/sony_himd_announcement.pdf) was for the MiniDisc. It is an unofficial fork of [Loriage/Minidisc](https://github.com/Loriage/Minidisc), and it is not affiliated with or endorsed by Sony; MiniDisc and Hi-MD are Sony trademarks.
 
 <p align="center">

@@ -575,7 +575,8 @@ a:hover { text-decoration-thickness: 2px; }
 }
 .amp__text > * + * { margin-top: 0.85em; }
 
-.amp__kicker {
+.amp__kicker,
+.build__kicker {
   font-family: var(--shout);
   font-weight: 700;
   text-transform: uppercase;
