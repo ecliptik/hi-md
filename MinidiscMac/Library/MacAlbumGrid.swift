@@ -28,7 +28,7 @@ struct MacAlbumTile: View {
     var body: some View {
         NavigationLink(value: MacDestination.album(id: album.id)) {
             VStack(alignment: .leading, spacing: 4) {
-                CoverArtView(id: album.coverArt ?? album.id, size: 440, cornerRadius: 6, placeholderSystemImage: "square.stack")
+                CoverArtView(id: album.coverArt ?? album.id, size: 440, cornerRadius: 6, placeholderSystemImage: MinidiscSymbol.album)
                     .aspectRatio(1, contentMode: .fit)
                     .shadow(color: .black.opacity(0.12), radius: 3, y: 1)
                     .overlay(alignment: .bottomLeading) {

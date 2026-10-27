@@ -18,7 +18,7 @@ nonisolated enum ArtistSort: String, CaseIterable, Sendable {
     var systemImage: String {
         switch self {
         case .name: return "textformat"
-        case .albumCount: return "square.stack"
+        case .albumCount: return MinidiscSymbol.album
         }
     }
 

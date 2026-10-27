@@ -9,12 +9,12 @@ struct MinidiscMusicEntity: AppEntity {
     @Property(title: "Artist") var artist: String
 
     var displayRepresentation: DisplayRepresentation {
-        DisplayRepresentation(title: "\(title)", subtitle: "\(artist)", image: .init(systemName: symbol))
+        DisplayRepresentation(title: "\(title)", subtitle: "\(artist)", image: .symbol(symbol))
     }
 
     private var symbol: String {
         switch MusicIntentID(rawValue: id)?.kind {
-        case .album: "square.stack"
+        case .album: MinidiscSymbol.album
         case .artist: "music.mic"
         case .playlist: "music.note.list"
         default: "music.note"

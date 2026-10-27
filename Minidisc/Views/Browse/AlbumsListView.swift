@@ -92,7 +92,7 @@ struct AlbumsListView: View {
             )
         } else if displayedAlbums(vm).isEmpty {
             EmptyStateView(
-                systemImage: "square.stack",
+                systemImage: MinidiscSymbol.album,
                 title: "No Albums",
                 subtitle: "Your library appears to be empty."
             )

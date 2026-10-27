@@ -7,7 +7,7 @@ struct ArtistSortMenu: View {
         Menu {
             Picker("Sort By", selection: $sort) {
                 ForEach(ArtistSort.allCases, id: \.self) { option in
-                    Label(option.label, systemImage: option.systemImage).tag(option)
+                    Label(option.label, symbol: option.systemImage).tag(option)
                 }
             }
         } label: {

@@ -123,7 +123,7 @@ struct MacDownloadsView: View {
     private func albumTile(_ album: DownloadedAlbumDisplay) -> some View {
         NavigationLink(value: MacDestination.album(id: album.albumId)) {
             VStack(alignment: .leading, spacing: 4) {
-                CoverArtView(id: album.coverArtId ?? album.albumId, size: 440, cornerRadius: 6, placeholderSystemImage: "square.stack")
+                CoverArtView(id: album.coverArtId ?? album.albumId, size: 440, cornerRadius: 6, placeholderSystemImage: MinidiscSymbol.album)
                     .aspectRatio(1, contentMode: .fit)
                 Text(album.name)
                     .font(.callout.weight(.medium))

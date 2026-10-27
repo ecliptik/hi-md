@@ -98,10 +98,10 @@ final class CarPlayController {
         let store = container.libraryIndexStore
         let serverID = server.id
         let entries: [(LocalizedStringResource, String, MusicIntentKind)] = [
-            ("Playlists", "music.note.list", .playlist), ("Albums", "square.stack", .album), ("Artists", "music.mic", .artist)
+            ("Playlists", "music.note.list", .playlist), ("Albums", MinidiscSymbol.album, .album), ("Artists", "music.mic", .artist)
         ]
         let items = entries.map { title, symbol, kind in
-            let item = CPListItem(text: String(localized: title), detailText: nil, image: UIImage(systemName: symbol))
+            let item = CPListItem(text: String(localized: title), detailText: nil, image: UIImage.symbol(symbol))
             item.accessoryType = .disclosureIndicator
             item.handler = { [weak self] _, completion in
                 Task { [weak self] in
@@ -174,9 +174,9 @@ final class CarPlayController {
         let symbol = switch reference.kind {
         case .playlist: "music.note.list"
         case .artist: "music.mic"
-        case .album, .song: "square.stack"
+        case .album, .song: MinidiscSymbol.album
         }
-        let item = CPListItem(text: title, detailText: detail, image: UIImage(systemName: symbol))
+        let item = CPListItem(text: title, detailText: detail, image: UIImage.symbol(symbol))
         item.accessoryType = .disclosureIndicator
         item.userInfo = coverArtId
         item.handler = { [weak self] _, completion in

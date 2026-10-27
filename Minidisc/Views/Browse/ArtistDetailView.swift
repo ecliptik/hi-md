@@ -88,7 +88,7 @@ struct ArtistDetailView: View {
                             )
                         } else {
                             EmptyStateView(
-                                systemImage: "square.stack",
+                                systemImage: MinidiscSymbol.album,
                                 title: "No Albums",
                                 subtitle: "This artist has no albums in the library."
                             )

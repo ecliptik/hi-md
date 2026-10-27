@@ -181,7 +181,7 @@ struct PlaybackContextModelTests {
         #expect(PlaybackContext.smartShuffle.symbolName == "sparkles")
         #expect(PlaybackContext.smartShuffle.destination == nil)
         #expect(album.title == "Endtroducing.....")
-        #expect(album.symbolName == "square.stack")
+        #expect(album.symbolName == MinidiscSymbol.album)
         #expect(album.destination == .album(id: "album-1", name: "Endtroducing.....", coverArtId: "al-1"))
         let songMix = PlaybackContext.instantMix(seed: .song, id: "s1", name: "Midnight City")
         #expect(songMix.title == "Midnight City Mix")

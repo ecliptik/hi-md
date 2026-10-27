@@ -219,7 +219,7 @@ private struct CoverArtViewContent: View {
                     .shadow(color: .black.opacity(0.18), radius: 3, y: 1)
                     .accessibilityHidden(true)
             } else {
-                Image(systemName: placeholderSystemImage)
+                Image(symbol: placeholderSystemImage)
                     .font(.title2)
                     .foregroundStyle(.secondary)
             }

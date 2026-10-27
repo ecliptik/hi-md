@@ -67,7 +67,7 @@ nonisolated enum PlaybackContext: Codable, Sendable, Hashable {
         switch self {
         case .artistStation, .instantMix: "dot.radiowaves.left.and.right"
         case .smartShuffle: "sparkles"
-        case .album: "square.stack"
+        case .album: MinidiscSymbol.album
         case .playlist: "music.note.list"
         case .mood(let mood, _): mood.symbolName
         case .wrapped: "waveform"

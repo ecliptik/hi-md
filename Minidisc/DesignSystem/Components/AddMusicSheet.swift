@@ -120,7 +120,7 @@ struct AddMusicSheet: View {
                     VStack(spacing: 0) {
                         AddMusicLibraryRow(title: "Playlists", systemImage: "music.note.list", route: .allPlaylists)
                         Divider().padding(.leading, 52)
-                        AddMusicLibraryRow(title: "Albums", systemImage: "square.stack", route: .allAlbums)
+                        AddMusicLibraryRow(title: "Albums", systemImage: MinidiscSymbol.album, route: .allAlbums)
                         Divider().padding(.leading, 52)
                         AddMusicLibraryRow(title: "Artists", systemImage: "music.mic", route: .allArtists)
                         Divider().padding(.leading, 52)
@@ -193,7 +193,7 @@ private struct AddMusicLibraryRow: View {
                     RoundedRectangle(cornerRadius: 7, style: .continuous)
                         .fill(Color.minidiscAccent)
                         .frame(width: 30, height: 30)
-                    Image(systemName: systemImage)
+                    Image(symbol: systemImage)
                         .font(.caption).fontWeight(.semibold)
                         .foregroundStyle(.white)
                 }

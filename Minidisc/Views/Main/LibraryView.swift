@@ -247,7 +247,7 @@ struct LibraryView: View {
         return VStack(spacing: MinidiscSpacing.m) {
             LazyVGrid(columns: tileColumns, spacing: MinidiscSpacing.m) {
                 if isOnline || !local.albums.isEmpty {
-                    NavigationLink(value: HomeDestination.libraryAlbums) { LibraryTile(title: "Albums", systemImage: "square.stack.fill") }
+                    NavigationLink(value: HomeDestination.libraryAlbums) { LibraryTile(title: "Albums", systemImage: MinidiscSymbol.albumFill) }
                 }
                 if isOnline || !local.artists.isEmpty {
                     NavigationLink(value: HomeDestination.libraryArtists) { LibraryTile(title: "Album Artists", systemImage: "person.crop.square.fill") }
@@ -391,7 +391,7 @@ private struct LibraryTile: View {
 
     var body: some View {
         HStack(spacing: MinidiscSpacing.m) {
-            Image(systemName: systemImage)
+            Image(symbol: systemImage)
                 .font(.title2)
                 .foregroundStyle(Color.minidiscAccent)
                 .accessibilityHidden(true)
