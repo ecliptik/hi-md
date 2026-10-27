@@ -1,7 +1,7 @@
 import SwiftSonic
 import SwiftUI
 
-/// The window's sidebar, laid out like the Music app's: Home, Search and Discover, the library,
+/// The window's sidebar, laid out like the Music app's: Home, Search, Discover and Radio, the library,
 /// then the user's playlists. Songs dragged onto a playlist are added to it.
 struct MacSidebar: View {
     let container: AppContainer
@@ -16,6 +16,7 @@ struct MacSidebar: View {
                 Label("Home", systemImage: "house").tag(MacSidebarItem.home)
                 Label("Search", systemImage: "magnifyingglass").tag(MacSidebarItem.search)
                 Label("Discover", systemImage: "square.grid.2x2").tag(MacSidebarItem.discover)
+                Label("Radio", systemImage: "antenna.radiowaves.left.and.right").tag(MacSidebarItem.radio)
             }
 
             Section("Library") {

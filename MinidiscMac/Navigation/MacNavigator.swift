@@ -6,6 +6,7 @@ enum MacSidebarItem: Hashable {
     case home
     case search
     case discover
+    case radio
     case albums
     case artists
     case songs
