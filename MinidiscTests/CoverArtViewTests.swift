@@ -40,6 +40,27 @@ struct CoverArtViewTests {
         #expect(!isRed(miss))
     }
 
+    /// The Mac's Favorites crash: AppKit laid out a table cell's own hosting view before the
+    /// table's environment reached it, and the cover's required cache read trapped ("No Observable
+    /// object of type ArtworkImageCache found"). ImageRenderer has no app environment either.
+    @Test("A cover with no cache in its environment draws its loading tile instead of trapping")
+    func missingCacheDoesNotTrap() throws {
+        for cover in [CoverArtView(id: "al-red", size: 88), CoverArtView(id: "al-red", size: 88, crossfades: true),
+                      CoverArtView(id: "", size: 88), CoverArtView(id: "ar-1", size: 88, placeholderSystemImage: "music.microphone")] {
+            let renderer = ImageRenderer(content: cover.frame(width: 44, height: 44))
+            renderer.scale = 1
+            let image = try #require(renderer.uiImage)
+            #expect(!isRed(image))
+        }
+    }
+
+    @Test("The environment's cache comes first, and no cache anywhere gives none")
+    func cacheResolution() async throws {
+        let cache = try await makeCache(loaded: "al-red")
+        #expect(CoverArtView.cache(environment: cache, container: nil) === cache)
+        #expect(CoverArtView.cache(environment: nil, container: nil) == nil)
+    }
+
     // MARK: - Helpers
 
     private func makeCache(loaded id: String) async throws -> ArtworkImageCache {
