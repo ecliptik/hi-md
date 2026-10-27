@@ -81,8 +81,12 @@ struct NowPlayingPresentationTests {
         for metrics in [small, medium, large] {
             #expect(metrics.artworkSide <= metrics.paneWidth + 0.001)
         }
-        #expect(large.artworkSide + NowPlayingMetrics.controlsHeight(scale: large.scale)
-                + 2 * NowPlayingMetrics.verticalInset <= 1080 + 0.001)
+        for (metrics, height) in [(small, 640.0), (medium, 760), (large, 1080)] {
+            #expect(metrics.artworkSide + metrics.controlsHeight + 2 * NowPlayingMetrics.verticalInset
+                    <= height + 0.001)
+        }
+        // A large window's artwork fills its half: the controls under it don't hold it back.
+        #expect(large.artworkSide >= 0.95 * large.paneWidth)
         // Without the side pane the player takes the middle and has no pane.
         let alone = NowPlayingMetrics(width: 1000, height: 900, showsPane: false)
         #expect(alone.paneWidth == 0)
@@ -90,24 +94,24 @@ struct NowPlayingPresentationTests {
     }
 
     @Test func playerTypeAndControlsGrowOnlyGently() {
-        // Apple Music's proportions at about 1,470 × 900: a 15–17 point title on one line, a
-        // 13–14 point subtitle, a 20–24 point transport with a play button around 28–32.
+        // At about 1,470 × 900: a 15–17 point title on one line, a 13–14 point subtitle, and a
+        // 27–31 point transport with a play button around 40–44.
         let music = NowPlayingControlSizes(windowWidth: 1470)
         #expect((15...17).contains(music.titleSize))
         #expect((13...14).contains(music.subtitleSize))
-        #expect((20...24).contains(music.transportSize))
-        #expect((28...32).contains(music.playSize))
+        #expect((27...31).contains(music.transportSize))
+        #expect((40...44).contains(music.playSize))
         #expect((22...26).contains(music.songButtonSize))
         // 900 points and less start at the smallest sizes; 2,560 and more end at the largest.
         for width in [600.0, 900] {
             let small = NowPlayingControlSizes(windowWidth: width)
             #expect([small.titleSize, small.subtitleSize, small.transportSize, small.playSize, small.timeSize]
-                    == [15, 13, 20, 28, 10])
+                    == [15, 13, 26, 38, 11])
         }
         for width in [2560.0, 3840] {
             let large = NowPlayingControlSizes(windowWidth: width)
             #expect([large.titleSize, large.subtitleSize, large.transportSize, large.playSize, large.timeSize]
-                    == [20, 16, 28, 38, 12])
+                    == [20, 16, 34, 50, 13])
         }
         // Both players use them, whatever the artwork does.
         for (width, height) in [(1000.0, 700.0), (1470, 900), (1728, 1080), (2560, 1440)] {

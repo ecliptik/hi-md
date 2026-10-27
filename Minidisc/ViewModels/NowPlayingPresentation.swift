@@ -71,8 +71,8 @@ nonisolated enum NowPlayingText {
 
 /// The type and controls of the Mac's player column, in Now Playing and full-screen lyrics. As in
 /// the Music app they grow only a little with the window, the artwork taking the extra room: at
-/// about 1,470 points the title is 17 points on one line, "Artist — Album" 14, the transport 23
-/// with a 31-point play button, and the heart and menu 24-point buttons.
+/// about 1,470 points the title is 17 points on one line, "Artist — Album" 14, the transport 29
+/// with a 42-point play button, and the heart and menu 24-point buttons.
 nonisolated struct NowPlayingControlSizes: Equatable, Sendable {
     static let smallWidth: Double = 900
     static let largeWidth: Double = 2560
@@ -90,9 +90,9 @@ nonisolated struct NowPlayingControlSizes: Equatable, Sendable {
 
     var titleSize: Double { size(15, 20) }
     var subtitleSize: Double { size(13, 16) }
-    var timeSize: Double { size(10, 12) }
-    var transportSize: Double { size(20, 28) }
-    var playSize: Double { size(28, 38) }
+    var timeSize: Double { size(11, 13) }
+    var transportSize: Double { size(26, 34) }
+    var playSize: Double { size(38, 50) }
     /// The heart's and the menu's buttons, beside the title.
     var songButtonSize: Double { size(22, 28) }
 }
@@ -103,7 +103,8 @@ nonisolated struct NowPlayingControlSizes: Equatable, Sendable {
 nonisolated struct NowPlayingMetrics: Equatable, Sendable {
     /// Points around the content and between the player and the side pane.
     static let horizontalInset: Double = 48
-    static let verticalInset: Double = 64
+    /// Clears the window's buttons above the artwork.
+    static let verticalInset: Double = 52
     static let columnGap: Double = 56
     /// The column's width at scale 1.
     static let baseColumn: Double = 360
@@ -124,18 +125,26 @@ nonisolated struct NowPlayingMetrics: Equatable, Sendable {
     var songButtonSize: Double { controls.songButtonSize }
     var columnSpacing: Double { (18 * scale).rounded() }
 
-    /// What the column needs under the artwork: the song, the scrubber, the transport and gaps.
-    static func controlsHeight(scale: Double) -> Double { 230 * scale }
+    /// What the column needs under the artwork: the song's two lines, the scrubber, the transport
+    /// and the gaps between them, with a little to spare.
+    var controlsHeight: Double { Self.controlsHeight(scale: scale, controls: controls) }
+    private static let scrubberHeight: Double = 22
+
+    private static func controlsHeight(scale: Double, controls: NowPlayingControlSizes) -> Double {
+        3 * (18 * scale).rounded() + (controls.titleSize + controls.subtitleSize) * 1.25 + 2
+            + scrubberHeight + controls.playSize * 1.25 + 12
+    }
 
     init(width: Double, height: Double, showsPane: Bool) {
         let content = max(width - 2 * Self.horizontalInset, 0)
-        let column = showsPane ? max((content - Self.columnGap) / 2, 0) : min(content, 720)
+        let column = showsPane ? max((content - Self.columnGap) / 2, 0) : min(content, 900)
         let scale = min(max(column / Self.baseColumn, 1), 1.6)
+        let controls = NowPlayingControlSizes(windowWidth: width)
         self.scale = scale
-        let byHeight = height - 2 * Self.verticalInset - Self.controlsHeight(scale: scale)
-        artworkSide = max(min(column, byHeight, 720), 200)
+        self.controls = controls
+        let byHeight = height - 2 * Self.verticalInset - Self.controlsHeight(scale: scale, controls: controls)
+        artworkSide = max(min(column, byHeight, 900), 200)
         paneWidth = showsPane ? column : 0
-        controls = NowPlayingControlSizes(windowWidth: width)
     }
 }
 
