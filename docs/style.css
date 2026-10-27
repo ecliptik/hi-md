@@ -611,9 +611,7 @@ a:hover { text-decoration-thickness: 2px; }
   margin-top: var(--spread);
   display: grid;
   grid-template-columns: auto minmax(0, 1.25fr) minmax(0, 1fr);
-  grid-template-areas:
-    "tag scatter head"
-    "row row row";
+  grid-template-areas: "tag scatter head";
   gap: 32px clamp(24px, 4vw, 64px);
   align-items: center;
 }
@@ -676,9 +674,12 @@ a:hover { text-decoration-thickness: 2px; }
 /* The spec sheet: a MiniDisc label card filled in by hand, in the same
    hand as the label on the Hi-MD disc. Positions are percentages of the
    card, and type is in container units, so it scales with the photo. */
+.cardsec {
+  margin-top: var(--spread);
+  display: flex;
+  justify-content: center;
+}
 .labelcard {
-  grid-area: row;
-  justify-self: center;
   position: relative;
   width: min(560px, 100%);
   container-type: inline-size;
@@ -874,8 +875,7 @@ pre:focus-visible { outline-offset: 2px; }
     grid-template-columns: auto minmax(0, 1fr);
     grid-template-areas:
       "tag head"
-      "tag scatter"
-      "row row";
+      "tag scatter";
   }
 
   .build { grid-template-columns: minmax(0, 1fr); }
@@ -907,7 +907,7 @@ pre:focus-visible { outline-offset: 2px; }
 
   .specs {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-areas: "tag" "head" "scatter" "row";
+    grid-template-areas: "tag" "head" "scatter";
     row-gap: 20px;
   }
   .specs__tagline { writing-mode: horizontal-tb; white-space: normal; letter-spacing: 0.04em; }
