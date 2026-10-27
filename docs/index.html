@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hi-MD — a music player for your own server</title>
+  <meta name="description" content="Hi-MD is a native music player for iPhone and Mac, for Navidrome and other Subsonic servers.">
+  <link rel="canonical" href="https://ecliptik.github.io/hi-md/">
+  <meta name="theme-color" content="#ffffff">
+
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Hi-MD">
+  <meta property="og:title" content="Hi-MD — a music player for your own server">
+  <meta property="og:description" content="Hi-MD is a native music player for iPhone and Mac, for Navidrome and other Subsonic servers.">
+  <meta property="og:url" content="https://ecliptik.github.io/hi-md/">
+  <meta property="og:image" content="https://ecliptik.github.io/hi-md/social-preview.png">
+  <meta property="og:image:width" content="1280">
+  <meta property="og:image:height" content="640">
+  <meta property="og:image:alt" content="Hi-MD: a music player for your own server, on iPhone and Mac">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Hi-MD — a music player for your own server">
+  <meta name="twitter:description" content="Hi-MD is a native music player for iPhone and Mac, for Navidrome and other Subsonic servers.">
+  <meta name="twitter:image" content="https://ecliptik.github.io/hi-md/social-preview.png">
+  <meta name="twitter:image:alt" content="Hi-MD: a music player for your own server, on iPhone and Mac">
+
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Antonio:wght@600;700&family=Fraunces:opsz,wght,SOFT,WONK@9..144,500..900,0..100,0..1&family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&display=swap">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <a class="skip" href="#main">Skip to the content</a>
+
+  <header class="masthead wrap">
+    <a class="masthead__mark" href="#top" aria-label="Hi-MD, back to the top">Hi-MD</a>
+    <nav aria-label="Sections">
+      <ul class="masthead__nav">
+        <li><a href="#features">Features</a></li>
+        <li><a href="#offline">Offline</a></li>
+        <li><a href="#miniamp">Miniamp</a></li>
+        <li><a href="#specs">Specs</a></li>
+        <li><a href="#build">Build</a></li>
+        <li><a href="https://github.com/ecliptik/hi-md">GitHub</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main id="main">
+
+    <!-- Ad 1: the poster -->
+    <section class="hero" id="top" aria-labelledby="hero-title">
+      <div class="wrap hero__stage">
+        <h1 class="hero__wordmark" id="hero-title">Hi-MD</h1>
+        <div class="hero__copy">
+          <p class="hero__lede">The music player for your own server.</p>
+          <p class="hero__sub">A native app for iPhone and Mac, for Navidrome and other Subsonic and OpenSubsonic servers. iPad, an Apple Watch remote and CarPlay come along too.</p>
+        </div>
+        <div class="hero__disc">
+          <img src="assets/disc.webp" srcset="assets/disc-560.webp 560w, assets/disc.webp 960w" sizes="(min-width: 1100px) 420px, 62vw" width="960" height="960" alt="The Hi-MD disc: a clear MiniDisc cartridge, its label hand-lettered Hi-MD, balanced on one corner." fetchpriority="high">
+        </div>
+      </div>
+      <div class="band">
+        <div class="wrap band__inner">
+          <p class="band__line">The Hi-MD music player for iPhone and Mac.</p>
+          <div class="band__cta">
+            <a class="button" href="https://github.com/ecliptik/hi-md">Get the source on GitHub</a>
+            <p class="band__note">Free and open source, MPL-2.0. Source only.<a class="fn" href="#note-source" aria-label="Footnote: source only">§</a></p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Ad 2: the announcement -->
+    <section class="release wrap" id="announcement" aria-labelledby="release-title">
+      <div class="release__head">
+        <p class="release__kind">For immediate release</p>
+        <h2 class="release__title" id="release-title">“Hi-MD” Established: The Minidisc Music Player Has Evolved into a Versatile Listening App for the Self-Hosted Era</h2>
+        <div class="release__photos">
+          <figure class="print release__photo release__photo--blue">
+            <img src="assets/photo-walkman-disc.webp" width="760" height="863" loading="lazy" alt="A blue portable MiniDisc recorder with a gold disc, hand-labelled, half-way into its slot.">
+          </figure>
+          <figure class="print release__photo release__photo--silver">
+            <img src="assets/photo-walkman-silver.webp" width="760" height="840" loading="lazy" alt="The same recorder in silver, loading a disc whose label is a hand-drawn illustration.">
+          </figure>
+        </div>
+      </div>
+      <div class="release__body">
+        <p><span class="dateline">October 2026 —</span> ecliptik today announced the development of “Hi-MD,” marking an evolution of the Minidisc music player into a versatile listening app that also delivers synced lyrics, an Apple Watch remote and a native Mac app, while maintaining playback compatibility with current Subsonic and Navidrome servers and keeping your music between your devices and your own server.</p>
+        <p>With the introduction of “Hi-MD,” your Navidrome server is poised to meet the demands of a growing broadband era with a versatile player capable of playing a variety of content, such as music and lyrics, while maintaining high quality sound and resolution.</p>
+        <dl class="release__points">
+          <div>
+            <dt>High capacity</dt>
+            <dd>Songs buffer four minutes ahead on both decks, and the playing one downloads in full from its first second. Upcoming, recently played, pinned and favourite songs can be cached for offline listening, and albums download for the commute.</dd>
+          </div>
+          <div>
+            <dt>High quality sound</dt>
+            <dd>Original-quality streaming on Wi-Fi; gapless playback and real crossfades on a two-deck engine; a 10-band equalizer with AutoEq headphone corrections; loudness leveling.</dd>
+          </div>
+          <div>
+            <dt>Versatile recording media</dt>
+            <dd>iPhone, iPad and a native Mac app, and Miniamp, a Winamp-like player, loads classic skins (.wsz). Leverage Apple Intelligence, Anthropic or OpenAI to provide recommendations based on your unique taste.</dd>
+          </div>
+          <div>
+            <dt>Copyright protection technology</dt>
+            <dd>No OpenMG, no MagicGate, no accounts and no tracking. Your server, your music.</dd>
+          </div>
+        </dl>
+        <p class="release__close">ecliptik will proactively promote the “Hi-MD” format household-wide.</p>
+      </div>
+    </section>
+
+    <!-- Ad 3: the concert hall -->
+    <section class="hall wrap" id="features" aria-labelledby="hall-title">
+      <div class="hall__grid">
+        <figure class="shot shot--mac hall__a">
+          <img src="assets/mac-lyrics.webp" width="1200" height="762" loading="lazy" alt="Hi-MD on Mac: Now Playing with synced lyrics beside the album cover.">
+        </figure>
+        <figure class="shot hall__w">
+          <img src="assets/photo-walkman-earbuds.webp" width="900" height="1108" loading="lazy" alt="A blue portable MiniDisc recorder on a dark desk, with a pair of white earbuds plugged in.">
+        </figure>
+        <figure class="shot shot--mac hall__d">
+          <img src="assets/mac-albums.webp" width="1200" height="762" loading="lazy" alt="Hi-MD on Mac: the album grid.">
+        </figure>
+        <figure class="phone hall__p">
+          <img src="screenshots/ios/12-now-playing-disc.jpg" width="553" height="1200" loading="lazy" alt="Hi-MD on iPhone: Now Playing, with the Hi-MD disc standing in for a missing cover.">
+        </figure>
+      </div>
+      <div class="hall__text">
+        <h2 class="hall__title" id="hall-title">Now Hi-MD turns your iPhone, your Mac, and your Watch into a concert hall.</h2>
+        <div class="hall__column">
+          <p>Press play and two decks go to work. Songs meet without a gap, or crossfade into each other, and stream in their original quality on Wi-Fi<a class="fn" href="#note-quality" aria-label="Footnote: original quality">*</a> with a lighter format for each kind of network. A 10-band equalizer takes AutoEq corrections for your headphones, and loudness leveling keeps one album from shouting over the next.</p>
+          <p>Lyrics scroll in time, karaoke-style. Discover deals out artist stations, Smart Shuffle, moods and your own Wrapped. Internet radio is a tap away. Album recommendations come from Apple Intelligence on the device, or from Anthropic or OpenAI with your own key,<a class="fn" href="#note-recs" aria-label="Footnote: recommendations">†</a> checked against MusicBrainz and your library.</p>
+          <p>On the Mac it is a native app, with a Music-style library, a full-window Now Playing, a menu bar player and a MiniPlayer that shrinks down to a bar of controls. On your wrist, the Apple Watch is the remote. In the car, CarPlay.<a class="fn" href="#note-carplay" aria-label="Footnote: CarPlay">‡</a></p>
+          <p class="signoff">The one and only sound of <span class="nowrap">Hi-MD.</span></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Ad 4: more tunes -->
+    <section class="tunes wrap" id="offline" aria-labelledby="tunes-title">
+      <h2 class="tunes__title" id="tunes-title"><span>You could carry</span> <span>a lot more tunes.</span></h2>
+      <figure class="print tunes__photo">
+        <img src="assets/photo-stack.webp" width="900" height="899" loading="lazy" alt="A stack of a dozen MiniDiscs in clear cases, their spines hand-labelled with album titles, an orange disc on top.">
+      </figure>
+      <div class="tunes__fan" role="group" aria-label="Five iPhone screens from Hi-MD, fanned out like a hand of cards">
+        <img style="--i:-2" src="screenshots/ios/01-home.jpg" width="553" height="1200" loading="lazy" alt="Home: your playlists and favourite songs.">
+        <img style="--i:-1" src="screenshots/ios/06-library.jpg" width="553" height="1200" loading="lazy" alt="Library: albums, artists, tracks, genres, favourites and downloads.">
+        <img style="--i:0" src="screenshots/ios/07-albums.jpg" width="553" height="1200" loading="lazy" alt="Albums: the full list, with an index down the side.">
+        <img style="--i:1" src="screenshots/ios/05-album.jpg" width="553" height="1200" loading="lazy" alt="An album page, with its play, shuffle and favourite buttons.">
+        <img style="--i:2" src="screenshots/ios/13-playlist.jpg" width="553" height="1200" loading="lazy" alt="A playlist, ready to play or shuffle.">
+      </div>
+      <div class="tunes__column">
+        <p>Hi-MD buffers as though the network is out to get it. Songs buffer four minutes ahead on both decks, and the one that’s playing downloads in full from its first second, so a dead spot on the train is only a dead spot on the train.</p>
+        <p>Then it keeps things, for offline listening:</p>
+        <ul class="tunes__list">
+          <li>Upcoming songs</li>
+          <li>Recently played</li>
+          <li>Pinned songs</li>
+          <li>Favourites</li>
+          <li>Whole albums, for the commute</li>
+        </ul>
+        <p class="small">How it all works is written up in <a href="https://github.com/ecliptik/hi-md/blob/main/docs/PlaybackContinuity.md">Playback Continuity</a>.</p>
+      </div>
+    </section>
+
+    <!-- Ad 5: Miniamp -->
+    <section class="amp wrap" id="miniamp" aria-labelledby="amp-title">
+      <figure class="amp__shot">
+        <img src="assets/miniamp.webp" width="1600" height="1106" loading="lazy" alt="Miniamp on the Mac, wearing the gold-and-black Hi-MD Gold skin: the main window with its time display and visualizer, beside a playlist window of sixteen songs.">
+      </figure>
+      <div class="amp__text">
+        <p class="amp__kicker">It really whips.</p>
+        <h2 class="amp__title" id="amp-title">Miniamp.</h2>
+        <p>Choose View › Miniamp, or press ⌘⇧W, and the Mac app folds itself into a compact player that loads classic Winamp 2 skins, the <span class="nowrap">.wsz</span> files still sitting on a backup drive somewhere.</p>
+        <p>It brings its playlist and equalizer windows along, and it comes dressed in its own skin, Hi-MD Gold.</p>
+        <img class="amp__icon" src="assets/apple-touch-icon.png" width="180" height="180" loading="lazy" alt="The Hi-MD app icon: the disc on a gold tile.">
+      </div>
+    </section>
+
+    <!-- Ad 6: the product row -->
+    <section class="specs wrap" id="specs" aria-labelledby="specs-title">
+      <p class="specs__tagline">One library, on your own server.</p>
+      <div class="specs__scatter" role="group" aria-label="Three iPhone screens from Hi-MD and a blue MiniDisc, scattered on the page">
+        <img class="s1" src="screenshots/ios/04-discover.jpg" width="553" height="1200" loading="lazy" alt="Discover: Recommended for You, Stations for You and Smart Shuffle.">
+        <img class="s2" src="screenshots/ios/02-now-playing.jpg" width="553" height="1200" loading="lazy" alt="Now Playing, with the cover, controls and volume.">
+        <img class="s3 print" src="assets/photo-md74-blue.webp" width="760" height="727" loading="lazy" alt="A translucent blue MiniDisc with a hand-made label for Massive Attack’s Blue Lines.">
+        <img class="s4" src="screenshots/ios/01-home.jpg" width="553" height="1200" loading="lazy" alt="Home, with playlists and favourite songs.">
+      </div>
+      <div class="specs__head">
+        <h2 class="specs__title" id="specs-title">Five places to play.</h2>
+        <p class="specs__product">Hi-MD for iPhone, iPad, Mac, Apple Watch and CarPlay.</p>
+        <p class="specs__servers">For Navidrome, Subsonic and OpenSubsonic servers.</p>
+      </div>
+      <ul class="swatches">
+        <li class="swatch" style="--md: var(--md-pink)">
+          <span class="cart" aria-hidden="true"><span class="cart__num">2</span></span>
+          <p><strong>Decks.</strong> Gapless playback and real crossfades.</p>
+        </li>
+        <li class="swatch" style="--md: var(--md-aqua)">
+          <span class="cart" aria-hidden="true"><span class="cart__num">10</span></span>
+          <p><strong>Equalizer bands.</strong> AutoEq headphone corrections, and loudness leveling.</p>
+        </li>
+        <li class="swatch" style="--md: var(--md-lime)">
+          <span class="cart" aria-hidden="true"><span class="cart__num">4</span></span>
+          <p><strong>Minutes buffered ahead</strong> on both decks, with an offline cache behind them.</p>
+        </li>
+        <li class="swatch" style="--md: var(--md-gold)">
+          <span class="cart" aria-hidden="true"><span class="cart__num">5</span></span>
+          <p><strong>Places to play.</strong> iPhone, iPad, Mac, an Apple Watch remote, and CarPlay.<a class="fn" href="#note-carplay" aria-label="Footnote: CarPlay">‡</a></p>
+        </li>
+        <li class="swatch" style="--md: var(--md-violet)">
+          <span class="cart" aria-hidden="true"><span class="cart__num">27</span></span>
+          <p><strong>Requires iOS 27,</strong> macOS 27 or watchOS 27. Builds with Xcode 27 or later.</p>
+        </li>
+        <li class="swatch" style="--md: var(--md-smoke)">
+          <span class="cart" aria-hidden="true"><span class="cart__num">0</span></span>
+          <p><strong>Accounts and trackers.</strong> Library traffic goes straight to your server.</p>
+        </li>
+      </ul>
+    </section>
+
+    <!-- Ad 7: the instructions -->
+    <section class="build wrap" id="build" aria-labelledby="build-title">
+      <div class="build__head">
+        <h2 class="build__title" id="build-title">Build it yourself.</h2>
+        <p>Hi-MD is shared as source only: no App Store listing, no TestFlight, no prebuilt builds. You’ll need a Mac with Xcode 27 or later, a Subsonic, OpenSubsonic or Navidrome server and, for a device build, an Apple Developer account. The free personal team is enough, with <a href="https://github.com/ecliptik/hi-md#build-from-source">a few limits</a>.</p>
+        <figure class="print build__photo">
+          <img src="assets/photo-label-card.webp" width="640" height="877" loading="lazy" alt="A blank sheet of MiniDisc labels, its dotted lines waiting for track names.">
+        </figure>
+      </div>
+      <ol class="steps">
+        <li>
+          <h3>Clone it and open the project.</h3>
+<pre tabindex="0"><code>git clone https://github.com/ecliptik/hi-md.git
+cd hi-md
+open Minidisc.xcodeproj</code></pre>
+          <p>The Xcode project keeps its original Minidisc names. Swift Package Manager fetches the one dependency, SwiftSonic.</p>
+        </li>
+        <li>
+          <h3>Run it in the Simulator.</h3>
+          <p>Pick an iOS 27 simulator and press ⌘R. Simulator builds need no signing setup.</p>
+        </li>
+        <li>
+          <h3>Or put it on your iPhone.</h3>
+<pre tabindex="0"><code>cp Config/Signing.local.xcconfig.example \
+   Config/Signing.local.xcconfig
+# set DEVELOPMENT_TEAM to your team ID</code></pre>
+          <p>Then change the <code>com.ecliptik</code> bundle ID prefix to your own. The <a href="https://github.com/ecliptik/hi-md#build-from-source">README</a> lists every file that has it.</p>
+        </li>
+        <li>
+          <h3>Connect to your server.</h3>
+          <p>Enter its address, your username and password, and tap Connect. Headers for a reverse proxy go under Advanced.</p>
+        </li>
+      </ol>
+      <ul class="build__links">
+        <li><a href="https://github.com/ecliptik/hi-md#build-from-source">Full build instructions</a></li>
+        <li><a href="https://github.com/ecliptik/hi-md/blob/main/FORK.md">Fork notes (FORK.md)</a></li>
+        <li><a href="https://github.com/ecliptik/hi-md/issues">Report an issue</a></li>
+        <li><a href="https://github.com/Loriage/Minidisc">The original app: upstream Minidisc</a></li>
+      </ul>
+    </section>
+
+  </main>
+
+  <footer class="smallprint wrap" aria-labelledby="smallprint-title">
+    <h2 class="visually-hidden" id="smallprint-title">Small print</h2>
+    <div class="smallprint__sign">
+      <img src="assets/apple-touch-icon.png" width="44" height="44" loading="lazy" alt="">
+      <p>Hi-MD</p>
+    </div>
+    <ol class="notes" id="notes">
+      <li id="note-quality"><span class="mark" aria-hidden="true">*</span> Original quality means the file as it sits on your server, so lossless files play lossless. On other networks Hi-MD picks a lighter format.</li>
+      <li id="note-recs"><span class="mark" aria-hidden="true">†</span> Anthropic and OpenAI recommendations use your own key. The names of recent and favourite albums, top artists and playlists are sent; the app lists them and asks before the first request. Server credentials are never sent. <a href="https://github.com/ecliptik/hi-md#privacy">Privacy</a></li>
+      <li id="note-carplay"><span class="mark" aria-hidden="true">‡</span> A CarPlay build for a device needs Apple’s CarPlay audio entitlement.</li>
+      <li id="note-source"><span class="mark" aria-hidden="true">§</span> There is no App Store listing, TestFlight or prebuilt build. For the original app, see <a href="https://github.com/Loriage/Minidisc">upstream Minidisc</a>.</li>
+    </ol>
+    <div class="smallprint__cols">
+      <p>Hi-MD does not track you and has no accounts. Library and playback traffic goes directly to your server, and credentials are kept only in the Keychain.</p>
+      <p>Hi-MD is a fork of <a href="https://github.com/Loriage/Minidisc">Minidisc</a> by Loriage, itself a fork of <a href="https://github.com/CassetteLab/cassette">Cassette</a> by Mathieu Dubart. It talks to servers through <a href="https://github.com/MathieuDubart/swiftsonic">SwiftSonic</a> by Mathieu Dubart, and its headphone corrections come from <a href="https://github.com/jaakkopasanen/AutoEq">AutoEq</a> by Jaakko Pasanen.</p>
+      <p>Licensed under the <a href="https://github.com/ecliptik/hi-md/blob/main/LICENSE">Mozilla Public License 2.0</a>. This project was 100% built agentically using <a href="https://claude.ai/code">Claude Code</a>.</p>
+      <p>“MiniDisc” and “Hi-MD” are trademarks of Sony, and “Winamp” is a trademark of its owner. Hi-MD and Miniamp are not affiliated with or endorsed by Sony, Apple, Nullsoft, or Winamp and Llama Group; those names are used only to describe the app.</p>
+    </div>
+    <p class="smallprint__links"><a href="https://github.com/ecliptik/hi-md">Source on GitHub</a> <a href="https://github.com/ecliptik/hi-md/issues">Issues</a> <a href="https://github.com/ecliptik/hi-md/blob/main/FORK.md">FORK.md</a> <a href="#top">Back to the top</a></p>
+  </footer>
+</body>
+</html>
