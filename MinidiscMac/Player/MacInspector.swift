@@ -39,25 +39,34 @@ struct MacInspector: View {
 
     /// Follow Lyrics, and Full Screen Lyrics, which opens Now Playing straight into the Mac's
     /// full-screen lyrics rather than the iPhone's karaoke sheet. Untimed lyrics have nothing
-    /// to follow, so they have no Follow Lyrics.
+    /// to follow, so they have no Follow Lyrics. The header has room to name it, so it reads
+    /// "Follow" beside its symbol, filled with the accent while on.
     private func lyricsButtons(_ viewModel: LyricsViewModel) -> some View {
-        HStack(spacing: 2) {
+        HStack(spacing: 6) {
             if viewModel.isTimed {
                 Toggle(isOn: Binding(get: { viewModel.autoScrollEnabled }, set: { viewModel.autoScrollEnabled = $0 })) {
-                    Label("Follow Lyrics", systemImage: "arrow.up.arrow.down")
+                    Label {
+                        Text("Follow")
+                    } icon: {
+                        Image(systemName: FollowLyricsSymbol.name(isOn: viewModel.autoScrollEnabled))
+                            .contentTransition(.symbolEffect(.replace))
+                    }
                 }
                 .toggleStyle(.button)
+                .labelStyle(.titleAndIcon)
+                .fixedSize()
                 .help("Follow Lyrics")
+                .accessibilityLabel("Follow Lyrics")
             }
             Button {
                 navigator.showNowPlaying(fullScreenLyrics: true)
             } label: {
                 Label("Full Screen Lyrics", systemImage: "arrow.up.left.and.arrow.down.right")
             }
+            .labelStyle(.iconOnly)
+            .buttonStyle(.borderless)
             .help("Full Screen Lyrics")
         }
-        .labelStyle(.iconOnly)
-        .buttonStyle(.borderless)
     }
 }
 

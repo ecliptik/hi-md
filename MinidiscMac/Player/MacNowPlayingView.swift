@@ -298,7 +298,8 @@ struct MacNowPlayingView: View {
             if showsLyricsTools, let viewModel = lyrics.viewModel {
                 // Untimed lyrics don't follow the song, so they have no Follow Lyrics.
                 if viewModel.isTimed {
-                    MacGlassSegment(title: "Follow Lyrics", systemImage: "arrow.up.arrow.down",
+                    MacGlassSegment(title: "Follow Lyrics",
+                                    systemImage: FollowLyricsSymbol.name(isOn: viewModel.autoScrollEnabled),
                                     isOn: viewModel.autoScrollEnabled, side: Self.buttonSide) {
                         viewModel.autoScrollEnabled.toggle()
                     }

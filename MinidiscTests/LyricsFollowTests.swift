@@ -2,6 +2,7 @@ import Foundation
 import SwiftData
 import SwiftSonic
 import Testing
+import UIKit
 @testable import Minidisc
 
 /// Follow Lyrics: off, the lyrics never scroll by themselves; on, they follow the song.
@@ -119,5 +120,34 @@ struct LyricsFollowTests {
         // Turned on in one view, it's on in the other.
         next.autoScrollEnabled = true
         #expect(first.autoScrollEnabled)
+    }
+}
+
+/// Follow Lyrics' symbol: the Maps follow arrow, filled while on.
+@Suite("Follow Lyrics symbol")
+struct FollowLyricsSymbolTests {
+    @Test func onIsTheFilledArrowAndOffItsOutline() {
+        #expect(FollowLyricsSymbol.name(isOn: true) == "location.fill")
+        #expect(FollowLyricsSymbol.name(isOn: false) == "location")
+        #expect(FollowLyricsSymbol.on == FollowLyricsSymbol.off + ".fill")
+    }
+
+    @Test(arguments: [FollowLyricsSymbol.on, FollowLyricsSymbol.off])
+    func theSymbolsExist(_ name: String) {
+        #expect(UIImage(systemName: name) != nil)
+    }
+
+    @Test func theLabelsAreTranslated() throws {
+        let url = URL(filePath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+            .appending(path: "Minidisc/Localizable.xcstrings")
+        let catalog = try JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: Any]
+        let strings = try #require(catalog?["strings"] as? [String: Any])
+        for key in ["Follow", "Follow Lyrics"] {
+            let entry = try #require(strings[key] as? [String: Any], "\(key)")
+            let localizations = try #require(entry["localizations"] as? [String: Any], "\(key)")
+            for language in ["de", "el", "es", "fr", "it", "ja", "zh-Hans", "zh-Hant"] {
+                #expect(localizations[language] != nil, "\(key) \(language)")
+            }
+        }
     }
 }

@@ -183,11 +183,10 @@ struct LyricsView: View {
                     Button {
                         viewModel.autoScrollEnabled.toggle()
                     } label: {
-                        Image(systemName: viewModel.autoScrollEnabled
-                            ? "arrow.up.arrow.down.circle.fill"
-                            : "arrow.up.arrow.down.circle")
+                        Image(systemName: FollowLyricsSymbol.name(isOn: viewModel.autoScrollEnabled))
                             .font(.title3)
                             .foregroundStyle(.white.opacity(0.8))
+                            .contentTransition(.symbolEffect(.replace))
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel("Follow Lyrics")
@@ -268,6 +267,15 @@ struct LyricsView: View {
         guard lang != "und", lang != "xxx" else { return "—" }
         return Locale.current.localizedString(forLanguageCode: lang)?.capitalized ?? lang.uppercased()
     }
+}
+
+/// Follow Lyrics' symbol everywhere it appears: the Maps follow arrow, filled while the lyrics
+/// follow the song and an outline while they don't.
+nonisolated enum FollowLyricsSymbol {
+    static let on = "location.fill"
+    static let off = "location"
+
+    static func name(isOn: Bool) -> String { isOn ? on : off }
 }
 
 /// Brings a lyrics view's line to the middle as its view model asks: gliding over a few lines,

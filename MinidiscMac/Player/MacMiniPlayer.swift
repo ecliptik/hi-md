@@ -366,8 +366,9 @@ private struct MacMiniPlayerContent: View {
             if panel.isShowing(.lyrics, canShowLyrics: canShowLyrics), lyrics.canFollow,
                let viewModel = lyrics.viewModel {
                 Divider()
-                Toggle("Follow Lyrics", isOn: Binding(get: { viewModel.autoScrollEnabled },
-                                                     set: { viewModel.autoScrollEnabled = $0 }))
+                Toggle("Follow Lyrics", systemImage: FollowLyricsSymbol.off,
+                       isOn: Binding(get: { viewModel.autoScrollEnabled },
+                                     set: { viewModel.autoScrollEnabled = $0 }))
             }
             Divider()
             if isBar {
