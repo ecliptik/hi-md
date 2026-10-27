@@ -696,17 +696,17 @@ a:hover { text-decoration-thickness: 2px; }
 .labelcard__notes p, .labelcard__notes ul { position: absolute; margin: 0; padding: 0; list-style: none; }
 .labelcard__title { left: 12%; top: 13.5%; font-size: 13cqw; transform: rotate(-3deg); }
 .labelcard__spine { left: 56%; top: 14.6%; font-size: 6cqw; transform: rotate(-1deg); }
-.labelcard__side { top: 0; }
 .labelcard__side li { display: flex; align-items: flex-end; white-space: nowrap; }
-/* Side A: 3 mm lines, starting just under its ruled header */
-.labelcard__side--a { left: 10.5%; top: 41.6%; width: 39%; font-size: 4.1cqw; }
-.labelcard__side--a li { height: 3.77cqw; }
-.labelcard__side--a .skip-line { margin-top: 3.77cqw; }
-/* Side B: 4 mm lines */
-.labelcard__side--b { left: 54.5%; top: 41.4%; width: 39%; font-size: 5.2cqw; }
-.labelcard__side--b li { height: 5cqw; }
-.labelcard__side--b .skip-line { margin-top: 5cqw; }
-.labelcard__head { font-size: 1.25em; margin-bottom: 1.1cqw; }
+/* One note on every other dotted line, so the hand can be large. Each list
+   starts one note-height above its first line; the side's name sits just
+   above, on the ruled header. */
+.labelcard__head { position: absolute; bottom: 100%; left: 0; height: auto !important; font-size: 1.05em; }
+/* Side A: 3 mm lines (2.75% of the card's height) */
+.labelcard__side--a { left: 10.5%; top: 44.06%; width: 39%; font-size: 5.6cqw; }
+.labelcard__side--a li { height: 7.54cqw; }
+/* Side B: 4 mm lines (3.65%) */
+.labelcard__side--b { left: 54.5%; top: 44.35%; width: 39%; font-size: 6.6cqw; }
+.labelcard__side--b li { height: 10cqw; }
 
 /* ------------------------------------------------------------------ */
 /* Ad 7: the instructions                                               */
