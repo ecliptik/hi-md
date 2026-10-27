@@ -224,38 +224,17 @@
     <section class="build wrap" id="build" aria-labelledby="build-title">
       <div class="build__head">
         <h2 class="build__title" id="build-title">Build it yourself.</h2>
-        <p>Hi-MD is shared as source only: no App Store listing, no TestFlight, no prebuilt builds. You’ll need a Mac with Xcode 27 or later, a Subsonic, OpenSubsonic or Navidrome server and, for a device build, an Apple Developer account. The free personal team is enough, with <a href="https://github.com/ecliptik/hi-md#build-from-source">a few limits</a>.</p>
+        <p>Build Hi-MD from source: no App Store listing, no TestFlight, no prebuilt builds. You’ll need a Mac with Xcode 27 or later, a Subsonic, OpenSubsonic or Navidrome server and, for a device build, an Apple Developer account. <a href="https://github.com/ecliptik/hi-md#build-from-source">Details</a>.</p>
+        <ul class="build__links">
+          <li><a href="https://github.com/ecliptik/hi-md#build-from-source">Full build instructions</a></li>
+          <li><a href="https://github.com/ecliptik/hi-md/blob/main/FORK.md">Fork notes (FORK.md)</a></li>
+          <li><a href="https://github.com/ecliptik/hi-md/issues">Report an issue</a></li>
+          <li><a href="https://github.com/Loriage/Minidisc">The original app: upstream Minidisc</a></li>
+        </ul>
       </div>
-      <ol class="steps">
-        <li>
-          <h3>Clone it and open the project.</h3>
-<pre tabindex="0"><code>git clone https://github.com/ecliptik/hi-md.git
-cd hi-md
-open Minidisc.xcodeproj</code></pre>
-          <p>The Xcode project keeps its original Minidisc names. Swift Package Manager fetches the one dependency, SwiftSonic.</p>
-        </li>
-        <li>
-          <h3>Run it in the Simulator.</h3>
-          <p>Pick an iOS 27 simulator and press ⌘R. Simulator builds need no signing setup.</p>
-        </li>
-        <li>
-          <h3>Or put it on your iPhone.</h3>
-<pre tabindex="0"><code>cp Config/Signing.local.xcconfig.example \
-   Config/Signing.local.xcconfig
-# set DEVELOPMENT_TEAM to your team ID</code></pre>
-          <p>Then change the <code>com.ecliptik</code> bundle ID prefix to your own. The <a href="https://github.com/ecliptik/hi-md#build-from-source">README</a> lists every file that has it.</p>
-        </li>
-        <li>
-          <h3>Connect to your server.</h3>
-          <p>Enter its address, your username and password, and tap Connect. Headers for a reverse proxy go under Advanced.</p>
-        </li>
-      </ol>
-      <ul class="build__links">
-        <li><a href="https://github.com/ecliptik/hi-md#build-from-source">Full build instructions</a></li>
-        <li><a href="https://github.com/ecliptik/hi-md/blob/main/FORK.md">Fork notes (FORK.md)</a></li>
-        <li><a href="https://github.com/ecliptik/hi-md/issues">Report an issue</a></li>
-        <li><a href="https://github.com/Loriage/Minidisc">The original app: upstream Minidisc</a></li>
-      </ul>
+      <figure class="phone build__phone">
+        <img src="screenshots/ios/12-now-playing-disc.jpg" width="553" height="1200" loading="lazy" alt="Hi-MD on iPhone: Now Playing, with the spinning Hi-MD disc standing in for a missing cover.">
+      </figure>
     </section>
 
   </main>
