@@ -10,7 +10,7 @@ struct MacAlbumsView: View {
     var body: some View {
         let albums = viewModel.map { sort.sorted($0.albums) } ?? []
         MacLoadingState(isLoading: viewModel?.isLoading ?? true, isEmpty: albums.isEmpty, error: viewModel?.error,
-                        emptyTitle: "No Albums", emptySystemImage: "square.stack", retry: { await viewModel?.load() }) {
+                        emptyTitle: "No Albums", emptySystemImage: MinidiscSymbol.album, retry: { await viewModel?.load() }) {
             ScrollView {
                 MacAlbumGrid(albums: albums)
                     .padding(20)

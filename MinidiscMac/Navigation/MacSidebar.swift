@@ -21,7 +21,7 @@ struct MacSidebar: View {
             Section("Library") {
                 Label("Recently Added", systemImage: "clock").tag(MacSidebarItem.recentlyAdded)
                 Label("Artists", systemImage: "music.microphone").tag(MacSidebarItem.artists)
-                Label("Albums", systemImage: "square.stack").tag(MacSidebarItem.albums)
+                Label("Albums", image: MinidiscSymbol.album).tag(MacSidebarItem.albums)
                 Label("Songs", systemImage: "music.note").tag(MacSidebarItem.songs)
                 Label("Genres", systemImage: "guitars").tag(MacSidebarItem.genres)
                 Label("Favorites", systemImage: "heart").tag(MacSidebarItem.favorites)

@@ -39,7 +39,7 @@ struct PlaybackContextLabel: View {
 
     private func content(showsChevron: Bool) -> some View {
         HStack(spacing: MinidiscSpacing.xs) {
-            Image(systemName: context.symbolName)
+            Image(symbol: context.symbolName)
                 .imageScale(.small)
                 .accessibilityHidden(true)
             Text(context.title)
@@ -76,7 +76,7 @@ struct PlaybackContextQueueHeader: View {
 
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: MinidiscSpacing.xs) {
-            Image(systemName: context.symbolName)
+            Image(symbol: context.symbolName)
                 .imageScale(.small)
                 .accessibilityHidden(true)
             Text(context.queueHeader)

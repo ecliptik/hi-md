@@ -236,7 +236,7 @@ struct MacWrappedRecapView: View {
                 ForEach(data.topAlbums.prefix(6)) { album in
                     NavigationLink(value: MacDestination.album(id: album.albumId)) {
                         VStack(alignment: .leading, spacing: 4) {
-                            CoverArtView(id: album.albumId, size: 360, cornerRadius: 6, placeholderSystemImage: "square.stack")
+                            CoverArtView(id: album.albumId, size: 360, cornerRadius: 6, placeholderSystemImage: MinidiscSymbol.album)
                                 .aspectRatio(1, contentMode: .fit)
                                 .overlay(alignment: .topLeading) {
                                     Text(verbatim: "#\(album.rank)")

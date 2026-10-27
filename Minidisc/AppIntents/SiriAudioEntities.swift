@@ -53,7 +53,7 @@ struct SiriAlbumEntity {
     var universalProductCode: String?
 
     var displayRepresentation: DisplayRepresentation {
-        DisplayRepresentation(title: "\(title)", subtitle: "\(artistName)", image: .init(systemName: "square.stack"))
+        DisplayRepresentation(title: "\(title)", subtitle: "\(artistName)", image: .symbol(MinidiscSymbol.album))
     }
 
     init(record: MusicIntentRecord) {

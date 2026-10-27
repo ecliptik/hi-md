@@ -28,7 +28,7 @@ struct MacLoadingState<Content: View>: View {
                 }
             }
         } else {
-            ContentUnavailableView(emptyTitle, systemImage: emptySystemImage)
+            ContentUnavailableView { Label(emptyTitle, symbol: emptySystemImage) }
         }
     }
 }

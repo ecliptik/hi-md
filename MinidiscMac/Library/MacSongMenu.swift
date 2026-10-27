@@ -41,9 +41,11 @@ struct MacSongMenu: View {
 
         if songs.count == 1, let song = songs.first {
             Divider()
-            Button("Go to Album", systemImage: "square.stack") {
+            Button {
                 beforeNavigating?()
                 navigator.showAlbum(of: song, highlighting: true)
+            } label: {
+                Label("Go to Album", image: MinidiscSymbol.album)
             }
                 .disabled(song.albumId == nil)
             Button("Go to Artist", systemImage: "music.microphone") {

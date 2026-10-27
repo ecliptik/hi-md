@@ -157,7 +157,7 @@ struct MacHomeShelfView: View {
             } else {
                 let albums = HomeFeedLayout.albums(for: shelf, in: content)
                 MacLoadingState(isLoading: home?.feed.isLoading ?? true, isEmpty: albums.isEmpty,
-                                emptyTitle: "No Albums", emptySystemImage: "square.stack") {
+                                emptyTitle: "No Albums", emptySystemImage: MinidiscSymbol.album) {
                     ScrollView {
                         MacAlbumGrid(albums: albums)
                             .padding(20)

@@ -48,7 +48,7 @@ struct MacAlbumDetailView: View {
 
     private func header(_ model: AlbumDetailViewModel) -> some View {
         HStack(alignment: .bottom, spacing: 20) {
-            CoverArtView(id: model.coverArtId ?? albumID, size: 480, cornerRadius: 8, placeholderSystemImage: "square.stack")
+            CoverArtView(id: model.coverArtId ?? albumID, size: 480, cornerRadius: 8, placeholderSystemImage: MinidiscSymbol.album)
                 .frame(width: 200, height: 200)
                 .shadow(color: .black.opacity(0.18), radius: 8, y: 3)
             VStack(alignment: .leading, spacing: 6) {

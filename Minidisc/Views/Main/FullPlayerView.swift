@@ -1190,7 +1190,7 @@ private struct SleepTimerMenu: View {
                 Divider()
             }
             Button("End of Song", systemImage: "music.note") { timer.start(.endOfSong) }
-            Button("End of Album", systemImage: "square.stack") { timer.start(.endOfAlbum) }
+            Button { timer.start(.endOfAlbum) } label: { Label("End of Album", image: MinidiscSymbol.album) }
             ForEach(SleepTimer.durations, id: \.self) { minutes in
                 Button("\(minutes) Minutes") { timer.start(.minutes(minutes)) }
             }
