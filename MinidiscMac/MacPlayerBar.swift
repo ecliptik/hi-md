@@ -1,12 +1,20 @@
 import SwiftSonic
 import SwiftUI
 
-/// The transport bar along the bottom of the window, laid out like the Music app's: the controls
-/// on the left, the playing song with its scrubber in the middle, and volume and the inspector
-/// buttons on the right.
+/// The player along the bottom of the window, a floating Liquid Glass capsule like the Music
+/// app's: the controls on the left, the playing song with its artwork and scrubber in the middle,
+/// and volume and the lyrics and queue toggles on the right, the one open filled with the accent.
+/// The root view puts it in a bottom safe-area inset, so the window's content scrolls under it and
+/// the last rows stop above it.
 struct MacPlayerBar: View {
     @Environment(MacPlayback.self) private var playback
     @Environment(MacNavigator.self) private var navigator
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Namespace private var paneSelection
+
+    /// The capsule's height, and the margin it floats at from the window's edges.
+    static let height: Double = 58
+    static let margin: Double = 12
 
     private var playerState: PlayerState { playback.state }
 
@@ -14,44 +22,46 @@ struct MacPlayerBar: View {
         let commands = playback.commands
         // Read here, not only inside the bindings, so the buttons redraw when the panel changes.
         let shownPane = navigator.inspector
-        HStack(spacing: 18) {
-            MacTransportControls(commands: commands)
-                .frame(width: 210, alignment: .leading)
-            MacNowPlayingDisplay()
-                .frame(maxWidth: 560)
-                .frame(maxWidth: .infinity)
-            HStack(spacing: 14) {
-                MacVolumeSlider()
-                    .frame(width: 120)
-                Toggle(isOn: inspectorBinding(.lyrics, shown: shownPane)) {
-                    Label("Lyrics", systemImage: "quote.bubble")
+        GlassEffectContainer(spacing: 12) {
+            HStack(spacing: 16) {
+                MacTransportControls(commands: commands)
+                    .frame(width: 200, alignment: .leading)
+                MacNowPlayingDisplay()
+                    .frame(maxWidth: 560)
+                    .frame(maxWidth: .infinity)
+                HStack(spacing: 12) {
+                    MacVolumeSlider()
+                        .frame(width: 110)
+                    HStack(spacing: 2) {
+                        MacGlassSegment(title: "Lyrics", systemImage: "quote.bubble", isOn: shownPane == .lyrics,
+                                        side: 26, selection: paneSelection) {
+                            toggle(.lyrics, shown: shownPane)
+                        }
+                        .disabled(!commands.canShowLyrics && shownPane != .lyrics)
+                        MacGlassSegment(title: "Playing Next", systemImage: "list.bullet", isOn: shownPane == .queue,
+                                        side: 26, selection: paneSelection) {
+                            toggle(.queue, shown: shownPane)
+                        }
+                    }
                 }
-                .disabled(!commands.canShowLyrics && shownPane != .lyrics)
-                .help("Lyrics")
-                Toggle(isOn: inspectorBinding(.queue, shown: shownPane)) {
-                    Label("Queue", systemImage: "list.bullet")
-                }
-                .help("Playing Next")
+                .frame(width: 200, alignment: .trailing)
             }
-            .toggleStyle(.button)
-            .labelStyle(.iconOnly)
-            .buttonStyle(.borderless)
-            .frame(width: 210, alignment: .trailing)
+            .controlSize(.large)
+            .padding(.leading, 22)
+            .padding(.trailing, 12)
+            .frame(height: Self.height)
+            .macGlass(in: Capsule(), interactive: false)
         }
-        .controlSize(.large)
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
-        .frame(height: 64)
-        .background(.bar)
+        .padding(.horizontal, Self.margin)
+        .padding(.bottom, Self.margin)
     }
 
-    private func inspectorBinding(_ pane: MacInspectorPane, shown: MacInspectorPane?) -> Binding<Bool> {
-        Binding {
-            shown == pane
-        } set: { isOn in
-            navigator.inspector = isOn ? pane : nil
+    private func toggle(_ pane: MacInspectorPane, shown: MacInspectorPane?) {
+        withAnimation(reduceMotion ? nil : .smooth(duration: 0.25)) {
+            navigator.inspector = shown == pane ? nil : pane
         }
     }
+
 }
 
 /// Shuffle, Previous, Play/Pause, Next and Repeat.
@@ -146,9 +156,9 @@ private struct MacNowPlayingDisplay: View {
             } label: {
                 Group {
                     if let radio = state.currentRadio {
-                        CoverArtView(id: radio.coverArt ?? radio.id, size: 96, cornerRadius: 4, placeholderSystemImage: "dot.radiowaves.left.and.right")
+                        CoverArtView(id: radio.coverArt ?? radio.id, size: 96, cornerRadius: 9, placeholderSystemImage: "dot.radiowaves.left.and.right")
                     } else if let track = state.currentTrack {
-                        CoverArtView(id: track.coverArtId ?? track.id, size: 96, cornerRadius: 4)
+                        CoverArtView(id: track.coverArtId ?? track.id, size: 96, cornerRadius: 9)
                     } else {
                         MinidiscLogoView(isSpinning: false)
                             .padding(4)
@@ -202,9 +212,11 @@ private struct MacNowPlayingDisplay: View {
             }
             .frame(maxWidth: .infinity)
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 4)
-        .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 8))
+        .padding(.leading, 4)
+        .padding(.trailing, 10)
+        .padding(.vertical, 3)
+        // The centre segment, a shade inside the glass, as the Music app's.
+        .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 }
 

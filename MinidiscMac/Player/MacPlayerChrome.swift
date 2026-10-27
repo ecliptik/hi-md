@@ -112,8 +112,12 @@ extension View {
 // MARK: - Glass
 
 enum MacGlass {
-    /// Reduce Transparency's fill in place of glass: white glyphs on it are above 12:1.
-    static let solidFill = Color(white: 0.16)
+    /// Reduce Transparency's fill in place of glass: dark on the player surfaces (white glyphs on
+    /// it are above 12:1) and light in a light window (black glyphs above 15:1).
+    static let solidFill = Color(nsColor: NSColor(name: nil) { appearance in
+        appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+            ? NSColor(white: 0.16, alpha: 1) : NSColor(white: 0.95, alpha: 1)
+    })
     /// The selected toggle's fill in a glass group, where the Music app uses red.
     static let selectedFill = Color.minidiscAccent
     static let selectedGlyph = Color.minidiscAccentText
@@ -171,7 +175,7 @@ private struct MacSolidCapsuleButtonStyle: ButtonStyle {
         configuration.label
             .padding(.horizontal, 10)
             .padding(.vertical, 4)
-            .foregroundStyle(isProminent ? MacGlass.selectedGlyph : Color.white)
+            .foregroundStyle(isProminent ? MacGlass.selectedGlyph : Color.primary)
             .background(isProminent ? MacGlass.selectedFill : MacGlass.solidFill, in: Capsule())
             .opacity(configuration.isPressed ? 0.75 : 1)
             .contentShape(Capsule())
@@ -217,7 +221,7 @@ struct MacGlassSegment: View {
         Button(action: action) {
             Image(systemName: systemImage)
                 .font(.system(size: (side * 0.48).rounded(), weight: .semibold))
-                .foregroundStyle(isOn == true ? MacGlass.selectedGlyph : Color.white)
+                .foregroundStyle(isOn == true ? MacGlass.selectedGlyph : Color.primary)
                 .frame(width: side + 6, height: side)
                 .background {
                     if isOn == true {

@@ -2,7 +2,7 @@ import SwiftSonic
 import SwiftUI
 
 /// The main window: the sidebar, the selected section with the pages opened above it, the
-/// lyrics and queue panel on the right, and the player bar along the bottom.
+/// lyrics and queue panel on the right, and the player floating over the bottom.
 struct MacRootView: View {
     let container: AppContainer
     let interface: MacInterface
@@ -15,25 +15,26 @@ struct MacRootView: View {
         let playback = interface.playback(for: container)
         let playlists = interface.playlists(for: container)
         @Bindable var bindableNavigator = navigator
-        VStack(spacing: 0) {
-            HStack(spacing: 0) {
-                NavigationSplitView {
-                    MacSidebar(container: container)
-                } detail: {
-                    MacDetailColumn(container: container)
-                }
-                .searchable(text: $bindableNavigator.searchText, placement: .toolbar, prompt: Text("Artists, Albums, Songs"))
-                // The lyrics and queue panel, like the Music app's Playing Next. Read here, in the
-                // root view's body, so showing and hiding it always redraws the window.
-                if navigator.inspector != nil {
-                    Divider()
-                    MacInspector(container: container)
-                        .frame(width: 320)
-                        .transition(.move(edge: .trailing))
-                }
+        HStack(spacing: 0) {
+            NavigationSplitView {
+                MacSidebar(container: container)
+            } detail: {
+                MacDetailColumn(container: container)
             }
-            .animation(.smooth(duration: 0.25), value: navigator.inspector)
-            Divider()
+            .searchable(text: $bindableNavigator.searchText, placement: .toolbar, prompt: Text("Artists, Albums, Songs"))
+            // The lyrics and queue panel, like the Music app's Playing Next. Read here, in the
+            // root view's body, so showing and hiding it always redraws the window.
+            if navigator.inspector != nil {
+                Divider()
+                MacInspector(container: container)
+                    .frame(width: 320)
+                    .transition(.move(edge: .trailing))
+            }
+        }
+        .animation(.smooth(duration: 0.25), value: navigator.inspector)
+        // The player floats over the bottom of the window in a glass capsule. As a safe-area
+        // inset, the lists and grids scroll under it and their last rows stop above it.
+        .safeAreaInset(edge: .bottom, spacing: 0) {
             MacPlayerBar()
         }
         .overlay {
