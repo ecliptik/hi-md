@@ -284,7 +284,7 @@ private struct AddMusicSongPicker: View {
                     .disabled(selection.addableCount(in: songs) == 0)
                 }
                 Section {
-                    ForEach(songs) { AddMusicSongRow(song: $0) }
+                    ForEach(SongOccurrence.list(songs)) { AddMusicSongRow(song: $0.song) }
                 }
             } else {
                 AddMusicPhaseView(phase: phase, emptyText: "No songs")
@@ -589,7 +589,7 @@ private struct AddMusicDownloadsList: View {
                     .disabled(selection.addableCount(in: songs) == 0)
                 }
                 Section {
-                    ForEach(songs) { AddMusicSongRow(song: $0) }
+                    ForEach(SongOccurrence.list(songs)) { AddMusicSongRow(song: $0.song) }
                 }
             }
         }
@@ -634,7 +634,7 @@ private struct AddMusicSearchResults: View {
                 }
                 if !songs.isEmpty {
                     Section("Songs") {
-                        ForEach(songs) { AddMusicSongRow(song: $0) }
+                        ForEach(SongOccurrence.list(songs)) { AddMusicSongRow(song: $0.song) }
                     }
                 }
                 if (result.album?.isEmpty ?? true) && (result.artist?.isEmpty ?? true) && songs.isEmpty {

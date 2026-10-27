@@ -13,6 +13,19 @@ struct SongTableComparatorTests {
         #expect(rows[2].song == song)
     }
 
+    @Test("A playlist holding a song twice gives each copy its own identity, and a lone song keeps its own as it moves")
+    func occurrencesAreUnique() {
+        let a = makeSong("a"), b = makeSong("b")
+        let entries = SongOccurrence.list([a, b, a, a])
+        #expect(Set(entries.map(\.id)).count == 4)
+        #expect(entries.map(\.index) == [0, 1, 2, 3])
+        #expect(entries.map(\.id.occurrence) == [0, 0, 1, 2])
+        #expect(entries.map(\.song) == [a, b, a, a])
+        let moved = SongOccurrence.list([a, a, a, b])
+        #expect(moved.first { $0.song == b }?.id == entries[1].id)
+        #expect(SongOccurrence.list([]).isEmpty)
+    }
+
     @Test("Titles sort like the Finder: ignoring case, with numbers in numeric order")
     func titlesSortNaturally() {
         let rows = SongTableRow.rows([makeSong("1", title: "track 10"), makeSong("2", title: "Track 2"),
