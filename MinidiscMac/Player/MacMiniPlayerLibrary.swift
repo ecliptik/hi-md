@@ -8,7 +8,7 @@ import SwiftUI
 /// or playlist opens it, and its play button plays it. Right-click has the usual menus.
 ///
 /// A lazy stack rather than a List, as in the other panes: a List taken down while the window is
-/// being resized crashes (see MiniPlayerQueueList).
+/// being resized crashes (see MiniPlayerQueuePane).
 struct MacMiniPlayerLibrary: View {
     @Bindable var model: LibraryBrowserModel
     /// The space at the rows' sides: the tall layout's inset, none beside the wide one's artwork.
