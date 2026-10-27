@@ -100,7 +100,7 @@ The fork follows its own direction and doesn't send changes upstream, but it mer
 | <img src="docs/screenshots/ios/06-library.jpg" alt="Library" width="240"> | <img src="docs/screenshots/ios/07-albums.jpg" alt="Albums list" width="240"> | <img src="docs/screenshots/ios/08-playlists.jpg" alt="Playlists" width="240"> |
 | Library | Albums, with an index | Playlists, with search |
 | <img src="docs/screenshots/ios/13-playlist.jpg" alt="Playlist page" width="240"> | <img src="docs/screenshots/ios/09-recommended.jpg" alt="Recommended for You" width="240"> | <img src="docs/screenshots/ios/10-playback-settings.jpg" alt="Playback settings" width="240"> |
-| Playlists, with hearts on favourite songs | Recommendations from Apple Intelligence, checked against MusicBrainz | Playback settings, in Plexamp's order |
+| A playlist, with hearts on favourite songs | Recommendations from Apple Intelligence, checked against MusicBrainz and your library | Playback settings, in Plexamp's order |
 | <img src="docs/screenshots/ios/14-quality.jpg" alt="Quality settings" width="240"> |  |  |
 | Separate quality for Wi-Fi and cellular |  |  |
 
