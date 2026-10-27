@@ -25,19 +25,16 @@ struct MacNowPlayingView: View {
     @State private var titleBarChange: MacTitleBarChange?
     /// Room left for the traffic lights, none when they're hidden, as in full screen.
     @State private var windowButtonsInset: CGFloat = MacTitleBarChange.trafficLightsInset
-    @Environment(\.accessibilityVoiceOverEnabled) private var voiceOverEnabled
-    /// In full-screen lyrics the buttons show while the pointer moves and for a moment after.
-    @State private var showsChrome = true
-    @State private var hideChromeTask: Task<Void, Never>?
+    /// The glass buttons and the traffic lights show while the pointer moves and for 2.5 seconds
+    /// after, in Now Playing and in full-screen lyrics alike.
+    @State private var chrome = MacPlayerChrome()
     /// A button the keyboard is on stays visible.
     @FocusState private var focusedChrome: ChromeControl?
+    @Namespace private var paneSelection
 
     enum ChromeControl: Hashable {
         case close, miniPlayer, volume, follow, exitFullScreen, lyrics, queue
     }
-
-    /// How long full screen's buttons stay after the pointer stops.
-    static let chromeIdleDelay: Duration = .milliseconds(2500)
 
     private var state: PlayerState { playback.state }
 
@@ -75,30 +72,23 @@ struct MacNowPlayingView: View {
                     .transition(.opacity)
             }
         }
-        // Full screen keeps only the Lyrics button; the rest shows while the pointer moves.
-        .overlay(alignment: .topLeading) { windowButtons.modifier(chromeFade) }
-        .overlay(alignment: .topTrailing) {
-            MacVolumeSlider()
-                .focused($focusedChrome, equals: .volume)
-                .frame(width: 180)
-                .padding(.horizontal, 20)
-                .padding(.top, 16)
-                .modifier(chromeFade)
-        }
+        // The glass buttons come and go with the pointer, with the traffic lights.
+        .overlay(alignment: .topLeading) { windowButtons }
+        .overlay(alignment: .topTrailing) { volumeCapsule }
         .overlay(alignment: .bottomTrailing) { paneButtons(pane) }
-        .onContinuousHover { phase in
-            if case .active = phase, isLyricsFullScreen { revealChrome() }
+        .playerChromeTracking(chrome)
+        .onChange(of: focusedChrome) { _, focused in chrome.set(.keyboardFocus, focused != nil) }
+        .onChange(of: chrome.isVisible) { _, visible in
+            window.setTrafficLightsVisible(visible, animated: !reduceMotion)
         }
-        .onChange(of: isLyricsFullScreen) { _, isFullScreen in
-            if isFullScreen { revealChrome() } else { hideChromeTask?.cancel() }
-        }
-        .onDisappear { hideChromeTask?.cancel() }
+        .onChange(of: isLyricsFullScreen) { _, _ in chrome.registerActivity() }
         // The backdrop runs under the title bar to the window's top edge.
         .background { background.ignoresSafeArea() }
         .ignoresSafeArea(.container, edges: .top)
         .background(MacWindowReader(handle: window) { window in
             if titleBarChange == nil { titleBarChange = MacTitleBarChange(applyingTo: window) }
             windowButtonsInset = MacTitleBarChange.leadingInset(in: window)
+            self.window.setTrafficLightsVisible(chrome.isVisible, animated: false)
         })
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.didEnterFullScreenNotification)) { note in
             guard let nsWindow = window.window, note.object as? NSWindow === nsWindow else { return }
@@ -155,40 +145,6 @@ struct MacNowPlayingView: View {
         withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.3)) { isLyricsFullScreen = on }
     }
 
-    // MARK: Full-screen chrome
-
-    /// Whether a button that hides in full-screen lyrics shows now: always outside full screen,
-    /// with VoiceOver, or while the keyboard is on one of them.
-    private var isChromeVisible: Bool {
-        !isLyricsFullScreen || showsChrome || voiceOverEnabled || focusedChrome != nil
-    }
-
-    private var chromeFade: ChromeFade {
-        ChromeFade(isVisible: isChromeVisible, reduceMotion: reduceMotion)
-    }
-
-    private func revealChrome() {
-        if !showsChrome { showsChrome = true }
-        hideChromeTask?.cancel()
-        hideChromeTask = Task {
-            try? await Task.sleep(for: Self.chromeIdleDelay)
-            guard !Task.isCancelled else { return }
-            showsChrome = false
-        }
-    }
-
-    /// Fades a button out while full screen's chrome is hidden. It stays clickable and
-    /// focusable: moving the pointer to it, or tabbing to it, brings it back first.
-    struct ChromeFade: ViewModifier {
-        let isVisible: Bool
-        let reduceMotion: Bool
-
-        func body(content: Content) -> some View {
-            content
-                .opacity(isVisible ? 1 : 0)
-                .animation(reduceMotion ? nil : .easeInOut(duration: 0.3), value: isVisible)
-        }
-    }
 
     // MARK: Backdrop
 
@@ -297,71 +253,75 @@ struct MacNowPlayingView: View {
 
     // MARK: Window buttons
 
+    /// Close and MiniPlayer in one glass capsule at the top left, clear of the traffic lights.
     private var windowButtons: some View {
-        HStack(spacing: 10) {
-            Button(action: navigator.closeNowPlaying) {
-                Image(systemName: "xmark")
-                    .font(.body.weight(.semibold))
-                    .frame(width: 30, height: 30)
-                    .background(circleFill, in: Circle())
+        MacGlassGroup(isShown: chrome.isVisible) {
+            MacGlassSegment(title: "Close Now Playing", systemImage: "xmark", side: Self.buttonSide) {
+                navigator.closeNowPlaying()
             }
             .focused($focusedChrome, equals: .close)
-            .accessibilityLabel("Close Now Playing")
-            .help("Close Now Playing")
-
-            Button {
+            MacGlassSegment(title: "MiniPlayer", systemImage: "pip.enter", side: Self.buttonSide) {
                 // The MiniPlayer takes over: the window goes back to the library, even when the
                 // MiniPlayer was already open and only comes forward.
                 navigator.closeNowPlaying()
                 openWindow(id: MacMiniPlayer.windowID)
-            } label: {
-                Image(systemName: "pip.enter")
-                    .font(.body.weight(.semibold))
-                    .frame(width: 30, height: 30)
-                    .background(circleFill, in: Circle())
             }
             .focused($focusedChrome, equals: .miniPlayer)
-            .accessibilityLabel("MiniPlayer")
-            .help("MiniPlayer")
         }
-        .buttonStyle(.plain)
+        .playerChromeFade(chrome.isVisible, reduceMotion: reduceMotion)
         // Beside the traffic lights, which now sit over the backdrop, or at the edge without them.
         .padding(.leading, windowButtonsInset)
-        .padding(.top, 12)
+        .padding(.top, 10)
     }
 
-    private var circleFill: AnyShapeStyle {
-        reduceTransparency ? AnyShapeStyle(Color.white.opacity(0.22)) : AnyShapeStyle(.ultraThinMaterial)
+    /// The volume slider in a glass capsule at the top right.
+    private var volumeCapsule: some View {
+        MacVolumeSlider()
+            .focused($focusedChrome, equals: .volume)
+            .frame(width: 170)
+            .padding(.horizontal, 12)
+            .frame(height: Self.buttonSide + 6)
+            .macGlass(in: Capsule(), isShown: chrome.isVisible)
+            .playerChromeFade(chrome.isVisible, reduceMotion: reduceMotion)
+            .padding(.horizontal, 20)
+            .padding(.top, 10)
     }
 
-    /// In full-screen lyrics only the Lyrics button stays; it, Escape or Exit Full Screen go back.
+    private static let buttonSide: Double = 28
+
+    /// Follow Lyrics and full screen beside the Lyrics and Playing Next toggles, one glass group
+    /// with the toggles that are on filled with the accent. In full-screen lyrics Lyrics is on
+    /// and takes the view back, as Escape and Exit Full Screen do.
     private func paneButtons(_ pane: NowPlayingSidePane) -> some View {
-        HStack(spacing: 6) {
-            if !isPaneHidden, pane == .lyrics, lyrics.hasLyrics, let viewModel = lyrics.viewModel {
-                Group {
-                    lyricsButton("Follow Lyrics", systemImage: "arrow.up.arrow.down", isOn: viewModel.autoScrollEnabled) {
-                        viewModel.autoScrollEnabled.toggle()
-                    }
-                    .focused($focusedChrome, equals: .follow)
-                    if isLyricsFullScreen {
-                        lyricsButton("Exit Full Screen Lyrics", systemImage: "arrow.down.right.and.arrow.up.left", isOn: nil) {
-                            setLyricsFullScreen(false)
-                        }
-                        .focused($focusedChrome, equals: .exitFullScreen)
-                    } else {
-                        lyricsButton("Full Screen Lyrics", systemImage: "arrow.up.left.and.arrow.down.right", isOn: nil) {
-                            setLyricsFullScreen(true)
-                        }
-                    }
-                    Divider()
-                        .frame(height: 20)
-                        .overlay(Color.white.opacity(0.3))
-                        .padding(.horizontal, 4)
+        let showsLyricsTools = !isPaneHidden && pane == .lyrics && lyrics.hasLyrics && lyrics.viewModel != nil
+        return MacGlassGroup(isShown: chrome.isVisible) {
+            if showsLyricsTools, let viewModel = lyrics.viewModel {
+                MacGlassSegment(title: "Follow Lyrics", systemImage: "arrow.up.arrow.down",
+                                isOn: viewModel.autoScrollEnabled, side: Self.buttonSide) {
+                    viewModel.autoScrollEnabled.toggle()
                 }
-                .modifier(chromeFade)
+                .focused($focusedChrome, equals: .follow)
+                if isLyricsFullScreen {
+                    MacGlassSegment(title: "Exit Full Screen Lyrics", systemImage: "arrow.down.right.and.arrow.up.left",
+                                    side: Self.buttonSide) {
+                        setLyricsFullScreen(false)
+                    }
+                    .focused($focusedChrome, equals: .exitFullScreen)
+                } else {
+                    MacGlassSegment(title: "Full Screen Lyrics", systemImage: "arrow.up.left.and.arrow.down.right",
+                                    side: Self.buttonSide) {
+                        setLyricsFullScreen(true)
+                    }
+                    .focused($focusedChrome, equals: .exitFullScreen)
+                }
+                Divider()
+                    .frame(height: Self.buttonSide * 0.6)
+                    .overlay(Color.white.opacity(0.3))
+                    .padding(.horizontal, 4)
             }
             if isLyricsFullScreen {
-                lyricsButton("Lyrics", systemImage: "quote.bubble", isOn: true) {
+                MacGlassSegment(title: "Lyrics", systemImage: "quote.bubble", isOn: true, side: Self.buttonSide,
+                                selection: paneSelection) {
                     setLyricsFullScreen(false)
                 }
                 .focused($focusedChrome, equals: .lyrics)
@@ -369,53 +329,27 @@ struct MacNowPlayingView: View {
             } else {
                 paneButton(.lyrics, title: "Lyrics", systemImage: "quote.bubble", shown: pane)
                     .disabled(!playback.commands.canShowLyrics)
+                    .focused($focusedChrome, equals: .lyrics)
             }
             paneButton(.queue, title: "Playing Next", systemImage: "list.bullet", shown: pane)
                 .focused($focusedChrome, equals: .queue)
-                .modifier(chromeFade)
         }
+        .playerChromeFade(chrome.isVisible, reduceMotion: reduceMotion)
         .padding(20)
-    }
-
-    private func lyricsButton(_ title: LocalizedStringKey, systemImage: String, isOn: Bool?,
-                              action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Image(systemName: systemImage)
-                .font(.body.weight(.semibold))
-                .frame(width: 30, height: 30)
-                .foregroundStyle(isOn == true ? Color.black : Color.white)
-                .background(isOn == true ? AnyShapeStyle(Color.white) : circleFill, in: Circle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(Text(title))
-        .accessibilityValue(isOn.map { $0 ? Text("On") : Text("Off") } ?? Text(verbatim: ""))
-        .accessibilityAddTraits(isOn == true ? .isSelected : [])
-        .help(Text(title))
     }
 
     /// Shows its pane, or hides the side pane when its pane is already showing.
     private func paneButton(_ pane: NowPlayingSidePane, title: LocalizedStringKey, systemImage: String,
                             shown: NowPlayingSidePane) -> some View {
-        let isOn = !isPaneHidden && shown == pane
-        return Button {
+        MacGlassSegment(title: title, systemImage: systemImage, isOn: !isPaneHidden && shown == pane,
+                        side: Self.buttonSide, selection: paneSelection) {
             let next = NowPlayingSidePane.afterClicking(pane, requested: requestedPane, isHidden: isPaneHidden,
                                                         canShowLyrics: playback.commands.canShowLyrics)
             withAnimation(reduceMotion ? nil : .smooth(duration: 0.25)) {
                 requestedPane = next.requested
                 isPaneHidden = next.isHidden
             }
-        } label: {
-            Image(systemName: systemImage)
-                .font(.body.weight(.semibold))
-                .frame(width: 30, height: 30)
-                .foregroundStyle(isOn ? Color.black : Color.white)
-                .background(isOn ? AnyShapeStyle(Color.white) : circleFill, in: Circle())
         }
-        .buttonStyle(.plain)
-        .accessibilityLabel(Text(title))
-        .accessibilityValue(isOn ? Text("On") : Text("Off"))
-        .accessibilityAddTraits(isOn ? .isSelected : [])
-        .help(Text(title))
     }
 }
 
@@ -535,11 +469,12 @@ final class MacTitleBarChange {
     static let edgeInset: CGFloat = 20
 
     /// How far the window's own buttons push content from the leading edge: past the traffic
-    /// lights while they show, and to the edge in full screen, where they're hidden.
+    /// lights, even while Now Playing has faded them out, and to the edge in full screen, where
+    /// they're hidden.
     static func leadingInset(in window: NSWindow) -> CGFloat {
         guard !window.styleMask.contains(.fullScreen),
               let zoom = window.standardWindowButton(.zoomButton),
-              !zoom.isHiddenOrHasHiddenAncestor, zoom.alphaValue > 0.01
+              !zoom.isHiddenOrHasHiddenAncestor
         else { return edgeInset }
         return max(trafficLightsInset, zoom.convert(zoom.bounds, to: nil).maxX + 16)
     }
@@ -548,5 +483,9 @@ final class MacTitleBarChange {
         guard let window else { return }
         window.titlebarAppearsTransparent = wasTransparent
         if !hadFullSizeContent { window.styleMask.remove(.fullSizeContentView) }
+        // Now Playing fades the traffic lights with its buttons; the library always has them.
+        for type in [NSWindow.ButtonType.closeButton, .miniaturizeButton, .zoomButton] {
+            window.standardWindowButton(type)?.alphaValue = 1
+        }
     }
 }
