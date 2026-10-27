@@ -5,7 +5,11 @@
 <h1 align="center">Hi-MD</h1>
 
 <p align="center">
-  A personal fork of <a href="https://github.com/Loriage/Minidisc">Minidisc</a>, the music player for your own Subsonic or Navidrome server, on iPhone, Apple Watch and Mac.
+  A fork of <a href="https://github.com/Loriage/Minidisc">Minidisc</a>, the music player for your own Subsonic or Navidrome server, on iPhone and Mac.
+</p>
+
+<p align="center">
+  This project was 100% built agentically using <a href="https://docs.anthropic.com/en/docs/claude-code">Claude Code</a>.
 </p>
 
 <p align="center">
@@ -21,8 +25,8 @@
 With the introduction of "Hi-MD," your Navidrome server is poised to meet the demands of a growing broadband era with a versatile player capable of playing a variety of content, such as music and lyrics, while maintaining high quality sound and resolution.
 
 - **High capacity:** songs buffer four minutes ahead on both decks, and the playing one downloads in full from its first second; upcoming, recently played, pinned and favourite songs can be cached for offline listening, and albums download for the commute.
-- **High quality sound:** original-quality streaming on Wi-Fi, so FLAC stays FLAC; gapless playback and real crossfades on a two-deck engine; a 10-band equalizer with AutoEq headphone corrections; loudness leveling.
-- **Versatile recording media:** iPhone, iPad, Apple Watch and a native Mac app, where Miniamp, a compact skinnable player, loads classic Winamp 2 skins (.wsz). Album recommendations come from Apple Intelligence on the device.
+- **High quality sound:** original-quality streaming on Wi-Fi; gapless playback and real crossfades on a two-deck engine; a 10-band equalizer with AutoEq headphone corrections; loudness leveling.
+- **Versatile recording media:** iPhone, iPad and a native Mac app, and Miniamp, a Winamp-like player, loads classic skins (.wsz). Leverage Apple Intelligence, Anthropic or OpenAI to provide recommendations based on your unique taste.
 - **Copyright protection technology:** no OpenMG, no MagicGate, no accounts and no tracking. Your server, your music.
 
 ecliptik will proactively promote the "Hi-MD" format household-wide.
@@ -38,7 +42,7 @@ Hi-MD is a revamp of Minidisc, like [Hi-MD](https://www.minidisc.org/keep/sony_h
 
 **Listening**
 
-- An Apple Music–style player on iPhone, iPad, Apple Watch and Mac, with a full-screen player, synced and karaoke lyrics, a sleep timer and AirPlay.
+- An Apple Music–style player on iPhone, iPad and Mac, with a full-screen player, synced and karaoke lyrics, a sleep timer and AirPlay.
 - Gapless playback and real crossfades on a two-deck engine, lossless streaming on Wi-Fi with a lighter format per network, a 10-band equalizer with [AutoEq](https://github.com/jaakkopasanen/AutoEq) headphone corrections, and loudness leveling.
 - Buffering built for weak networks: songs buffer minutes ahead, upcoming, favourite, recently played and pinned songs are cached for offline listening, and albums download for later. [docs/PlaybackContinuity.md](docs/PlaybackContinuity.md) has the details.
 
@@ -184,4 +188,5 @@ Third-party code and data, SwiftSonic and AutoEq (both MIT), are listed with the
 - [Cassette](https://github.com/CassetteLab/cassette) by Mathieu Dubart, which Minidisc is a fork of.
 - [SwiftSonic](https://github.com/MathieuDubart/swiftsonic) by Mathieu Dubart.
 - [AutoEq](https://github.com/jaakkopasanen/AutoEq) by Jaakko Pasanen, for the headphone corrections.
+- **[Claude Code](https://claude.ai/code)** by [Anthropic](https://www.anthropic.com/)
 - The [Navidrome](https://www.navidrome.org) team and the [OpenSubsonic](https://opensubsonic.netlify.app) community.
