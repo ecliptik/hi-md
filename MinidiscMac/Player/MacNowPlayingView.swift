@@ -405,6 +405,9 @@ struct MacSongButtons: View {
 /// of the artwork does it, clear of `controls` (`MacArtworkDiscTarget`), so dragging the window by
 /// the artwork or missing a button leaves it alone. The disc's hub turns while music plays,
 /// unless Reduce Motion is on. With nothing playing it shows the disc at rest.
+///
+/// A new song keeps its cover on screen: the same cover changes nothing, and another one
+/// cross-fades in once it has loaded (`ArtworkChange`).
 struct MacSpinningDiscArtwork: View {
     @Binding var showsDisc: Bool
     var cornerRadius: Double = 10
@@ -456,13 +459,12 @@ struct MacSpinningDiscArtwork: View {
     @ViewBuilder private func cover(_ state: PlayerState) -> some View {
         if let radio = state.currentRadio {
             CoverArtView(id: radio.coverArt ?? radio.id, size: artworkSize, cornerRadius: cornerRadius,
-                         placeholderSystemImage: "dot.radiowaves.left.and.right")
+                         placeholderSystemImage: "dot.radiowaves.left.and.right", crossfades: true)
         } else if let track = state.currentTrack {
-            // A song without a cover shows the disc, turning while it plays.
+            // A song without a cover shows the disc, turning while it plays. Not keyed by the
+            // cover id: the view keeps the old cover up until the new one is in hand.
             CoverArtView(id: track.coverArtId ?? track.id, size: artworkSize, cornerRadius: cornerRadius,
-                         spinningDisc: state.playbackState == .playing)
-                .id(track.coverArtId ?? track.id)
-                .transition(reduceMotion ? .identity : .opacity)
+                         spinningDisc: state.playbackState == .playing, crossfades: true)
         }
     }
 }

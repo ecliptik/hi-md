@@ -31,6 +31,15 @@ struct CoverArtViewTests {
         #expect(!isRed(hero))
     }
 
+    @Test("The player's cross-fading cover draws a RAM-cache hit on the first pass, and a miss as the placeholder")
+    func crossfadingCoverRendersImmediately() async throws {
+        let cache = try await makeCache(loaded: "al-red")
+        let hit = try #require(render(CoverArtView(id: "al-red", size: 88, crossfades: true), cache: cache))
+        #expect(isRed(hit))
+        let miss = try #require(render(CoverArtView(id: "al-other", size: 88, crossfades: true), cache: cache))
+        #expect(!isRed(miss))
+    }
+
     // MARK: - Helpers
 
     private func makeCache(loaded id: String) async throws -> ArtworkImageCache {

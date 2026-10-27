@@ -157,9 +157,11 @@ private struct MacNowPlayingDisplay: View {
             } label: {
                 Group {
                     if let radio = state.currentRadio {
-                        CoverArtView(id: radio.coverArt ?? radio.id, size: 96, cornerRadius: 9, placeholderSystemImage: "dot.radiowaves.left.and.right")
+                        CoverArtView(id: radio.coverArt ?? radio.id, size: 96, cornerRadius: 9,
+                                     placeholderSystemImage: "dot.radiowaves.left.and.right", crossfades: true)
                     } else if let track = state.currentTrack {
-                        CoverArtView(id: track.coverArtId ?? track.id, size: 96, cornerRadius: 9)
+                        // The next song's cover fades in over this one once it's ready.
+                        CoverArtView(id: track.coverArtId ?? track.id, size: 96, cornerRadius: 9, crossfades: true)
                     } else {
                         MinidiscLogoView(isSpinning: false)
                             .padding(4)

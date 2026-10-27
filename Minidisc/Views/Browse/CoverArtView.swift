@@ -22,6 +22,10 @@ struct CoverArtView: View {
     /// lyrics): a missing cover shows the logo on its own, turning while this is true, instead of
     /// the still disc on a tile.
     var spinningDisc: Bool? = nil
+    /// Also for the current song's large cover: a new image cross-fades in over the one showing
+    /// once it's ready, and the same image stays put (`ArtworkChange`), so a song change never
+    /// flashes. Lists leave it off, since their rows change covers as they scroll.
+    var crossfades: Bool = false
 
     /// A cover that arrives from disk or the server fades in over the placeholder, so a screen
     /// filling on a cold launch doesn't flash. RAM hits render on the first pass and never animate.
@@ -36,7 +40,8 @@ struct CoverArtView: View {
             placeholderSystemImage: placeholderSystemImage,
             initialImage: initialImage,
             loadingEnabled: loadingEnabled,
-            spinningDisc: spinningDisc
+            spinningDisc: spinningDisc,
+            crossfades: crossfades
         )
     }
 }
@@ -51,6 +56,7 @@ private struct CoverArtViewContent: View {
     let placeholderSystemImage: String
     let loadingEnabled: Bool
     let spinningDisc: Bool?
+    let crossfades: Bool
 
     @Environment(\.appContainer) private var container
     @Environment(ArtworkImageCache.self) private var artworkCache
@@ -66,7 +72,8 @@ private struct CoverArtViewContent: View {
     @State private var snapshotClears = 0
 
     init(id: String, size: Int?, tier: ArtworkTier?, cornerRadius: CGFloat, placeholderSystemImage: String,
-         initialImage: PlatformImage?, loadingEnabled: Bool = true, spinningDisc: Bool? = nil) {
+         initialImage: PlatformImage?, loadingEnabled: Bool = true, spinningDisc: Bool? = nil,
+         crossfades: Bool = false) {
         self.id = id
         self.size = size
         self.tier = tier
@@ -74,6 +81,7 @@ private struct CoverArtViewContent: View {
         self.placeholderSystemImage = placeholderSystemImage
         self.loadingEnabled = loadingEnabled
         self.spinningDisc = spinningDisc
+        self.crossfades = crossfades
         _cachedImage = State(initialValue: initialImage)
         _displayedId = State(initialValue: initialImage == nil ? nil : id)
     }
@@ -112,7 +120,10 @@ private struct CoverArtViewContent: View {
         ZStack {
             switch phase {
             case .image:
-                if let shown {
+                if let shown, crossfades {
+                    CoverImageCrossfade(image: shown, coverID: ownsShown ? id : displayedId ?? id)
+                        .transition(.opacity)
+                } else if let shown {
                     // Keyed by the cover it shows, so an animated change of id (an album cover giving
                     // way to an artist photo) cross-fades instead of swapping in place.
                     Image(platformImage: shown)
@@ -269,6 +280,85 @@ private struct CoverArtViewContent: View {
                     .foregroundStyle(.secondary)
             }
             .accessibilityHidden(true)
+        }
+    }
+}
+
+/// The current song's cover, cross-fading from one image to the next without dipping to what's
+/// behind it. Two layers that stay in place: the bottom one always fully opaque, the top one fading
+/// in or out. A new image goes into whichever layer is hidden, and the top layer fades to reveal
+/// or cover it, so the outgoing image stays solid under the incoming one for the whole fade. The
+/// same image changes nothing; the first one and Reduce Motion swap at once (`ArtworkChange`).
+private struct CoverImageCrossfade: View {
+    let image: PlatformImage
+    let coverID: String
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var bottom: PlatformImage?
+    @State private var top: PlatformImage?
+    @State private var topIsShown = false
+    @State private var shown: ArtworkChange.Shown?
+    /// Counts fades, so only the last one to finish lets go of the image it covered.
+    @State private var fades = 0
+
+    init(image: PlatformImage, coverID: String) {
+        self.image = image
+        self.coverID = coverID
+        // The first pass draws the image straight away, as a RAM hit does elsewhere.
+        _bottom = State(initialValue: image)
+        _shown = State(initialValue: ArtworkChange.Shown(coverID: coverID, image: ObjectIdentifier(image)))
+    }
+
+    var body: some View {
+        ZStack {
+            layer(bottom)
+            layer(top)
+                .opacity(topIsShown ? 1 : 0)
+        }
+        .onChange(of: ArtworkChange.Shown(coverID: coverID, image: ObjectIdentifier(image))) { _, next in
+            show(image, as: next)
+        }
+    }
+
+    @ViewBuilder private func layer(_ image: PlatformImage?) -> some View {
+        if let image {
+            Image(platformImage: image)
+                .resizable()
+                .scaledToFill()
+        } else {
+            Color.clear
+        }
+    }
+
+    private func show(_ image: PlatformImage, as next: ArtworkChange.Shown) {
+        let change = ArtworkChange.between(shown, next, reduceMotion: reduceMotion)
+        shown = next
+        // The hidden layer takes the new image without animating, whatever transaction the
+        // change arrived in.
+        var instant = Transaction(animation: nil)
+        instant.disablesAnimations = true
+        switch change {
+        case .none:
+            return
+        case .swap:
+            withTransaction(instant) {
+                if topIsShown { top = image } else { bottom = image }
+            }
+        case .crossfade:
+            withTransaction(instant) {
+                if topIsShown { bottom = image } else { top = image }
+            }
+            fades += 1
+            let fade = fades
+            withAnimation(.easeInOut(duration: ArtworkChange.duration)) {
+                topIsShown.toggle()
+            } completion: {
+                // The covered image is out of sight; don't hold on to it.
+                guard fade == fades else { return }
+                withTransaction(instant) {
+                    if topIsShown { bottom = nil } else { top = nil }
+                }
+            }
         }
     }
 }
