@@ -4,7 +4,7 @@
 
 <h1 align="center">
   Hi-MD<br>
-  <sub>
+  <sub><sub>
     <a href="https://ecliptik.github.io/hi-md/">Website</a> &nbsp;·&nbsp;
     <a href="#features">Features</a> &nbsp;·&nbsp;
     <a href="#screenshots">Screenshots</a> &nbsp;·&nbsp;
@@ -15,7 +15,7 @@
     <a href="#issues">Issues</a> &nbsp;·&nbsp;
     <a href="#license">License</a> &nbsp;·&nbsp;
     <a href="#acknowledgments">Acknowledgments</a>
-  </sub>
+  </sub></sub>
 </h1>
 
 <p align="center">
