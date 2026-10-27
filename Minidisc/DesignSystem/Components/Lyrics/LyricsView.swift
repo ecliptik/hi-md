@@ -41,23 +41,56 @@ struct LyricsView: View {
     // MARK: - Loaded
 
     /// The buttons sit in their own row above the lyrics rather than floating over them, and the
-    /// lines fade out at the top edge, so a long line never runs under the buttons.
+    /// lines fade out at the top edge, so a long line never runs under the buttons. Untimed
+    /// lyrics read as plain text under a note instead of following the song.
     @ViewBuilder
     private func loadedContent(_ structured: StructuredLyrics) -> some View {
         VStack(spacing: 0) {
             if showsHeader { header }
-            lyricsScroll(structured)
-                .mask {
-                    VStack(spacing: 0) {
-                        LinearGradient(colors: [.clear, .black], startPoint: .top, endPoint: .bottom)
-                            .frame(height: Self.topFade)
-                        Color.black
-                    }
+            Group {
+                if structured.isTimed {
+                    lyricsScroll(structured)
+                } else {
+                    untimedLyrics(structured)
                 }
+            }
+            .mask {
+                VStack(spacing: 0) {
+                    LinearGradient(colors: [.clear, .black], startPoint: .top, endPoint: .bottom)
+                        .frame(height: Self.topFade)
+                    Color.black
+                }
+            }
         }
     }
 
     private static let topFade: CGFloat = 28
+
+    /// Untimed lyrics at a reading size: 17 points on the iPhone, with Dynamic Type; on the Mac
+    /// the size its pane sets, or 15 points.
+    private func untimedLyrics(_ structured: StructuredLyrics) -> some View {
+        #if os(iOS)
+        let size = typography.plainSize ?? 17
+        let scales = typography.plainSize == nil
+        // The iPhone player fades the panel's bottom under its controls: the last stanza can
+        // scroll clear of it.
+        let bottom: CGFloat = 120
+        #else
+        let size = typography.plainSize ?? 15
+        let scales = false
+        let bottom: CGFloat = 32
+        #endif
+        let inset = typography.horizontalInset
+        return UntimedLyricsView(
+            lines: structured.line,
+            note: viewModel.untimedNote,
+            pointSize: size,
+            scalesWithDynamicType: scales,
+            usesSystemColors: typography.usesSystemColors,
+            // Below the top fade, so the note starts fully visible.
+            insets: EdgeInsets(top: Self.topFade + 4, leading: inset, bottom: bottom, trailing: inset)
+        )
+    }
 
     @ViewBuilder
     private func lyricsScroll(_ structured: StructuredLyrics) -> some View {
@@ -69,8 +102,8 @@ struct LyricsView: View {
                             value: line.value,
                             index: index,
                             currentIndex: viewModel.currentLineIndex,
-                            isSynced: structured.synced,
-                            isTappable: structured.synced && line.start != nil,
+                            isSynced: true,
+                            isTappable: line.start != nil,
                             onTap: { viewModel.userTapped(lineIndex: index) }
                         )
                         .id(index)
@@ -144,16 +177,21 @@ struct LyricsView: View {
                 .buttonStyle(.plain)
                 .accessibilityLabel("Full Screen Lyrics")
 
-                Button {
-                    viewModel.autoScrollEnabled.toggle()
-                } label: {
-                    Image(systemName: viewModel.autoScrollEnabled
-                        ? "arrow.up.arrow.down.circle.fill"
-                        : "arrow.up.arrow.down.circle")
-                        .font(.title3)
-                        .foregroundStyle(.white.opacity(0.8))
+                // Untimed lyrics don't follow the song, so there's nothing to follow.
+                if viewModel.isTimed {
+                    Button {
+                        viewModel.autoScrollEnabled.toggle()
+                    } label: {
+                        Image(systemName: viewModel.autoScrollEnabled
+                            ? "arrow.up.arrow.down.circle.fill"
+                            : "arrow.up.arrow.down.circle")
+                            .font(.title3)
+                            .foregroundStyle(.white.opacity(0.8))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Follow Lyrics")
+                    .accessibilityAddTraits(viewModel.autoScrollEnabled ? .isSelected : [])
                 }
-                .buttonStyle(.plain)
             }
         }
         .padding(.horizontal, typography.headerInset)

@@ -161,6 +161,9 @@ nonisolated struct FullScreenLyricsMetrics: Equatable, Sendable {
     let controls: NowPlayingControlSizes
 
     var lineSpacing: Double { (lineSize * 0.42).rounded() }
+    /// Untimed lyrics' point size: regular text at a reading size, 24 to 30 points, rather than
+    /// the huge lines of lyrics that follow the song.
+    var plainLineSize: Double { min(max((lineSize * 0.42).rounded(), 24), 30) }
     var titleSize: Double { controls.titleSize }
     var subtitleSize: Double { controls.subtitleSize }
     var timeSize: Double { controls.timeSize }

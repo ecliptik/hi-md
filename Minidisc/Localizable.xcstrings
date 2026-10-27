@@ -30797,6 +30797,58 @@
         }
       }
     },
+    "Lyrics aren't timed for this song" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Songtext ist für diesen Titel nicht synchronisiert"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Οι στίχοι αυτού του τραγουδιού δεν είναι συγχρονισμένοι"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La letra de esta canción no está sincronizada"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les paroles de ce morceau ne sont pas synchronisées"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il testo di questo brano non è sincronizzato"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この曲の歌詞はタイミングが設定されていません"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此歌曲的歌词未同步"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此歌曲的歌詞未同步"
+          }
+        }
+      }
+    },
     "Lyrics not supported" : {
       "localizations" : {
         "de" : {

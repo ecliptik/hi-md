@@ -5,7 +5,8 @@ import UIKit
 #endif
 
 /// Full-screen lyrics: large centred lines over the blurred cover, following the song, with
-/// tap-to-seek and play/pause. The screen stays awake while it is open.
+/// tap-to-seek and play/pause. Untimed lyrics read as calm plain text under a note instead.
+/// The screen stays awake while it is open.
 struct KaraokeLyricsView: View {
     @Bindable var viewModel: LyricsViewModel
     @Environment(\.appContainer) private var container
@@ -19,8 +20,10 @@ struct KaraokeLyricsView: View {
     var body: some View {
         Group {
             switch viewModel.state {
-            case .loaded(let structured):
+            case .loaded(let structured) where structured.isTimed:
                 lines(structured)
+            case .loaded(let structured):
+                untimedLines(structured)
             default:
                 Text("No lyrics available")
                     .font(.title2.weight(.semibold))
@@ -82,8 +85,8 @@ struct KaraokeLyricsView: View {
                             value: line.value,
                             index: index,
                             currentIndex: viewModel.currentLineIndex,
-                            isSynced: structured.synced,
-                            isTappable: structured.synced && line.start != nil,
+                            isSynced: true,
+                            isTappable: line.start != nil,
                             onTap: { viewModel.userTapped(lineIndex: index) },
                             isKaraoke: true
                         )
@@ -121,6 +124,32 @@ struct KaraokeLyricsView: View {
                                  startPoint: .top, endPoint: .bottom))
         }
     }
+
+    /// Untimed lyrics: regular left-aligned text at a reading size (title 2, with Dynamic Type),
+    /// scrolled freely between the header and the play button, which it fades out under.
+    private func untimedLines(_ structured: StructuredLyrics) -> some View {
+        UntimedLyricsView(
+            lines: structured.line,
+            note: viewModel.untimedNote,
+            pointSize: 22,
+            textStyle: .title2,
+            scalesWithDynamicType: true,
+            insets: EdgeInsets(top: Self.untimedTopFade + 8, leading: 28, bottom: Self.untimedBottomFade + 8, trailing: 28)
+        )
+        .mask {
+            VStack(spacing: 0) {
+                LinearGradient(colors: [.clear, .black], startPoint: .top, endPoint: .bottom)
+                    .frame(height: Self.untimedTopFade)
+                Color.black
+                LinearGradient(colors: [.black, .clear], startPoint: .top, endPoint: .bottom)
+                    .frame(height: Self.untimedBottomFade)
+            }
+        }
+    }
+
+    /// Clear of the song's title and the close button above, and the play button below.
+    private static let untimedTopFade: CGFloat = 88
+    private static let untimedBottomFade: CGFloat = 104
 
     private var header: some View {
         HStack(alignment: .top) {

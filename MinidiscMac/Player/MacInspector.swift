@@ -26,7 +26,9 @@ struct MacInspector: View {
             Divider()
             switch pane {
             case .lyrics:
+                // On the window's own background, so untimed lyrics take the system's colours.
                 MacLyricsPane(container: container, session: lyrics)
+                    .environment(\.lyricsTypography, .mainWindowPanel)
             case .queue:
                 MacQueuePane()
             }
@@ -35,14 +37,17 @@ struct MacInspector: View {
     }
 
     /// Follow Lyrics, and Full Screen Lyrics, which opens Now Playing straight into the Mac's
-    /// full-screen lyrics rather than the iPhone's karaoke sheet.
+    /// full-screen lyrics rather than the iPhone's karaoke sheet. Untimed lyrics have nothing
+    /// to follow, so they have no Follow Lyrics.
     private func lyricsButtons(_ viewModel: LyricsViewModel) -> some View {
         HStack(spacing: 2) {
-            Toggle(isOn: Binding(get: { viewModel.autoScrollEnabled }, set: { viewModel.autoScrollEnabled = $0 })) {
-                Label("Follow Lyrics", systemImage: "arrow.up.arrow.down")
+            if viewModel.isTimed {
+                Toggle(isOn: Binding(get: { viewModel.autoScrollEnabled }, set: { viewModel.autoScrollEnabled = $0 })) {
+                    Label("Follow Lyrics", systemImage: "arrow.up.arrow.down")
+                }
+                .toggleStyle(.button)
+                .help("Follow Lyrics")
             }
-            .toggleStyle(.button)
-            .help("Follow Lyrics")
             Button {
                 navigator.showNowPlaying(fullScreenLyrics: true)
             } label: {
@@ -143,6 +148,9 @@ final class MacLyricsSession {
         if case .loaded = viewModel?.state { return true }
         return false
     }
+
+    /// Lyrics with timings, which Follow Lyrics applies to.
+    var canFollow: Bool { viewModel?.isTimed ?? false }
 }
 
 /// The song playing now, then Up Next: drag to reorder, double-click to jump, Delete to remove.
