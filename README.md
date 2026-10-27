@@ -217,7 +217,7 @@ Third-party code and data, SwiftSonic and AutoEq (both MIT), are listed with the
 
 ## Acknowledgments
 
-- [Minidisc](https://github.com/Loriage/Minidisc) by NO HIT Dev, which this repository forks.
+- [Minidisc](https://github.com/Loriage/Minidisc) by [Loriage](https://github.com/Loriage) (NO HIT Dev), the original app this repository forks and renames Hi-MD.
 - [Cassette](https://github.com/CassetteLab/cassette) by Mathieu Dubart, which Minidisc is a fork of.
 - [SwiftSonic](https://github.com/MathieuDubart/swiftsonic) by Mathieu Dubart.
 - [AutoEq](https://github.com/jaakkopasanen/AutoEq) by Jaakko Pasanen, for the headphone corrections.
