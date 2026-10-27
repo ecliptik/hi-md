@@ -108,12 +108,14 @@ The fork follows its own direction and doesn't send changes upstream, but it mer
 
 | | |
 |:-:|:-:|
-| <img src="docs/screenshots/mac/01-home.jpg" alt="Hi-MD for Mac: Home with playlists, favourite songs and albums" width="420"> | <img src="docs/screenshots/mac/02-now-playing-queue.jpg" alt="Now Playing with Playing Next" width="420"> |
-| Home, with the sidebar and the floating glass player | Now Playing, with Playing Next |
-| <img src="docs/screenshots/mac/03-now-playing-lyrics.jpg" alt="Now Playing with synced lyrics" width="420"> | <img src="docs/screenshots/mac/04-miniplayer-wide.jpg" alt="The MiniPlayer, wide, with its queue" width="420"> |
-| Synced lyrics that follow the song and the scrubber | The MiniPlayer, wide, with the queue beside the artwork |
-| <img src="docs/screenshots/mac/05-miniplayer-disc.jpg" alt="The MiniPlayer showing the spinning Hi-MD disc" width="300"> | |
-| Click the artwork for the spinning Hi-MD | |
+| <img src="docs/screenshots/mac/01-home.jpg" alt="Hi-MD for Mac: Home with playlists, favourite songs and albums" width="420"> | <img src="docs/screenshots/mac/06-albums.jpg" alt="The album grid" width="420"> |
+| Home, with the floating glass player | Albums |
+| <img src="docs/screenshots/mac/07-album.jpg" alt="An album page" width="420"> | <img src="docs/screenshots/mac/08-album-miniamp.jpg" alt="Miniamp with the Hi-MD Gold skin, over an album with Playing Next" width="420"> |
+| An album page | Miniamp, with the Hi-MD Gold skin, beside Playing Next |
+| <img src="docs/screenshots/mac/02-now-playing-queue.jpg" alt="Now Playing with Playing Next" width="420"> | <img src="docs/screenshots/mac/03-now-playing-lyrics.jpg" alt="Now Playing with synced lyrics" width="420"> |
+| Now Playing, with Playing Next | Synced lyrics that follow the song and the scrubber |
+| <img src="docs/screenshots/mac/04-miniplayer-wide.jpg" alt="The MiniPlayer, wide, with its queue" width="420"> | <img src="docs/screenshots/mac/05-miniplayer-disc.jpg" alt="The MiniPlayer showing the spinning Hi-MD disc" width="300"> |
+| The MiniPlayer, with the queue beside the artwork | Click the artwork for the spinning Hi-MD |
 
 ## Features from upstream
 
