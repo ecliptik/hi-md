@@ -362,7 +362,7 @@ private struct SongActions: View {
                        let albumName = song.albumName,
                        !albumName.isEmpty {
                         Button(action: onGoToAlbum) {
-                            Label("Go to Album", systemImage: "music.note.square.stack")
+                            Label("Go to Album", symbol: MinidiscSymbol.goToAlbum)
                             Text(albumName)
                         }
                         .disabled(!isOnline)

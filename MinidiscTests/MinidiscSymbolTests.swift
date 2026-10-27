@@ -28,4 +28,29 @@ struct MinidiscSymbolTests {
         #expect(!MinidiscSymbol.isCustom("square.stack"))
         #expect(UIImage.symbol("music.note")?.isSymbolImage == true)
     }
+
+    @Test func goToAlbumUsesTheMiniDisc() {
+        #expect(MinidiscSymbol.goToAlbum == "minidisc")
+        #expect(UIImage.symbol(MinidiscSymbol.goToAlbum)?.isSymbolImage == true)
+    }
+
+    /// Every Go to Album menu item, on the iPhone and the Mac, names the MiniDisc rather than a
+    /// system symbol such as music.note.square.stack.
+    @Test func everyGoToAlbumMenuItemNamesTheMiniDisc() throws {
+        let root = URL(filePath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+        let files = [
+            "Minidisc/DesignSystem/Components/SongRow.swift",
+            "Minidisc/DesignSystem/Components/ItemContextMenus.swift",
+            "Minidisc/Views/Main/FullPlayerView.swift",
+            "MinidiscMac/Library/MacSongMenu.swift",
+        ]
+        for file in files {
+            let source = try String(contentsOf: root.appending(path: file), encoding: .utf8)
+            let labels = source.components(separatedBy: .newlines).filter { $0.contains("Label(\"Go to Album\"") }
+            #expect(!labels.isEmpty, "\(file) has no Go to Album item")
+            for line in labels {
+                #expect(line.contains("MinidiscSymbol.goToAlbum"), "\(file): \(line.trimmingCharacters(in: .whitespaces))")
+            }
+        }
+    }
 }

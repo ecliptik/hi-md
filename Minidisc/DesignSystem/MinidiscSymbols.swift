@@ -12,6 +12,8 @@ nonisolated enum MinidiscSymbol {
     static let album = "minidisc"
     /// Albums, filled, for places that use filled symbols.
     static let albumFill = "minidisc.fill"
+    /// Go to Album in song menus, context menus and the player's menu, on the iPhone and the Mac.
+    static let goToAlbum = album
 
     /// Whether `name` is one of these rather than a system symbol.
     static func isCustom(_ name: String) -> Bool {

@@ -45,7 +45,7 @@ struct MacSongMenu: View {
                 beforeNavigating?()
                 navigator.showAlbum(of: song, highlighting: true)
             } label: {
-                Label("Go to Album", image: MinidiscSymbol.album)
+                Label("Go to Album", image: MinidiscSymbol.goToAlbum)
             }
                 .disabled(song.albumId == nil)
             Button("Go to Artist", systemImage: "music.microphone") {

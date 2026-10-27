@@ -152,7 +152,7 @@ struct SongContextMenuModifier: ViewModifier {
                     Button {
                         postNavigateToAlbum(track: song)
                     } label: {
-                        Label("Go to Album", systemImage: "music.note.square.stack")
+                        Label("Go to Album", symbol: MinidiscSymbol.goToAlbum)
                         Text(album)
                     }
                 }
