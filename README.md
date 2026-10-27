@@ -9,6 +9,13 @@
 </p>
 
 <p align="center">
+  <a href="https://ecliptik.github.io/hi-md/"><strong>Website</strong></a> &nbsp;·&nbsp;
+  <a href="#build-from-source">Build from source</a> &nbsp;·&nbsp;
+  <a href="FORK.md">Fork notes</a> &nbsp;·&nbsp;
+  <a href="https://github.com/ecliptik/hi-md/issues">Issues</a>
+</p>
+
+<p align="center">
   This project was 100% built agentically using <a href="https://docs.anthropic.com/en/docs/claude-code">Claude Code</a>.
 </p>
 
