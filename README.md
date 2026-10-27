@@ -2,17 +2,18 @@
   <img src="docs/app-icon.png" alt="Hi-MD app icon: a MiniDisc whose label reads Hi-MD" width="128" height="128">
 </p>
 
-<h1 align="center">Hi-MD</h1>
+<h1 align="center">
+  Hi-MD<br>
+  <sub>
+    <a href="https://ecliptik.github.io/hi-md/">Website</a> &nbsp;·&nbsp;
+    <a href="#build-from-source">Build from source</a> &nbsp;·&nbsp;
+    <a href="FORK.md">Fork notes</a> &nbsp;·&nbsp;
+    <a href="https://github.com/ecliptik/hi-md/issues">Issues</a>
+  </sub>
+</h1>
 
 <p align="center">
   A fork of <a href="https://github.com/Loriage/Minidisc">Minidisc</a>, the music player for your own Subsonic or Navidrome server, on iPhone and Mac.
-</p>
-
-<p align="center">
-  <a href="https://ecliptik.github.io/hi-md/"><strong>Website</strong></a> &nbsp;·&nbsp;
-  <a href="#build-from-source">Build from source</a> &nbsp;·&nbsp;
-  <a href="FORK.md">Fork notes</a> &nbsp;·&nbsp;
-  <a href="https://github.com/ecliptik/hi-md/issues">Issues</a>
 </p>
 
 <p align="center">
