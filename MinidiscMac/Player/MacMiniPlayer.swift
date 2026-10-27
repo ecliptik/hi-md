@@ -131,8 +131,13 @@ private struct MacMiniPlayerContent: View {
             .frame(width: size.width, height: size.height, alignment: .topLeading)
             .onChange(of: layout, initial: true) { _, newLayout in applyLimits(for: newLayout) }
         }
+        // The window's least size comes from here (`.contentMinSize`), so with a pane open it must
+        // be the tall layout's: room for the song and controls over the artwork as well as the
+        // pane. Not while the window animates open or closed, so it doesn't jump.
         .frame(minWidth: MiniPlayerLayout.minimumSide, maxWidth: .infinity,
-               minHeight: MiniPlayerLayout.minimumSide, maxHeight: .infinity)
+               minHeight: panel.isOpen && transition == nil
+                   ? Double(MiniPlayerLayout.tall.minimumSize.height) : MiniPlayerLayout.minimumSide,
+               maxHeight: .infinity)
         // The backdrop runs under the pane and behind the artwork while it loads.
         .background { background.ignoresSafeArea() }
         .ignoresSafeArea()
