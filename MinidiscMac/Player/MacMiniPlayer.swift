@@ -363,7 +363,7 @@ private struct MacMiniPlayerContent: View {
             Toggle("Library", isOn: paneBinding(.library))
             Toggle("Related Songs", isOn: paneBinding(.related))
                 .disabled(track == nil || track?.isLocalFile == true)
-            if panel.isShowing(.lyrics, canShowLyrics: canShowLyrics), lyrics.hasLyrics,
+            if panel.isShowing(.lyrics, canShowLyrics: canShowLyrics), lyrics.canFollow,
                let viewModel = lyrics.viewModel {
                 Divider()
                 Toggle("Follow Lyrics", isOn: Binding(get: { viewModel.autoScrollEnabled },
@@ -451,7 +451,8 @@ private struct MacMiniPlayerContent: View {
                 // The lines around the one being sung blur and fade, as in Now Playing.
                 MacLyricsPane(container: container, session: lyrics, adoptsSessionLyrics: true)
                     .environment(\.lyricsTypography,
-                                 .scaled(forWidth: width, minimum: 18, maximum: 28)
+                                 .scaled(forWidth: width, minimum: 18, maximum: 28,
+                                         plainMinimum: 15, plainMaximum: 17)
                                      .withoutHeaderButtons()
                                      .withDepth(.gentle))
                     .padding(.horizontal, 8)

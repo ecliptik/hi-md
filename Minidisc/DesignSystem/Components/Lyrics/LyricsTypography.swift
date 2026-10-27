@@ -16,14 +16,23 @@ nonisolated struct LyricsTypography: Equatable, Sendable {
     var showsHeaderButtons = true
     /// How the lines around the one being sung recede.
     var depth: LyricsLineDepth = .dimmed
+    /// Untimed lyrics' point size, in regular weight at a reading size, or nil for the
+    /// platform's: 17 points on the iPhone, scaling with Dynamic Type, and 15 on the Mac.
+    var plainSize: Double?
+    /// The system's primary and secondary text colours instead of the player's white, for a
+    /// pane on the window's own background (the Mac main window's lyrics panel).
+    var usesSystemColors = false
 
     static let iPhone = LyricsTypography()
+
+    /// The Mac main window's lyrics panel, on the window background beside the library.
+    static let mainWindowPanel = LyricsTypography(showsHeaderButtons: false, plainSize: 15, usesSystemColors: true)
 
     /// The Mac's full-screen lyrics: huge left-aligned lines sized by `metrics`, the lines around
     /// the one being sung blurred and faded away.
     static func fullScreen(_ metrics: FullScreenLyricsMetrics) -> LyricsTypography {
         LyricsTypography(lineSize: metrics.lineSize, lineSpacing: metrics.lineSpacing, horizontalInset: 0,
-                         headerInset: 0, showsHeaderButtons: false, depth: .deep)
+                         headerInset: 0, showsHeaderButtons: false, depth: .deep, plainSize: metrics.plainLineSize)
     }
 
     /// The same lines without the buttons above them.
@@ -42,12 +51,16 @@ nonisolated struct LyricsTypography: Equatable, Sendable {
 
     /// Large bold lines for a pane `width` points wide: about 30 pt beside the player in a
     /// 1,000-point window, up to `maximum` in a full-screen one, and never under `minimum`.
-    static func scaled(forWidth width: Double, minimum: Double = 22, maximum: Double = 40) -> LyricsTypography {
+    /// Untimed lyrics read at a much smaller size that grows only a little with the pane, from
+    /// `plainMinimum` to `plainMaximum`.
+    static func scaled(forWidth width: Double, minimum: Double = 22, maximum: Double = 40,
+                       plainMinimum: Double = 17, plainMaximum: Double = 22) -> LyricsTypography {
         let size = min(max((width / 14).rounded(), minimum), maximum)
         return LyricsTypography(lineSize: size,
                                 lineSpacing: (size * 0.85).rounded(),
                                 horizontalInset: 4,
-                                headerInset: 4)
+                                headerInset: 4,
+                                plainSize: min(max((width / 24).rounded(), plainMinimum), plainMaximum))
     }
 }
 

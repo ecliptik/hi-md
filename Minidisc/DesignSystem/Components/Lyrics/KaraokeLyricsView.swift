@@ -5,7 +5,8 @@ import UIKit
 #endif
 
 /// Full-screen lyrics: large centred lines over the blurred cover, following the song, with
-/// tap-to-seek and play/pause. The screen stays awake while it is open.
+/// tap-to-seek and play/pause. Untimed lyrics read as calm plain text under a note instead.
+/// The screen stays awake while it is open.
 struct KaraokeLyricsView: View {
     @Bindable var viewModel: LyricsViewModel
     @Environment(\.appContainer) private var container
@@ -19,8 +20,10 @@ struct KaraokeLyricsView: View {
     var body: some View {
         Group {
             switch viewModel.state {
-            case .loaded(let structured):
+            case .loaded(let structured) where structured.isTimed:
                 lines(structured)
+            case .loaded(let structured):
+                untimedLines(structured)
             default:
                 Text("No lyrics available")
                     .font(.title2.weight(.semibold))
@@ -82,8 +85,8 @@ struct KaraokeLyricsView: View {
                             value: line.value,
                             index: index,
                             currentIndex: viewModel.currentLineIndex,
-                            isSynced: structured.synced,
-                            isTappable: structured.synced && line.start != nil,
+                            isSynced: true,
+                            isTappable: line.start != nil,
                             onTap: { viewModel.userTapped(lineIndex: index) },
                             isKaraoke: true
                         )
@@ -96,22 +99,17 @@ struct KaraokeLyricsView: View {
             .scrollIndicators(.hidden)
             .onAppear {
                 viewModel.syncToPlayback()
-                guard let index = viewModel.currentLineIndex else { return }
+                guard viewModel.autoScrollEnabled, let index = viewModel.currentLineIndex else { return }
                 LyricsScrolling.scroll(proxy, to: .init(index: index, animated: false, revision: 0),
                                        reduceMotion: reduceMotion, animation: .easeInOut(duration: 0.35))
             }
-            // A scrub or seek lands straight on its line; playback glides line to line.
+            // A scrub or seek lands straight on its line; playback glides line to line. Follow
+            // Lyrics off, nothing scrolls by itself here either; tapping a line seeks, which
+            // turns it back on.
             .onChange(of: viewModel.scrollRequest) { _, request in
                 guard let request else { return }
                 LyricsScrolling.scroll(proxy, to: request, reduceMotion: reduceMotion,
                                        animation: .easeInOut(duration: 0.35))
-            }
-            // Full screen follows the song even with Follow Lyrics off in the player.
-            .onChange(of: viewModel.currentLineIndex) { previous, index in
-                guard let index, !viewModel.autoScrollEnabled, !viewModel.isUserScrolling else { return }
-                LyricsScrolling.scroll(proxy, to: .init(index: index, animated: LyricsScrollPolicy.animates(from: previous, to: index),
-                                                        revision: 0),
-                                       reduceMotion: reduceMotion, animation: .easeInOut(duration: 0.35))
             }
             .onScrollPhaseChange { _, phase in
                 if phase == .interacting { viewModel.userStartedScrolling() }
@@ -121,6 +119,32 @@ struct KaraokeLyricsView: View {
                                  startPoint: .top, endPoint: .bottom))
         }
     }
+
+    /// Untimed lyrics: regular left-aligned text at a reading size (title 2, with Dynamic Type),
+    /// scrolled freely between the header and the play button, which it fades out under.
+    private func untimedLines(_ structured: StructuredLyrics) -> some View {
+        UntimedLyricsView(
+            lines: structured.line,
+            note: viewModel.untimedNote,
+            pointSize: 22,
+            textStyle: .title2,
+            scalesWithDynamicType: true,
+            insets: EdgeInsets(top: Self.untimedTopFade + 8, leading: 28, bottom: Self.untimedBottomFade + 8, trailing: 28)
+        )
+        .mask {
+            VStack(spacing: 0) {
+                LinearGradient(colors: [.clear, .black], startPoint: .top, endPoint: .bottom)
+                    .frame(height: Self.untimedTopFade)
+                Color.black
+                LinearGradient(colors: [.black, .clear], startPoint: .top, endPoint: .bottom)
+                    .frame(height: Self.untimedBottomFade)
+            }
+        }
+    }
+
+    /// Clear of the song's title and the close button above, and the play button below.
+    private static let untimedTopFade: CGFloat = 88
+    private static let untimedBottomFade: CGFloat = 104
 
     private var header: some View {
         HStack(alignment: .top) {

@@ -59,6 +59,10 @@ final class PlayerState {
     }
     /// Where the lyrics are: a scrub or seek in progress, else `position`. See `LyricsClock`.
     private(set) var lyricsClock = LyricsClock()
+    /// Follow Lyrics: whether lyrics views scroll to the line being sung. One setting for every
+    /// lyrics view and every song, since each song gets its own lyrics view model; a scrub or
+    /// seek turns it back on.
+    var followsLyrics = true
     var duration: TimeInterval = 0
     var repeatMode: RepeatMode = .off
     var isShuffled: Bool = false

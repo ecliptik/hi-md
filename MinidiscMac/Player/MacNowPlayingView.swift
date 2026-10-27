@@ -296,11 +296,14 @@ struct MacNowPlayingView: View {
         let showsLyricsTools = !isPaneHidden && pane == .lyrics && lyrics.hasLyrics && lyrics.viewModel != nil
         return MacGlassGroup(isShown: chrome.isVisible) {
             if showsLyricsTools, let viewModel = lyrics.viewModel {
-                MacGlassSegment(title: "Follow Lyrics", systemImage: "arrow.up.arrow.down",
-                                isOn: viewModel.autoScrollEnabled, side: Self.buttonSide) {
-                    viewModel.autoScrollEnabled.toggle()
+                // Untimed lyrics don't follow the song, so they have no Follow Lyrics.
+                if viewModel.isTimed {
+                    MacGlassSegment(title: "Follow Lyrics", systemImage: "arrow.up.arrow.down",
+                                    isOn: viewModel.autoScrollEnabled, side: Self.buttonSide) {
+                        viewModel.autoScrollEnabled.toggle()
+                    }
+                    .focused($focusedChrome, equals: .follow)
                 }
-                .focused($focusedChrome, equals: .follow)
                 if isLyricsFullScreen {
                     MacGlassSegment(title: "Exit Full Screen Lyrics", systemImage: "arrow.down.right.and.arrow.up.left",
                                     side: Self.buttonSide) {

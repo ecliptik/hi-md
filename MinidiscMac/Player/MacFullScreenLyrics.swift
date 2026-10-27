@@ -160,7 +160,8 @@ struct MacSongSubtitle: View {
 
 /// The full-screen lines: left-aligned, the one being sung held in the middle of a window about
 /// four lines tall, the others blurred and faded the further they are. Clicking a line plays from
-/// it. A scrub or seek lands straight on its line; playback glides from line to line.
+/// it. A scrub or seek lands straight on its line; playback glides from line to line. Untimed
+/// lyrics read as plain text under a note instead, scrolled freely.
 struct MacFullScreenLyricsLines: View {
     @Bindable var viewModel: LyricsViewModel
 
@@ -171,8 +172,10 @@ struct MacFullScreenLyricsLines: View {
     var body: some View {
         Group {
             switch viewModel.state {
-            case .loaded(let structured):
+            case .loaded(let structured) where structured.isTimed:
                 lines(structured)
+            case .loaded(let structured):
+                untimedLines(structured)
             case .loading:
                 ProgressView()
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -199,8 +202,8 @@ struct MacFullScreenLyricsLines: View {
                                 value: line.value,
                                 index: index,
                                 currentIndex: viewModel.currentLineIndex,
-                                isSynced: structured.synced,
-                                isTappable: structured.synced && line.start != nil,
+                                isSynced: true,
+                                isTappable: line.start != nil,
                                 onTap: { viewModel.userTapped(lineIndex: index) }
                             )
                             .id(index)
@@ -212,7 +215,7 @@ struct MacFullScreenLyricsLines: View {
                 .scrollIndicators(.hidden)
                 .onAppear {
                     viewModel.syncToPlayback()
-                    guard let index = viewModel.currentLineIndex else { return }
+                    guard viewModel.autoScrollEnabled, let index = viewModel.currentLineIndex else { return }
                     LyricsScrolling.scroll(proxy, to: .init(index: index, animated: false, revision: 0),
                                            reduceMotion: reduceMotion, animation: Self.glide)
                 }
@@ -236,6 +239,30 @@ struct MacFullScreenLyricsLines: View {
             }
         }
     }
+
+    /// Regular left-aligned text at 24 to 30 points (`FullScreenLyricsMetrics.plainLineSize`),
+    /// every line alike, over the lyrics' wash, fading only at the very edges.
+    private func untimedLines(_ structured: StructuredLyrics) -> some View {
+        let size = typography.plainSize ?? 26
+        return UntimedLyricsView(
+            lines: structured.line,
+            note: viewModel.untimedNote,
+            pointSize: size,
+            scalesWithDynamicType: false,
+            insets: EdgeInsets(top: Self.untimedFade + 4, leading: 0, bottom: Self.untimedFade + 4, trailing: 0)
+        )
+        .mask {
+            VStack(spacing: 0) {
+                LinearGradient(colors: [.clear, .black], startPoint: .top, endPoint: .bottom)
+                    .frame(height: Self.untimedFade)
+                Color.black
+                LinearGradient(colors: [.black, .clear], startPoint: .top, endPoint: .bottom)
+                    .frame(height: Self.untimedFade)
+            }
+        }
+    }
+
+    private static let untimedFade: CGFloat = 24
 
     /// The current line easing into the middle.
     private static let glide: Animation = .smooth(duration: 0.5)

@@ -174,11 +174,8 @@ actor LyricsService {
         }
 
         if let plain = record.plainLyrics {
-            let lines = plain
-                .components(separatedBy: .newlines)
-                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-                .filter { !$0.isEmpty }
-                .map { Line(value: $0) }
+            // A blank line stays between stanzas, so untimed lyrics keep their verses apart.
+            let lines = LyricsTiming.plainLines(from: plain).map { Line(value: $0) }
             if !lines.isEmpty {
                 entries.append(StructuredLyrics(lang: "und", synced: false, line: lines))
             }
