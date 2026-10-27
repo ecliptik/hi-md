@@ -47,22 +47,24 @@ enum WrappedCarouselItem: Identifiable {
 
 extension WrappedYearlyPlaylist {
     /// The Wrapped playlists among `playlists`, recognised by name, e.g. the ones saved offline.
-    static func saved(in playlists: [Playlist]) -> [WrappedYearlyPlaylist] {
-        let prefix = WrappedPlaylistService.wrappedPlaylistNamePrefix
-        return playlists.compactMap { playlist in
-            guard playlist.name.hasPrefix(prefix), let year = Int(playlist.name.dropFirst(prefix.count)) else { return nil }
-            return WrappedYearlyPlaylist(id: playlist.id, year: year, name: playlist.name, coverArtId: playlist.coverArt)
+    /// Both the Hi-MD and the older Minidisc names count; a year with both uses the Hi-MD one.
+    nonisolated static func saved(in playlists: [Playlist]) -> [WrappedYearlyPlaylist] {
+        playlists.preferringCurrentNames { playlist -> (key: Int, isLegacy: Bool)? in
+            if let year = WrappedPlaylistService.legacyWrappedYear(fromPlaylistName: playlist.name) { return (year, true) }
+            return WrappedPlaylistService.wrappedYear(fromPlaylistName: playlist.name).map { ($0, false) }
         }
+        .map { WrappedYearlyPlaylist(id: $0.playlist.id, year: $0.key, name: $0.playlist.name, coverArtId: $0.playlist.coverArt) }
     }
 }
 
 extension MoodPlaylist {
     /// The mood playlists among `playlists`, recognised by name, e.g. the ones saved offline.
-    static func saved(in playlists: [Playlist]) -> [MoodPlaylist] {
-        playlists.compactMap { playlist in
-            guard let mood = Mood.allCases.first(where: { $0.playlistName == playlist.name }) else { return nil }
-            return MoodPlaylist(mood: mood, id: playlist.id, coverArtId: playlist.coverArt)
+    /// Both the Hi-MD and the older Minidisc names count; a mood with both uses the Hi-MD one.
+    nonisolated static func saved(in playlists: [Playlist]) -> [MoodPlaylist] {
+        playlists.preferringCurrentNames { playlist -> (key: Mood, isLegacy: Bool)? in
+            Mood.forPlaylistName(playlist.name).map { ($0, $0.legacyPlaylistName == playlist.name) }
         }
+        .map { MoodPlaylist(mood: $0.key, id: $0.playlist.id, coverArtId: $0.playlist.coverArt) }
     }
 }
 

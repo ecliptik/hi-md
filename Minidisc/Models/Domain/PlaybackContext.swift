@@ -36,11 +36,10 @@ nonisolated enum PlaybackContext: Codable, Sendable, Hashable {
 
     /// The playlist context, recognising the mood and Wrapped playlists Minidisc creates by name.
     static func forPlaylist(id: String, name: String, coverArtId: String?) -> PlaybackContext {
-        if let mood = Mood.allCases.first(where: { $0.playlistName == name }) {
+        if let mood = Mood.forPlaylistName(name) {
             return .mood(mood, playlistId: id)
         }
-        let prefix = WrappedPlaylistService.wrappedPlaylistNamePrefix
-        if name.hasPrefix(prefix), let year = Int(name.dropFirst(prefix.count)) {
+        if let year = WrappedPlaylistService.wrappedYear(fromPlaylistName: name) {
             return .wrapped(year: year, playlistId: id)
         }
         return .playlist(id: id, name: name, coverArtId: coverArtId)
@@ -89,7 +88,7 @@ nonisolated enum PlaybackContext: Codable, Sendable, Hashable {
         case .mood(let mood, let playlistId):
             .playlist(id: playlistId, name: String(localized: mood.title), coverArtId: nil)
         case .wrapped(let year, let playlistId):
-            .playlist(id: playlistId, name: WrappedPlaylistService.wrappedPlaylistNamePrefix + String(year), coverArtId: nil)
+            .playlist(id: playlistId, name: WrappedPlaylistService.playlistName(year: year), coverArtId: nil)
         case .instantMix(.song, _, _), .smartShuffle, .internetRadio:
             nil
         }

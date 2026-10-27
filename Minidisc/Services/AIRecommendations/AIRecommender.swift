@@ -143,7 +143,7 @@ struct AIRecommender {
         for album in albums { if let artist = album.artist { counts[artist, default: 0] += 1 } }
         data.profile.topArtists = counts.sorted { $0.value > $1.value }.prefix(25).map(\.key)
         data.profile.playlists = try await store.playlists(serverID: serverID)
-            .map(\.name).filter { name in !Mood.allCases.contains { $0.playlistName == name } }.prefix(15).map { $0 }
+            .map(\.name).filter { name in Mood.forPlaylistName(name) == nil }.prefix(15).map { $0 }
 
         data.library = AIRecommendationLibrary(
             albums: albums.map { .init(id: $0.id, name: $0.name, artist: $0.artist ?? $0.displayArtist ?? "", coverArtID: $0.coverArt) },

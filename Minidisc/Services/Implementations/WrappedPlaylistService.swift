@@ -34,38 +34,90 @@ nonisolated enum SyncResult: Sendable, Equatable {
 
 /// Refreshes the annual top-100 playlist monthly using createPlaylist replacement.
 actor WrappedPlaylistService {
-    nonisolated static let wrappedPlaylistNamePrefix = "Minidisc Wrapped "
+    nonisolated static let wrappedPlaylistNamePrefix = "Hi-MD Wrapped "
+    /// The prefix from before the app was called Hi-MD. Still recognised, and renamed to the
+    /// current one once per server by `PlaylistNameMigration`.
+    nonisolated static let legacyWrappedPlaylistNamePrefix = "Minidisc Wrapped "
+
+    /// The name the app gives the year's playlist, e.g. "Hi-MD Wrapped 2026".
+    nonisolated static func playlistName(year: Int) -> String {
+        wrappedPlaylistNamePrefix + String(year)
+    }
+
+    /// The year of a Wrapped playlist, under its current or legacy name; nil for any other name.
+    nonisolated static func wrappedYear(fromPlaylistName name: String) -> Int? {
+        wrappedYear(name, prefix: wrappedPlaylistNamePrefix) ?? legacyWrappedYear(fromPlaylistName: name)
+    }
+
+    /// The year of a Wrapped playlist that still has its legacy name.
+    nonisolated static func legacyWrappedYear(fromPlaylistName name: String) -> Int? {
+        wrappedYear(name, prefix: legacyWrappedPlaylistNamePrefix)
+    }
+
+    private nonisolated static func wrappedYear(_ name: String, prefix: String) -> Int? {
+        guard name.hasPrefix(prefix) else { return nil }
+        return Int(name.dropFirst(prefix.count))
+    }
+
+    /// A client, and who it is signed in as on which server, for the name migration.
+    private nonisolated struct ClientContext: Sendable {
+        let client: any PlaylistSyncClient
+        /// nil when the factory can't tell, as in tests.
+        let serverId: String?
+        let owner: String?
+    }
 
     private let statsService: StatsService
     private let preferences: WrappedPreferences
-    private let makeClient: @Sendable () async throws -> any PlaylistSyncClient
+    private let makeClientContext: @Sendable () async throws -> ClientContext
     private let serverService: (any ServerServiceProtocol)?
+    private let isOnline: @Sendable () async -> Bool
+    private let recordRename: (@Sendable (Playlist) async -> Void)?
+    private var isMigratingNames = false
 
     init(
         serverService: any ServerServiceProtocol,
         statsService: StatsService,
-        preferences: WrappedPreferences = WrappedPreferences()
+        preferences: WrappedPreferences = WrappedPreferences(),
+        catalog: LibraryCatalog? = nil
     ) {
         self.statsService = statsService
         self.preferences = preferences
         self.serverService = serverService
-        self.makeClient = { try await serverService.activeConnection().makeSwiftSonicClient() }
+        self.makeClientContext = {
+            let connection = try await serverService.activeConnection()
+            return ClientContext(
+                client: connection.makeSwiftSonicClient(),
+                serverId: connection.server.id.uuidString,
+                owner: connection.server.username
+            )
+        }
+        self.isOnline = { await MainActor.run { serverService.state.isOnline } }
+        if let catalog {
+            self.recordRename = { summary in await catalog.recordPlaylistMutation(summary: summary, detail: nil) }
+        } else {
+            self.recordRename = nil
+        }
     }
 
     init(
         clientFactory: @escaping @Sendable () async throws -> any PlaylistSyncClient,
         statsService: StatsService,
-        preferences: WrappedPreferences
+        preferences: WrappedPreferences,
+        playlistOwner: String? = nil,
+        isOnline: @escaping @Sendable () async -> Bool = { true }
     ) {
         self.statsService = statsService
         self.preferences = preferences
         self.serverService = nil
-        self.makeClient = clientFactory
+        self.makeClientContext = { ClientContext(client: try await clientFactory(), serverId: nil, owner: playlistOwner) }
+        self.isOnline = isOnline
+        self.recordRename = nil
     }
 
     // MARK: - Public API
 
-    /// Replaces the annual "Minidisc Wrapped <year>" playlist with the top 100
+    /// Replaces the annual "Hi-MD Wrapped <year>" playlist with the top 100
     /// tracks listened to so far this year. Idempotent within a calendar month:
     /// a second call in the same month returns `.upToDate` without a server round-trip.
     func runYearlyPlaylistSyncIfNeeded(
@@ -115,20 +167,21 @@ actor WrappedPlaylistService {
             return .skippedNoData
         }
 
-        let client: any PlaylistSyncClient
+        let context: ClientContext
         do {
-            client = try await makeClient()
+            context = try await makeClientContext()
         } catch {
             if error is CancellationError { throw CancellationError() }
             try Task.checkCancellation()
             Logger.wrapped.error("[WRAPPED-SYNC] client init failed: \(error, privacy: .public)")
             return .serverError(error.localizedDescription)
         }
+        let client = context.client
         try Task.checkCancellation()
 
         let pid: String
         do {
-            pid = try await getOrCreatePlaylist(for: year, serverId: serverId, client: client)
+            pid = try await getOrCreatePlaylist(for: year, serverId: serverId, context: context)
         } catch {
             if error is CancellationError { throw CancellationError() }
             try Task.checkCancellation()
@@ -195,28 +248,59 @@ actor WrappedPlaylistService {
         calendar: Calendar = .current,
         currentDate: Date = Date()
     ) async -> [WrappedYearlyPlaylist] {
-        let client: any PlaylistSyncClient
+        let context: ClientContext
         do {
-            client = try await makeClient()
+            context = try await makeClientContext()
         } catch {
             Logger.wrapped.error("[WRAPPED] fetchYearlyPlaylists client init failed: \(error, privacy: .public)")
             return []
         }
         do {
-            let all = try await client.getPlaylists(username: nil)
+            var all = try await context.client.getPlaylists(username: nil)
+            all = try await migrateNamesIfNeeded(all, serverId: serverId, context: context)
             // Clear stale identity and cadence markers so a deleted playlist can be recreated.
             reconcileCurrentYearPlaylist(serverId: serverId, livePlaylists: all, calendar: calendar, currentDate: currentDate)
-            return all.compactMap { playlist -> WrappedYearlyPlaylist? in
-                guard playlist.name.hasPrefix(WrappedPlaylistService.wrappedPlaylistNamePrefix),
-                      let year = Int(playlist.name.dropFirst(WrappedPlaylistService.wrappedPlaylistNamePrefix.count))
-                else { return nil }
-                return WrappedYearlyPlaylist(id: playlist.id, year: year, name: playlist.name, coverArtId: playlist.coverArt)
-            }
-            .sorted { $0.year > $1.year }
+            return WrappedYearlyPlaylist.saved(in: all).sorted { $0.year > $1.year }
         } catch {
             Logger.wrapped.error("[WRAPPED] fetchYearlyPlaylists failed: \(error, privacy: .public)")
             return []
         }
+    }
+
+    // MARK: - Name migration
+
+    /// Renames this server's Wrapped playlists from "Minidisc Wrapped 2025" to "Hi-MD Wrapped 2025",
+    /// once. Only while online, only on the server the client is signed in to, only the user's own
+    /// playlists, and only where no playlist has the new name yet (see `PlaylistNameMigration`).
+    /// Returns the listing with the new names; a failed rename is tried again on the next listing.
+    private func migrateNamesIfNeeded(_ playlists: [Playlist], serverId: String, context: ClientContext) async throws -> [Playlist] {
+        guard !isMigratingNames,
+              !preferences.hasMigratedPlaylistNames(serverId: serverId),
+              context.serverId == nil || context.serverId == serverId,
+              let renamer = context.client as? any PlaylistRenaming,
+              await isOnline()
+        else { return playlists }
+        // Checked again: the actor may have run another listing while `isOnline` was awaited.
+        guard !isMigratingNames, !preferences.hasMigratedPlaylistNames(serverId: serverId) else { return playlists }
+        isMigratingNames = true
+        defer { isMigratingNames = false }
+        try Task.checkCancellation()
+        let migration = PlaylistNameMigration.wrapped
+        let inUse = Set(playlists.compactMap { playlist in
+            WrappedPlaylistService.wrappedYear(fromPlaylistName: playlist.name)
+                .flatMap { preferences.playlistId(year: $0, serverId: serverId) }
+        })
+        let renames = migration.plan(playlists, owner: context.owner, preferredIDs: inUse)
+        let outcome = try await migration.perform(renames, in: playlists, client: renamer)
+        for playlist in outcome.renamed {
+            await recordRename?(playlist)
+        }
+        try Task.checkCancellation()
+        if outcome.failed == 0 {
+            preferences.setMigratedPlaylistNames(serverId: serverId)
+            Logger.wrapped.info("[NAME-MIGRATION] wrapped done for \(serverId, privacy: .public): renamed \(outcome.renamed.count, privacy: .public)")
+        }
+        return outcome.playlists
     }
 
     // MARK: - Replace playlist tracks
@@ -291,21 +375,29 @@ actor WrappedPlaylistService {
 
     // MARK: - Get-or-create annual playlist
 
-    private func getOrCreatePlaylist(for year: Int, serverId: String, client: any PlaylistSyncClient) async throws -> String {
+    private func getOrCreatePlaylist(for year: Int, serverId: String, context: ClientContext) async throws -> String {
         try Task.checkCancellation()
-        let name = "Minidisc Wrapped \(year)"
+        let client = context.client
+        let name = WrappedPlaylistService.playlistName(year: year)
         // Validate cached IDs against the live list before replacing playlist contents.
-        let playlists = try await client.getPlaylists(username: nil)
+        var playlists = try await client.getPlaylists(username: nil)
+        try Task.checkCancellation()
+        playlists = try await migrateNamesIfNeeded(playlists, serverId: serverId, context: context)
         try Task.checkCancellation()
 
+        // A playlist with the Hi-MD name wins over the cached one, which may be a Minidisc-named
+        // playlist that couldn't be renamed because both exist.
+        let current = playlists.first { $0.name == name }
         if let cached = preferences.playlistId(year: year, serverId: serverId),
-           playlists.contains(where: { $0.id == cached }) {
+           playlists.contains(where: { $0.id == cached }),
+           current == nil || current?.id == cached {
             return cached
         }
 
-        if let existing = playlists.first(where: { $0.name == name }) {
+        let legacyName = WrappedPlaylistService.legacyWrappedPlaylistNamePrefix + String(year)
+        if let existing = current ?? playlists.first(where: { $0.name == legacyName }) {
             preferences.setPlaylistId(existing.id, year: year, serverId: serverId)
-            Logger.wrapped.info("Found '\(name, privacy: .public)' id=\(existing.id, privacy: .public)")
+            Logger.wrapped.info("Found '\(existing.name, privacy: .public)' id=\(existing.id, privacy: .public)")
             return existing.id
         }
 

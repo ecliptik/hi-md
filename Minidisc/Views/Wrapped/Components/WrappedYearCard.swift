@@ -17,7 +17,7 @@ struct WrappedYearCard: View {
                 NavigationLink {
                     PlaylistDetailView(
                         playlistId: pid,
-                        name: "Minidisc Wrapped \(yearString)"
+                        name: WrappedPlaylistService.playlistName(year: year)
                     )
                 } label: {
                     cardContent

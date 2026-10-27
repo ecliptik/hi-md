@@ -10,12 +10,13 @@ struct BrandNameTests {
     /// Text that still says Minidisc on purpose. None of it is in a catalog today; the list
     /// documents what may appear if it ever is.
     /// - The upstream project's name, in credits: "Minidisc (Loriage)".
-    /// - Names of playlists the app keeps on the server, which it finds again by name.
+    /// - The old names of the playlists the app keeps on the server, which it still recognises
+    ///   until `PlaylistNameMigration` renames them.
     /// - The demo clip's spoken words.
     static let allowedMinidiscText = [
         "Minidisc (Loriage)",
-        Mood.playlistPrefix,
-        WrappedPlaylistService.wrappedPlaylistNamePrefix,
+        Mood.legacyPlaylistPrefix,
+        WrappedPlaylistService.legacyWrappedPlaylistNamePrefix,
         "Minidisc. Minidisc. Minidisc.",
     ]
 
@@ -102,7 +103,7 @@ struct BrandNameTests {
         #expect(Self.saysMinidisc("Minidiscを開いて接続してください"))
         #expect(!Self.saysMinidisc("Open Hi-MD to connect"))
         #expect(!Self.saysMinidisc("A spinning MiniDisc in place of the cover"))
-        #expect(!Self.saysMinidisc("\(Mood.playlistPrefix)Night"))
+        #expect(!Self.saysMinidisc("\(Mood.legacyPlaylistPrefix)Night"))
         #expect(!Self.saysMinidisc("Minidisc (Loriage)"))
     }
 }

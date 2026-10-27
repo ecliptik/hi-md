@@ -48,12 +48,15 @@ nonisolated enum MoodSkipReason: Error, Sendable, Equatable {
 /// Failed moods retain their cadence marker for retry; prepare warms AudioMuse before searching.
 actor MoodPlaylistService {
     private var isSyncing = false
+    private var isMigratingNames = false
     private let preferences: MoodPreferences
     private var revision = 0
     private let makePlaylistClient: @Sendable (String) async throws -> (client: any MoodPlaylistClient, owner: String?)
     private let recordMutation: (@Sendable (String, PlaylistWithSongs?, String?) async -> Void)?
     private let makeProvider: @Sendable () async -> (any MoodTrackProvider)?
     private let applyCover: (@Sendable (PlaylistGradientSpec, String, String) async -> Void)?
+    private let recordRename: (@Sendable (String, Playlist) async -> Void)?
+    private let isOnline: @Sendable () async -> Bool
 
     static let attemptThrottle: TimeInterval = 3600
 
@@ -62,13 +65,16 @@ actor MoodPlaylistService {
         playlistOwner: String? = nil,
         providerFactory: @escaping @Sendable () async -> (any MoodTrackProvider)?,
         coverApplier: (@Sendable (PlaylistGradientSpec, String, String) async -> Void)? = nil,
-        preferences: MoodPreferences = MoodPreferences()
+        preferences: MoodPreferences = MoodPreferences(),
+        isOnline: @escaping @Sendable () async -> Bool = { true }
     ) {
         self.makePlaylistClient = { _ in (try await playlistClientFactory(), playlistOwner) }
         self.recordMutation = nil
+        self.recordRename = nil
         self.makeProvider = providerFactory
         self.applyCover = coverApplier
         self.preferences = preferences
+        self.isOnline = isOnline
     }
 
     init(
@@ -90,6 +96,11 @@ actor MoodPlaylistService {
             guard await serverService.activeConnectionVersion()?.serverID.uuidString == serverId else { return }
             await catalog.recordPlaylistMutation(summary: nil, detail: detail, deletedID: deletedID)
         }
+        self.recordRename = { serverId, summary in
+            guard await serverService.activeConnectionVersion()?.serverID.uuidString == serverId else { return }
+            await catalog.recordPlaylistMutation(summary: summary, detail: nil)
+        }
+        self.isOnline = { await MainActor.run { serverState.isOnline } }
         self.makeProvider = {
             if let urlString = await MainActor.run(body: { serverState.activeServer?.audioMuseURL }),
                let credentials = try? await serverService.activeConnection().credentials,
@@ -305,7 +316,9 @@ actor MoodPlaylistService {
     /// Validates saved IDs and recovers by name after reinstall to avoid duplicate playlists.
     private func resolvePlaylistId(for mood: Mood, serverId: String, client: any PlaylistSyncClient, owner: String?, automatic: Bool) async throws -> String {
         try checkCanContinue(automatic: automatic)
-        let playlists = try await client.getPlaylists(username: nil)
+        var playlists = try await client.getPlaylists(username: nil)
+        try checkCanContinue(automatic: automatic)
+        playlists = try await migrateNamesIfNeeded(playlists, client: client, serverId: serverId, owner: owner)
         try checkCanContinue(automatic: automatic)
         if let existing = matchingPlaylist(mood, in: playlists, serverId: serverId, owner: owner) {
             preferences.setPlaylistId(existing.id, mood: mood, serverId: serverId)
@@ -317,12 +330,17 @@ actor MoodPlaylistService {
         return created.id
     }
 
+    /// The user's playlist for `mood`: one with the Hi-MD name if there is one, otherwise one still
+    /// named the Minidisc way. Among several, the one already in use, then the lowest id.
     private func matchingPlaylist(_ mood: Mood, in playlists: [Playlist], serverId: String, owner: String?) -> Playlist? {
-        let candidates = playlists.filter {
-            $0.name == mood.playlistName && (owner == nil || $0.owner == nil || $0.owner == owner)
-        }
         let cached = preferences.playlistId(mood: mood, serverId: serverId)
-        return candidates.first(where: { $0.id == cached }) ?? candidates.sorted { $0.id < $1.id }.first
+        for name in mood.playlistNames {
+            let candidates = playlists.filter { $0.name == name && PlaylistNameMigration.isOwned($0, by: owner) }
+            if let match = candidates.first(where: { $0.id == cached }) ?? candidates.sorted(by: { $0.id < $1.id }).first {
+                return match
+            }
+        }
+        return nil
     }
 
     /// Discovery is independent of generation: even with automation off, recover playlists
@@ -331,10 +349,50 @@ actor MoodPlaylistService {
         guard !isSyncing else { throw CancellationError() }
         let readRevision = revision
         let (client, owner) = try await makePlaylistClient(serverId)
-        let playlists = try await client.getPlaylists(username: nil)
+        var playlists = try await client.getPlaylists(username: nil)
+        try Task.checkCancellation()
+        guard !isSyncing, revision == readRevision else { throw CancellationError() }
+        playlists = try await migrateNamesIfNeeded(playlists, client: client, serverId: serverId, owner: owner)
         try Task.checkCancellation()
         guard !isSyncing, revision == readRevision else { throw CancellationError() }
         return reconcile(playlists, serverId: serverId, owner: owner)
+    }
+
+    // MARK: - Name migration
+
+    /// Renames this server's mood playlists from "Minidisc · Night" to "Hi-MD · Night", once.
+    /// Only while online, only the user's own playlists, and only where no playlist has the new
+    /// name yet (see `PlaylistNameMigration`). Returns the listing with the new names; a failed
+    /// rename leaves the migration to be tried again on the next listing.
+    private func migrateNamesIfNeeded(_ playlists: [Playlist], client: any PlaylistSyncClient, serverId: String, owner: String?) async throws -> [Playlist] {
+        guard !isMigratingNames,
+              !preferences.hasMigratedPlaylistNames(serverId: serverId),
+              let renamer = client as? any PlaylistRenaming,
+              await isOnline()
+        else { return playlists }
+        // Checked again: the actor may have run another listing while `isOnline` was awaited.
+        guard !isMigratingNames, !preferences.hasMigratedPlaylistNames(serverId: serverId) else { return playlists }
+        isMigratingNames = true
+        defer { isMigratingNames = false }
+        try Task.checkCancellation()
+        let migration = PlaylistNameMigration.moods
+        let inUse = Set(Mood.allCases.compactMap { preferences.playlistId(mood: $0, serverId: serverId) })
+        let renames = migration.plan(playlists, owner: owner, preferredIDs: inUse)
+        let outcome = try await migration.perform(renames, in: playlists, client: renamer)
+        for playlist in outcome.renamed {
+            await recordRename?(serverId, playlist)
+            // The gradient cover has the name drawn on it, so draw it again with the new one.
+            if let applyCover, let mood = Mood.forPlaylistName(playlist.name) {
+                try Task.checkCancellation()
+                await applyCover(mood.gradientSpec, playlist.id, playlist.name)
+            }
+        }
+        try Task.checkCancellation()
+        if outcome.failed == 0 {
+            preferences.setMigratedPlaylistNames(serverId: serverId)
+            Logger.moodPlaylists.info("[NAME-MIGRATION] moods done for \(serverId, privacy: .public): renamed \(outcome.renamed.count, privacy: .public)")
+        }
+        return outcome.playlists
     }
 
     func cachedPlaylists(serverId: String) -> [MoodPlaylist] {
@@ -369,12 +427,12 @@ actor MoodPlaylistService {
             let playlists = try await client.getPlaylists(username: nil)
             try Task.checkCancellation()
             _ = reconcile(playlists, serverId: serverId, owner: owner)
-            let names = Set(Mood.allCases.map(\.playlistName))
+            let names = Set(Mood.allCases.flatMap(\.playlistNames))
             var remaining = playlists
             var deleted = 0
             var failed = 0
             for playlist in playlists where names.contains(playlist.name)
-                && (owner == nil || playlist.owner == nil || playlist.owner == owner) {
+                && PlaylistNameMigration.isOwned(playlist, by: owner) {
                 try Task.checkCancellation()
                 do {
                     do { try await client.deletePlaylist(id: playlist.id) }

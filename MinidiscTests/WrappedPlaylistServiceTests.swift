@@ -126,7 +126,7 @@ struct WrappedPlaylistServiceTests {
         let creates = await mock.createPlaylistCalls
         // 2 calls: first creates the empty playlist, second replaces it
         #expect(creates.count == 2)
-        #expect(creates[0].name == "Minidisc Wrapped 2026")
+        #expect(creates[0].name == "Hi-MD Wrapped 2026")
         #expect(creates[0].playlistId == nil)
         #expect(creates[0].songIds.isEmpty)
         #expect(creates[1].name == nil)

@@ -151,7 +151,7 @@ final class AppContainer {
         )
         libraryCatalog = catalog
         lyricsService = LyricsService(serverService: server, modelContainer: modelContainer)
-        wrappedPlaylistService = WrappedPlaylistService(serverService: server, statsService: stats)
+        wrappedPlaylistService = WrappedPlaylistService(serverService: server, statsService: stats, catalog: catalog)
         radioService = RadioService(serverService: server)
 
         let download = DownloadService(serverService: server, modelContainer: modelContainer, toastService: toastService,

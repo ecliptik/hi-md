@@ -193,13 +193,13 @@ struct PlaybackContextModelTests {
         #expect(station.queueHeader == "Playing Next from DJ Shadow Station")
     }
 
-    @Test("Mood and Wrapped playlists are recognised by the names Minidisc gives them")
+    @Test("Mood and Wrapped playlists are recognised by the names the app gives them, old and new")
     func playlistRecognition() {
         #expect(PlaybackContext.forPlaylist(id: "p1", name: Mood.chill.playlistName, coverArtId: nil)
                 == .mood(.chill, playlistId: "p1"))
         let wrapped = PlaybackContext.forPlaylist(id: "p2", name: "Minidisc Wrapped 2025", coverArtId: nil)
         #expect(wrapped == .wrapped(year: 2025, playlistId: "p2"))
-        #expect(wrapped.destination == .playlist(id: "p2", name: "Minidisc Wrapped 2025", coverArtId: nil))
+        #expect(wrapped.destination == .playlist(id: "p2", name: "Hi-MD Wrapped 2025", coverArtId: nil))
         #expect(PlaybackContext.mood(.night, playlistId: "p3").symbolName == Mood.night.symbolName)
         #expect(PlaybackContext.forPlaylist(id: "p4", name: "Road Trip", coverArtId: "c")
                 == .playlist(id: "p4", name: "Road Trip", coverArtId: "c"))

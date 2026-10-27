@@ -85,6 +85,17 @@ nonisolated final class WrappedPreferences: Sendable {
         userDefaults.removeObject(forKey: Self.playlistIdKey(year, serverId))
     }
 
+    // MARK: - Playlist name migration
+
+    /// Whether the Wrapped playlists on this server have been renamed from their Minidisc names.
+    func hasMigratedPlaylistNames(serverId: String) -> Bool {
+        userDefaults.bool(forKey: "minidisc.wrapped.playlistNamesMigrated.\(serverId)")
+    }
+
+    func setMigratedPlaylistNames(serverId: String) {
+        userDefaults.set(true, forKey: "minidisc.wrapped.playlistNamesMigrated.\(serverId)")
+    }
+
     // MARK: - Last known year marker
 
     func lastWrappedYear(serverId: String) -> Int? {

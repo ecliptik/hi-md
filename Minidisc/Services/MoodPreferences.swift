@@ -97,6 +97,20 @@ nonisolated final class MoodPreferences: Sendable {
         userDefaults.set(kind.rawValue, forKey: Self.lastSourceKey(serverId))
     }
 
+    /// Whether the mood playlists on this server have been renamed from their Minidisc names.
+    /// Survives `reset`, since the playlists stay on the server.
+    func hasMigratedPlaylistNames(serverId: String) -> Bool {
+        userDefaults.bool(forKey: Self.nameMigrationKey(serverId))
+    }
+
+    func setMigratedPlaylistNames(serverId: String) {
+        userDefaults.set(true, forKey: Self.nameMigrationKey(serverId))
+    }
+
+    private static func nameMigrationKey(_ serverId: String) -> String {
+        "minidisc.mood.playlistNamesMigrated.\(serverId)"
+    }
+
     func markAllDue(serverId: String) {
         userDefaults.removeObjects(forKeys:
             Mood.allCases.map { Self.cycleKey($0, serverId) }
