@@ -45,6 +45,17 @@ nonisolated struct LyricsLineAppearance: Equatable, Sendable {
     }
 }
 
+/// The colour of a lyric line. The players (Now Playing, full screen, the MiniPlayer, the
+/// iPhone) always draw lyrics over a dark cover backdrop, so they're white. The Mac main window's
+/// lyrics panel sits on the window's own background, light or dark, so its lines take the
+/// system's primary label colour, the lines around the one being sung the same colour at the
+/// line's opacity (a secondary-like grey on either background), and adapt with the appearance.
+enum LyricsLineColors {
+    static func style(opacity: Double, onWindowBackground: Bool) -> AnyShapeStyle {
+        onWindowBackground ? AnyShapeStyle(.primary.opacity(opacity)) : AnyShapeStyle(Color.white.opacity(opacity))
+    }
+}
+
 struct LyricsLineView: View {
     let value: String
     let index: Int
@@ -120,7 +131,7 @@ struct LyricsLineView: View {
             .font(lineFont)
             .multilineTextAlignment(isKaraoke ? .center : .leading)
             .frame(maxWidth: .infinity, alignment: isKaraoke ? .center : .leading)
-            .foregroundStyle(.white.opacity(opacity))
+            .foregroundStyle(LyricsLineColors.style(opacity: opacity, onWindowBackground: typography.usesSystemColors))
             .blur(radius: blurRadius)
             .scaleEffect(isKaraoke && distance == 0 && currentIndex != nil ? 1.12 : scale,
                          anchor: isKaraoke ? .center : .leading)

@@ -26,7 +26,8 @@ struct MacInspector: View {
             Divider()
             switch pane {
             case .lyrics:
-                // On the window's own background, so untimed lyrics take the system's colours.
+                // On the window's own background, light or dark, so the lyrics take the system's
+                // colours rather than the players' white.
                 MacLyricsPane(container: container, session: lyrics)
                     .environment(\.lyricsTypography, .mainWindowPanel)
             case .queue:

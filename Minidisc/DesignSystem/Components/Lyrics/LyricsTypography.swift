@@ -20,7 +20,9 @@ nonisolated struct LyricsTypography: Equatable, Sendable {
     /// platform's: 17 points on the iPhone, scaling with Dynamic Type, and 15 on the Mac.
     var plainSize: Double?
     /// The system's primary and secondary text colours instead of the player's white, for a
-    /// pane on the window's own background (the Mac main window's lyrics panel).
+    /// pane on the window's own background (the Mac main window's lyrics panel): timed lines in
+    /// the primary label colour at their depth's opacity, untimed lyrics and the empty states in
+    /// primary and secondary, readable in the light and dark appearances alike.
     var usesSystemColors = false
 
     static let iPhone = LyricsTypography()

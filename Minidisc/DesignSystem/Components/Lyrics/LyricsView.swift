@@ -4,7 +4,7 @@ import SwiftSonic
 struct LyricsView: View {
     @Bindable var viewModel: LyricsViewModel
     /// The player's secondary white: the system secondary is 2.9:1 on a saturated backdrop.
-    private static let secondary = Color.white.opacity(PlayerBackgroundPalette.secondaryOpacity)
+    private static let playerSecondary = Color.white.opacity(PlayerBackgroundPalette.secondaryOpacity)
     @State private var showsKaraoke = false
     @State private var visibility = LyricsVisibilityHandoff()
     @Environment(\.lyricsTypography) private var typography
@@ -161,7 +161,7 @@ struct LyricsView: View {
                         Text(displayName(for: viewModel.selectedLanguage ?? "und"))
                     }
                     .font(.callout)
-                    .foregroundStyle(.white.opacity(0.8))
+                    .foregroundStyle(headerStyle)
                 }
             }
 
@@ -211,10 +211,10 @@ struct LyricsView: View {
         VStack(spacing: 16) {
             Image(systemName: "music.note.list")
                 .font(.system(size: 40))
-                .foregroundStyle(Self.secondary)
+                .foregroundStyle(secondary)
             Text("No lyrics available")
                 .font(.minidiscDetailTitle)
-                .foregroundStyle(Self.secondary)
+                .foregroundStyle(secondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -223,13 +223,13 @@ struct LyricsView: View {
         VStack(spacing: 16) {
             Image(systemName: "exclamationmark.triangle")
                 .font(.system(size: 40))
-                .foregroundStyle(Self.secondary)
+                .foregroundStyle(secondary)
             Text("Lyrics not supported")
                 .font(.minidiscDetailTitle)
-                .foregroundStyle(Self.secondary)
+                .foregroundStyle(secondary)
             Text("Update your Navidrome server to enable the songLyrics extension")
                 .font(.callout)
-                .foregroundStyle(Self.secondary)
+                .foregroundStyle(secondary)
                 .multilineTextAlignment(.center)
         }
         .padding()
@@ -240,18 +240,29 @@ struct LyricsView: View {
         VStack(spacing: 16) {
             Image(systemName: "exclamationmark.octagon")
                 .font(.system(size: 40))
-                .foregroundStyle(Self.secondary)
+                .foregroundStyle(secondary)
             Text("Failed to load lyrics")
                 .font(.minidiscDetailTitle)
             Text(message)
                 .font(.caption)
-                .foregroundStyle(Self.secondary)
+                .foregroundStyle(secondary)
         }
         .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     // MARK: - Helpers
+
+    /// The player's secondary white, or the system's secondary on the Mac main window's panel,
+    /// which sits on the window's own background.
+    private var secondary: AnyShapeStyle {
+        typography.usesSystemColors ? AnyShapeStyle(.secondary) : AnyShapeStyle(Self.playerSecondary)
+    }
+
+    /// The header's language menu: the player's soft white, or the system's primary on the panel.
+    private var headerStyle: AnyShapeStyle {
+        typography.usesSystemColors ? AnyShapeStyle(.primary) : AnyShapeStyle(Color.white.opacity(0.8))
+    }
 
     private func displayName(for lang: String) -> String {
         guard lang != "und", lang != "xxx" else { return "—" }
