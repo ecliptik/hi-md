@@ -105,6 +105,7 @@ final class HomeFeedViewModel {
         pendingSections = isOnline ? [.playlists, .history, .recent, .genres, .habits] : [.playlists, .recent]
         if isOnline && starredService != nil { pendingSections.insert(.favorites) }
         let service = libraryService
+        let shuffleSeed = serverID?.uuidString ?? ""
         var staged = snapshot
         await withTaskGroup(of: SectionResult.self) { group in
             group.addTask {
@@ -129,16 +130,20 @@ final class HomeFeedViewModel {
                 group.addTask { await Self.fetch(.history) { .history(try await service.recentlyPlayedAlbums(size: 20)) } }
                 group.addTask {
                     await Self.fetch(.genres) {
+                        // A few spare genres, as albums tagged with several genres would otherwise
+                        // fill neighbouring shelves with the same records.
                         let genres = try await service.genres()
-                            .filter { $0.albumCount > 0 }.sorted { $0.albumCount > $1.albumCount }.prefix(5)
-                        var shelves: [GenreShelf] = []
+                            .filter { $0.albumCount > 0 }.sorted { $0.albumCount > $1.albumCount }.prefix(9)
+                        var fetched: [(name: String, albums: [AlbumID3])] = []
                         // A separate task from the main shelves: a slow genre never holds them back.
                         for genre in genres {
                             try Task.checkCancellation()
-                            let albums = try await service.albumsByGenre(genre.value, size: 20)
-                            if !albums.isEmpty { shelves.append(GenreShelf(name: genre.value, albums: albums)) }
+                            fetched.append((genre.value, try await service.albumsByGenre(genre.value, size: 60)))
                         }
-                        return .genres(shelves)
+                        // A new mix each day, steady within it.
+                        let day = Calendar.current.ordinality(of: .day, in: .era, for: Date()) ?? 0
+                        let shelves = HomePersonalization.distinctGenreShelves(fetched, seed: "\(shuffleSeed)-\(day)")
+                        return .genres(shelves.map { GenreShelf(name: $0.name, albums: $0.albums) })
                     }
                 }
             }

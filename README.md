@@ -91,6 +91,8 @@ The fork follows its own direction and doesn't send changes upstream, but it mer
 
 ## Screenshots
 
+### iPhone
+
 | | | |
 |:-:|:-:|:-:|
 | <img src="docs/screenshots/ios/12-now-playing-disc.jpg" alt="Now Playing with the spinning Hi-MD disc" width="240"> | <img src="docs/screenshots/ios/11-now-playing-colours.jpg" alt="Now Playing coloured by the cover" width="240"> | <img src="docs/screenshots/ios/05-album.jpg" alt="Album page" width="240"> |
@@ -98,9 +100,22 @@ The fork follows its own direction and doesn't send changes upstream, but it mer
 | <img src="docs/screenshots/ios/06-library.jpg" alt="Library" width="240"> | <img src="docs/screenshots/ios/07-albums.jpg" alt="Albums list" width="240"> | <img src="docs/screenshots/ios/08-playlists.jpg" alt="Playlists" width="240"> |
 | Library | Albums, with an index | Playlists, with search |
 | <img src="docs/screenshots/ios/13-playlist.jpg" alt="Playlist page" width="240"> | <img src="docs/screenshots/ios/09-recommended.jpg" alt="Recommended for You" width="240"> | <img src="docs/screenshots/ios/10-playback-settings.jpg" alt="Playback settings" width="240"> |
-| Playlists, with hearts on favourite songs | Recommendations from Apple Intelligence, checked against MusicBrainz | Playback settings, in Plexamp's order |
+| A playlist, with hearts on favourite songs | Recommendations from Apple Intelligence, checked against MusicBrainz and your library | Playback settings, in Plexamp's order |
 | <img src="docs/screenshots/ios/14-quality.jpg" alt="Quality settings" width="240"> |  |  |
 | Separate quality for Wi-Fi and cellular |  |  |
+
+### Mac
+
+| | |
+|:-:|:-:|
+| <img src="docs/screenshots/mac/01-home.jpg" alt="Hi-MD for Mac: Home with playlists, favourite songs and albums" width="420"> | <img src="docs/screenshots/mac/06-albums.jpg" alt="The album grid" width="420"> |
+| Home, with the floating glass player | Albums |
+| <img src="docs/screenshots/mac/07-album.jpg" alt="An album page" width="420"> | <img src="docs/screenshots/mac/08-album-miniamp.jpg" alt="Miniamp with the Hi-MD Gold skin, over an album with Playing Next" width="420"> |
+| An album page | Miniamp, with the Hi-MD Gold skin, beside Playing Next |
+| <img src="docs/screenshots/mac/02-now-playing-queue.jpg" alt="Now Playing with Playing Next" width="420"> | <img src="docs/screenshots/mac/03-now-playing-lyrics.jpg" alt="Now Playing with synced lyrics" width="420"> |
+| Now Playing, with Playing Next | Synced lyrics that follow the song and the scrubber |
+| <img src="docs/screenshots/mac/04-miniplayer-wide.jpg" alt="The MiniPlayer, wide, with its queue" width="420"> | <img src="docs/screenshots/mac/05-miniplayer-disc.jpg" alt="The MiniPlayer showing the spinning Hi-MD disc" width="300"> |
+| The MiniPlayer, with the queue beside the artwork | Click the artwork for the spinning Hi-MD |
 
 ## Features from upstream
 

@@ -34,6 +34,32 @@ struct HomePersonalizationTests {
         #expect(HomePersonalization.relevantAdditions([sameNameOtherID, missingID], favorites: favorites, frequent: []).map(\.id) == ["missing"])
     }
 
+    @Test("Genre shelves don't repeat albums tagged with several genres")
+    func distinctGenreShelves() throws {
+        let shared = try (0..<8).map { try album("shared-\($0)", artistID: "aphex") }
+        let ambientOnly = try (0..<8).map { try album("ambient-\($0)", artistID: "eno") }
+        let shelves = HomePersonalization.distinctGenreShelves([
+            ("electronic", shared),
+            ("ambient", shared + ambientOnly),
+            ("Electronic", shared),
+            ("experimental", shared),
+        ], minimum: 6, seed: "day")
+        #expect(shelves.map(\.name) == ["electronic", "ambient"])
+        #expect(Set(shelves[0].albums.map(\.id)) == Set(shared.map(\.id)))
+        #expect(Set(shelves[1].albums.map(\.id)) == Set(ambientOnly.map(\.id)))
+    }
+
+    @Test("A genre shelf's order is shuffled, steady for a seed")
+    func genreShelfOrder() throws {
+        let albums = try (0..<20).map { try album("album-\($0)", artistID: "artist") }
+        let first = HomePersonalization.distinctGenreShelves([("rock", albums)], seed: "a")[0].albums.map(\.id)
+        let again = HomePersonalization.distinctGenreShelves([("rock", albums)], seed: "a")[0].albums.map(\.id)
+        let other = HomePersonalization.distinctGenreShelves([("rock", albums)], seed: "b")[0].albums.map(\.id)
+        #expect(first == again)
+        #expect(first != albums.map(\.id))
+        #expect(first != other)
+    }
+
     @Test("The earlier offline Home cache still decodes after the new shelves")
     func oldCacheRemainsReadable() throws {
         let data = Data(#"{"playlists":[],"recentlyPlayed":[],"recentlyAdded":[],"genres":[]}"#.utf8)
