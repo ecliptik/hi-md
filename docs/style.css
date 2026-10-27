@@ -210,7 +210,7 @@ a:hover { text-decoration-thickness: 2px; }
 
 .hero__disc img {
   width: 100%;
-  transform: rotate(var(--tilt, 44deg));
+  transform: rotate(var(--tilt, 22deg));
   transform-origin: 50% 50%;
   filter: drop-shadow(0 18px 22px rgba(0, 0, 0, 0.18));
 }
@@ -232,11 +232,11 @@ a:hover { text-decoration-thickness: 2px; }
     animation: balance 1.6s cubic-bezier(0.3, 0.7, 0.3, 1) 0.2s both;
   }
   @keyframes balance {
-    0%   { transform: rotate(18deg) translateY(-24px); opacity: 0; }
-    35%  { transform: rotate(52deg) translateY(0); opacity: 1; }
-    60%  { transform: rotate(40deg); }
-    80%  { transform: rotate(46deg); }
-    100% { transform: rotate(var(--tilt, 44deg)); }
+    0%   { transform: rotate(9deg) translateY(-24px); opacity: 0; }
+    35%  { transform: rotate(26deg) translateY(0); opacity: 1; }
+    60%  { transform: rotate(20deg); }
+    80%  { transform: rotate(23deg); }
+    100% { transform: rotate(var(--tilt, 22deg)); }
   }
 }
 
@@ -891,7 +891,7 @@ pre:focus-visible { outline-offset: 2px; }
     width: min(300px, 68vw);
     margin-top: 28px;
     margin-bottom: 40px;
-    --tilt: 44deg;
+    --tilt: 22deg;
   }
   .hero__disc::after { bottom: -26px; }
   .hero__copy { padding-top: 32px; }
