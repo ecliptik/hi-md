@@ -100,8 +100,8 @@ The fork follows its own direction and doesn't send changes upstream, but it mer
   </tr>
   <tr>
     <td align="center" width="33%"><img src="docs/screenshots/ios/13-playlist.jpg" alt="A playlist" width="240"><br>Playlist</td>
-    <td align="center" width="33%"><img src="docs/screenshots/ios/05-album.jpg" alt="An album page with its favourite button" width="240"><br>Album, with a favourite button</td>
-    <td align="center" width="33%"><img src="docs/screenshots/ios/12-now-playing-disc.jpg" alt="Now Playing with the spinning Hi-MD disc" width="240"><br>Tap the cover for the spinning disc</td>
+    <td align="center" width="33%"><img src="docs/screenshots/ios/05-album.jpg" alt="An album page with its favourite button" width="240"><br>Album details</td>
+    <td align="center" width="33%"><img src="docs/screenshots/ios/12-now-playing-disc.jpg" alt="Now Playing with the spinning Hi-MD disc" width="240"><br>Just like a real MiniDisc</td>
   </tr>
 </table>
 
