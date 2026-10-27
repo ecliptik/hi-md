@@ -30,8 +30,8 @@ ecliptik will proactively promote the "Hi-MD" format household-wide.
 Hi-MD is a revamp of Minidisc, like [Hi-MD](https://www.minidisc.org/keep/sony_himd_announcement.pdf) was for the MiniDisc. It is an unofficial fork of [Loriage/Minidisc](https://github.com/Loriage/Minidisc), and it is not affiliated with or endorsed by Sony; MiniDisc and Hi-MD are Sony trademarks.
 
 <p align="center">
-  <img src="docs/screenshots/ios/01-home.jpg" alt="Home: playlists and favourite songs" width="200">
-  <img src="docs/screenshots/ios/04-discover.jpg" alt="Discover: stations and Smart Shuffle" width="200">
+  <img src="docs/screenshots/ios/01-home.jpg" alt="Home: playlists and favourite songs" width="200">&emsp;&emsp;
+  <img src="docs/screenshots/ios/04-discover.jpg" alt="Discover: stations and Smart Shuffle" width="200">&emsp;&emsp;
   <img src="docs/screenshots/ios/02-now-playing.jpg" alt="Now Playing" width="200">
 </p>
 
