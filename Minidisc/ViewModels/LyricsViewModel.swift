@@ -118,7 +118,7 @@ final class LyricsViewModel {
     }
 
     func update(elapsedMs: Int) {
-        guard case .loaded(let structured) = state, structured.synced else {
+        guard case .loaded(let structured) = state, structured.isTimed else {
             currentLineIndex = nil
             return
         }
@@ -200,8 +200,9 @@ final class LyricsViewModel {
 
     // MARK: - Seek
 
+    /// Plays from a tapped line. Untimed lyrics have nowhere to seek to, so a tap does nothing.
     func userTapped(lineIndex: Int) {
-        guard case .loaded(let structured) = state, structured.synced else { return }
+        guard case .loaded(let structured) = state, structured.isTimed else { return }
         guard lineIndex < structured.line.count else { return }
         guard let startMs = structured.line[lineIndex].start else { return }
         let targetSeconds = TimeInterval(startMs + structured.offset) / 1000.0
@@ -241,10 +242,25 @@ final class LyricsViewModel {
 
     var isPlaying: Bool { playerState.playbackState == .playing }
 
-    private var hasSyncedLyrics: Bool {
-        if case .loaded(let structured) = state { return structured.synced }
+    /// Lyrics with real timings, which follow the song, highlight the line being sung and seek
+    /// on a tap. Untimed lyrics (plain text, or every line at zero) read as plain text instead:
+    /// no line tracking, no Follow Lyrics, nothing moves when the song is scrubbed.
+    var isTimed: Bool {
+        if case .loaded(let structured) = state { return structured.isTimed }
         return false
     }
+
+    /// The note above untimed lyrics, so they don't look like synced lyrics that stopped
+    /// following the song. None for timed lyrics, while loading, and for LRCLIB's lone
+    /// "Instrumental" line.
+    var untimedNote: LocalizedStringResource? {
+        guard case .loaded(let structured) = state, !structured.isTimed else { return nil }
+        let values = structured.line.map(\.value).filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
+        guard !values.isEmpty, values != [String(localized: "Instrumental")] else { return nil }
+        return Self.untimedNoteText
+    }
+
+    nonisolated static let untimedNoteText: LocalizedStringResource = "Lyrics aren't timed for this song"
 
     /// Called when a lyrics view appears/disappears. The auto-scroll resume task is torn down once
     /// no view shows the lyrics.
@@ -262,9 +278,9 @@ final class LyricsViewModel {
         reconcileTracking()
     }
 
-    /// Runs line tracking only for visible, playing, time-synced lyrics.
+    /// Runs line tracking only for visible, playing, timed lyrics.
     func reconcileTracking() {
-        if isShown && isPlaying && hasSyncedLyrics {
+        if isShown && isPlaying && isTimed {
             startTimer()
         } else {
             stopTimer()
