@@ -30,63 +30,33 @@ ecliptik will proactively promote the "Hi-MD" format household-wide.
 Hi-MD is a revamp of Minidisc, like [Hi-MD](https://www.minidisc.org/keep/sony_himd_announcement.pdf) was for the MiniDisc. It is an unofficial fork of [Loriage/Minidisc](https://github.com/Loriage/Minidisc), and it is not affiliated with or endorsed by Sony; MiniDisc and Hi-MD are Sony trademarks.
 
 <p align="center">
-  <img src="docs/screenshots/ios/01-home.jpg" alt="Home: playlists and favourite songs" width="200">&emsp;&emsp;
-  <img src="docs/screenshots/ios/04-discover.jpg" alt="Discover: stations and Smart Shuffle" width="200">&emsp;&emsp;
-  <img src="docs/screenshots/ios/02-now-playing.jpg" alt="Now Playing" width="200">
+  <img src="docs/screenshots/ios/01-home.jpg" alt="Hi-MD on iPhone: Home with playlists and favourite songs" height="390">&emsp;&emsp;
+  <img src="docs/screenshots/mac/01-home.jpg" alt="Hi-MD on Mac: Home with the sidebar, shelves and the floating player" height="390">
 </p>
 
-## About this fork
+## Features
 
-This repository, Hi-MD, is a fork of [Loriage/Minidisc](https://github.com/Loriage/Minidisc), which is itself a fork of [Cassette](https://github.com/CassetteLab/cassette) by Mathieu Dubart. It began as Minidisc and was renamed Hi-MD in October 2026. Hi-MD is a SwiftUI player for servers that speak the Subsonic or OpenSubsonic API, such as [Navidrome](https://www.navidrome.org). It has no accounts and no tracking: your music goes between your device and your server.
+**Listening**
 
-The fork follows its own direction and doesn't send changes upstream, but it merges upstream work from time to time. It is built for one person's library and devices and is shared as source only: there is no App Store listing, TestFlight or prebuilt `.ipa`. For the original app, its releases and its App Store listing, go to [upstream Minidisc](https://github.com/Loriage/Minidisc).
+- An Apple Music–style player on iPhone, iPad, Apple Watch and Mac, with a full-screen player, synced and karaoke lyrics, a sleep timer and AirPlay.
+- Gapless playback and real crossfades on a two-deck engine, lossless streaming on Wi-Fi with a lighter format per network, a 10-band equalizer with [AutoEq](https://github.com/jaakkopasanen/AutoEq) headphone corrections, and loudness leveling.
+- Buffering built for weak networks: songs buffer minutes ahead, upcoming, favourite, recently played and pinned songs are cached for offline listening, and albums download for later. [docs/PlaybackContinuity.md](docs/PlaybackContinuity.md) has the details.
 
-[FORK.md](FORK.md) has the details for anyone building or maintaining the fork: what differs from upstream, how upstream changes are merged, and what to keep when merging.
+**Your library**
 
-## What's different from upstream
+- Home shelves; Discover with artist stations, Smart Shuffle, moods and Wrapped; internet radio; and a library of albums, artists, songs, genres, playlists and favourites synced with your server.
+- Album recommendations from Apple Intelligence on the device, or from Anthropic or OpenAI with your own key, checked against MusicBrainz and your library.
+- Lidarr: add artists, find missing albums and follow the download queue. AudioMuse-AI mood playlists.
 
-**Playback**
+**On the Mac**
 
-- A single Playback settings page in Plexamp's order: Audio Output, Quality, Loudness Leveling, Crossfade, Downmix to Stereo, Equalizer, Autoplay and Caching.
-- A 10-band equalizer with presets, a curve editor on AutoEQ's bands, and a search of [AutoEq](https://github.com/jaakkopasanen/AutoEq) headphone corrections.
-- Loudness leveling with a preamp and a peak limiter.
-- Autoplay with Album Direction (continue with similar music, or stop when a chosen album ends) and a choice of whether Autoplay songs count as plays.
-- The two-deck engine keeps gapless playback and real crossfades through all of this.
+- A native Mac app with a Music-style library, a full-window Now Playing with lyrics, a MiniPlayer that shrinks down to a bar of controls, and a menu bar player, in Liquid Glass.
+- Miniamp (View › Miniamp, ⌘⇧W): a compact player that loads classic Winamp 2 skins (`.wsz`), with playlist and equalizer windows and its own Hi-MD Gold skin.
 
-**Buffering, caching and weak networks**
+**Across Apple platforms**
 
-- Remote songs buffer four minutes ahead on both decks, and the playing song downloads in full from its first second.
-- Upcoming songs are pre-cached per network, cellular included, along with recently played and pinned songs. A Caching page controls how far ahead.
-- Streams above a per-network bitrate threshold are converted by the server; each cached copy remembers its quality.
-- Stalls wait while data still arrives, then switch to a complete local copy when one is at least as good as the stream.
-- An unreachable server counts as offline, and scrobbles wait until it is back. Cellular rules also apply through a VPN tunnel, such as Tailscale running over cellular.
-- [docs/PlaybackContinuity.md](docs/PlaybackContinuity.md) describes the behaviour in detail.
-
-**Apple platforms**
-
-- Requires iOS 27 and publishes Now Playing through the iOS 27 NowPlaying framework.
-- Widgets, Control Center controls and a download Live Activity.
-- Siri and Shortcuts actions, Spotlight indexing of artists, albums and playlists, and plain-language library search with the on-device model.
-- An Apple Watch remote, and iPad and landscape layouts.
-- CarPlay with Home, Library, Downloads and Moods tabs. It runs in the simulator; a device build needs Apple's CarPlay audio entitlement.
-- A native Mac app (`MinidiscMac`) with the iPhone's Home and Discover as Music-style shelves, a Music-style library, a full-window Now Playing view with lyrics, a MiniPlayer and a menu bar player.
-- Miniamp on the Mac (View › Miniamp, ⌘⇧W): a compact, skinnable player that loads classic Winamp 2 skins (`.wsz`), with docking playlist and equalizer windows, zoom up to 4×, M3U playlists, a server folder browser with search, a demo clip in the spirit of Winamp's, and its own Hi-MD Gold skin. It is separate from the MiniPlayer.
-
-**Interface**
-
-- A redesigned interface: a tile-based Library, a searchable Playlists tab, restyled album, playlist and artist screens, a mini player tinted from the cover, and an Accent Color setting.
-- Full-screen karaoke lyrics, a sleep timer, and a spinning MiniDisc in place of the cover on tap.
-- A photographed MiniDisc, its label hand-lettered "Hi-MD", as the app icon (gold, with dark and light alternates), the logo and the no-artwork placeholder.
-
-**Discovery**
-
-- Album recommendations on Discover from Apple Intelligence on the device, or from Anthropic or OpenAI with your own API key. Missing albums link to Lidarr, Bandcamp and MusicBrainz.
-- ListenBrainz is read-only here: plays reach ListenBrainz through the server's scrobbling, so the app doesn't submit them itself.
-
-**Accessibility and quality**
-
-- VoiceOver, Switch Control, Dynamic Type and Reduce Motion fixes, and a contrast sweep that brings text over covers and tinted surfaces to WCAG AA.
-- Security, concurrency, memory, performance, energy, UX and accessibility audits, with their follow-ups, are in [docs/audits](docs/audits).
+- Widgets, Control Center controls, a download Live Activity, Siri and Shortcuts, Spotlight, an Apple Watch remote, and CarPlay (a device build needs Apple's CarPlay audio entitlement).
+- VoiceOver, Dynamic Type and Reduce Motion support, with text kept to WCAG AA contrast over covers and tinted surfaces.
 
 ## Screenshots
 
@@ -94,14 +64,16 @@ The fork follows its own direction and doesn't send changes upstream, but it mer
 
 <table>
   <tr>
-    <td align="center" width="33%"><img src="docs/screenshots/ios/06-library.jpg" alt="Library" width="240"><br>Library</td>
-    <td align="center" width="33%"><img src="docs/screenshots/ios/07-albums.jpg" alt="Albums list with an index" width="240"><br>Albums</td>
-    <td align="center" width="33%"><img src="docs/screenshots/ios/09-recommended.jpg" alt="Recommended for You" width="240"><br>Recommendations</td>
+    <td align="center" width="25%"><img src="docs/screenshots/ios/04-discover.jpg" alt="Discover: stations and Smart Shuffle" width="190"><br>Discover</td>
+    <td align="center" width="25%"><img src="docs/screenshots/ios/02-now-playing.jpg" alt="Now Playing" width="190"><br>Now Playing</td>
+    <td align="center" width="25%"><img src="docs/screenshots/ios/06-library.jpg" alt="Library" width="190"><br>Library</td>
+    <td align="center" width="25%"><img src="docs/screenshots/ios/07-albums.jpg" alt="Albums list with an index" width="190"><br>Albums</td>
   </tr>
   <tr>
-    <td align="center" width="33%"><img src="docs/screenshots/ios/13-playlist.jpg" alt="A playlist" width="240"><br>Playlist</td>
-    <td align="center" width="33%"><img src="docs/screenshots/ios/05-album.jpg" alt="An album page with its favourite button" width="240"><br>Album details</td>
-    <td align="center" width="33%"><img src="docs/screenshots/ios/12-now-playing-disc.jpg" alt="Now Playing with the spinning Hi-MD disc" width="240"><br>Just like a real MiniDisc</td>
+    <td align="center" width="25%"><img src="docs/screenshots/ios/09-recommended.jpg" alt="Recommended for You" width="190"><br>Recommendations</td>
+    <td align="center" width="25%"><img src="docs/screenshots/ios/13-playlist.jpg" alt="A playlist" width="190"><br>Playlist</td>
+    <td align="center" width="25%"><img src="docs/screenshots/ios/05-album.jpg" alt="An album page with its favourite button" width="190"><br>Album details</td>
+    <td align="center" width="25%"><img src="docs/screenshots/ios/12-now-playing-disc.jpg" alt="Now Playing with the spinning Hi-MD disc" width="190"><br>Just like a real MiniDisc</td>
   </tr>
 </table>
 
@@ -109,29 +81,14 @@ The fork follows its own direction and doesn't send changes upstream, but it mer
 
 <table>
   <tr>
-    <td align="center" width="50%"><img src="docs/screenshots/mac/01-home.jpg" alt="Hi-MD for Mac: Home with playlists, favourite songs and albums" width="420"><br>macOS Home</td>
     <td align="center" width="50%"><img src="docs/screenshots/mac/06-albums.jpg" alt="The album grid" width="420"><br>Albums</td>
-  </tr>
-  <tr>
     <td align="center" width="50%"><img src="docs/screenshots/mac/02-now-playing-queue.jpg" alt="Now Playing with Playing Next" width="420"><br>Now Playing</td>
-    <td align="center" width="50%"><img src="docs/screenshots/mac/03-now-playing-lyrics.jpg" alt="Now Playing with synced lyrics" width="420"><br>Synced lyrics</td>
   </tr>
   <tr>
-    <td align="center" width="50%"><img src="docs/screenshots/mac/08-album-miniamp.jpg" alt="Miniamp with the Hi-MD Gold skin, beside Playing Next" width="420"><br>Miniamp</td>
+    <td align="center" width="50%"><img src="docs/screenshots/mac/03-now-playing-lyrics.jpg" alt="Now Playing with synced lyrics" width="420"><br>Synced lyrics</td>
     <td align="center" width="50%"><img src="docs/screenshots/mac/09-miniamp.jpg" alt="Miniamp with the Hi-MD Gold skin and its playlist" width="420"><br>Miniamp, with the Hi-MD Gold skin</td>
   </tr>
 </table>
-
-## Features from upstream
-
-Everything upstream Minidisc offers is still here, including:
-
-- A player close to Apple Music: a full-screen player, a mini player in the tab bar, Home shelves, background playback, lock screen and Control Center controls, and AirPlay.
-- Your library: playlists, artists, albums, favourites synced with the server, search, offline downloads, lyrics, shuffle, repeat and a full queue.
-- **Wrapped**, a summary of your year of listening.
-- **AudioMuse-AI** mood playlists.
-- **Lidarr**: add artists, search for missing albums, pick releases and follow the download queue.
-- Lossless streaming by default, with a lighter format per network if you want one.
 
 ## Privacy
 
@@ -200,6 +157,12 @@ Run the `MinidiscTests` scheme for unit tests. The UI tests in `MinidiscUITests`
 - **Extensions:** `MinidiscWidgets` (widgets, controls, Live Activity) and `MinidiscWatch`, sharing code through `Shared/` and `WatchShared/`.
 - **Persistence:** SwiftData for app data, the Keychain for credentials.
 - **Concurrency:** Swift 6 strict concurrency.
+
+## About this fork
+
+Hi-MD began as a fork of [Loriage/Minidisc](https://github.com/Loriage/Minidisc), itself a fork of [Cassette](https://github.com/CassetteLab/cassette) by Mathieu Dubart, and was renamed Hi-MD in October 2026. It follows its own direction and doesn't send changes upstream, but merges upstream work from time to time.
+
+It is shared as source only, with no App Store listing, TestFlight or prebuilt builds; for the original app, go to [upstream Minidisc](https://github.com/Loriage/Minidisc). [FORK.md](FORK.md) lists what differs from upstream and how upstream changes are merged.
 
 ## Issues
 
