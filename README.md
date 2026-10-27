@@ -6,9 +6,15 @@
   Hi-MD<br>
   <sub>
     <a href="https://ecliptik.github.io/hi-md/">Website</a> &nbsp;·&nbsp;
+    <a href="#features">Features</a> &nbsp;·&nbsp;
+    <a href="#screenshots">Screenshots</a> &nbsp;·&nbsp;
+    <a href="#privacy">Privacy</a> &nbsp;·&nbsp;
     <a href="#build-from-source">Build from source</a> &nbsp;·&nbsp;
-    <a href="FORK.md">Fork notes</a> &nbsp;·&nbsp;
-    <a href="https://github.com/ecliptik/hi-md/issues">Issues</a>
+    <a href="#architecture">Architecture</a> &nbsp;·&nbsp;
+    <a href="#about-this-fork">About this fork</a> &nbsp;·&nbsp;
+    <a href="#issues">Issues</a> &nbsp;·&nbsp;
+    <a href="#license">License</a> &nbsp;·&nbsp;
+    <a href="#acknowledgments">Acknowledgments</a>
   </sub>
 </h1>
 
