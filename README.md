@@ -31,9 +31,8 @@ Hi-MD is a revamp of Minidisc, like [Hi-MD](https://www.minidisc.org/keep/sony_h
 
 <p align="center">
   <img src="docs/screenshots/ios/01-home.jpg" alt="Home: playlists and favourite songs" width="200">
-  <img src="docs/screenshots/ios/02-now-playing.jpg" alt="Now Playing, showing where the music is playing from" width="200">
-  <img src="docs/screenshots/ios/03-lyrics.jpg" alt="Synced lyrics in the player" width="200">
   <img src="docs/screenshots/ios/04-discover.jpg" alt="Discover: stations and Smart Shuffle" width="200">
+  <img src="docs/screenshots/ios/02-now-playing.jpg" alt="Now Playing" width="200">
 </p>
 
 ## About this fork
@@ -101,8 +100,8 @@ The fork follows its own direction and doesn't send changes upstream, but it mer
 | Library | Albums, with an index | Playlists, with search |
 | <img src="docs/screenshots/ios/13-playlist.jpg" alt="Playlist page" width="240"> | <img src="docs/screenshots/ios/09-recommended.jpg" alt="Recommended for You" width="240"> | <img src="docs/screenshots/ios/10-playback-settings.jpg" alt="Playback settings" width="240"> |
 | A playlist, with hearts on favourite songs | Recommendations from Apple Intelligence, checked against MusicBrainz and your library | Playback settings, in Plexamp's order |
-| <img src="docs/screenshots/ios/14-quality.jpg" alt="Quality settings" width="240"> |  |  |
-| Separate quality for Wi-Fi and cellular |  |  |
+| <img src="docs/screenshots/ios/03-lyrics.jpg" alt="Synced lyrics in the player" width="240"> | <img src="docs/screenshots/ios/14-quality.jpg" alt="Quality settings" width="240"> |  |
+| Synced lyrics in the player | Separate quality for Wi-Fi and cellular |  |
 
 ### Mac
 
