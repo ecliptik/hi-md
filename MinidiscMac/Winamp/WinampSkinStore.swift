@@ -13,7 +13,7 @@ final class WinampSkinStore {
         self.preferences = preferences
     }
 
-    /// Minidisc Gold. Loaded once; every other skin falls back to it for missing sheets.
+    /// Hi-MD Gold. Loaded once; every other skin falls back to it for missing sheets.
     func bundled() -> WinampSkin? {
         if let bundledSkin { return bundledSkin }
         do {
@@ -26,7 +26,7 @@ final class WinampSkinStore {
         }
     }
 
-    /// The skin in the preferences, or Minidisc Gold if it can't be found or read.
+    /// The skin in the preferences, or Hi-MD Gold if it can't be found or read.
     func activeSkin() -> WinampSkin? {
         guard case .custom(let name, let bookmark, let isSecurityScoped) = preferences.skin else { return bundled() }
         do {

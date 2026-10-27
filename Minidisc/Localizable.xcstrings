@@ -10112,158 +10112,158 @@
         }
       }
     },
-    "Winamp Equalizer" : {
+    "Miniamp Equalizer" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Winamp-Equalizer"
+            "value" : "Miniamp-Equalizer"
           }
         },
         "el" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ισοσταθμιστής Winamp"
+            "value" : "Ισοσταθμιστής Miniamp"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ecualizador de Winamp"
+            "value" : "Ecualizador de Miniamp"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Égaliseur Winamp"
+            "value" : "Égaliseur Miniamp"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Equalizzatore Winamp"
+            "value" : "Equalizzatore Miniamp"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Winampイコライザ"
+            "value" : "Miniampイコライザ"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Winamp 均衡器"
+            "value" : "Miniamp 均衡器"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Winamp 等化器"
+            "value" : "Miniamp 等化器"
           }
         }
       }
     },
-    "Winamp Playlist" : {
+    "Miniamp Playlist" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Winamp-Wiedergabeliste"
+            "value" : "Miniamp-Wiedergabeliste"
           }
         },
         "el" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Λίστα αναπαραγωγής Winamp"
+            "value" : "Λίστα αναπαραγωγής Miniamp"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lista de Winamp"
+            "value" : "Lista de Miniamp"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Liste de lecture Winamp"
+            "value" : "Liste de lecture Miniamp"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Playlist Winamp"
+            "value" : "Playlist Miniamp"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Winampプレイリスト"
+            "value" : "Miniampプレイリスト"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Winamp 播放列表"
+            "value" : "Miniamp 播放列表"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Winamp 播放列表"
+            "value" : "Miniamp 播放列表"
           }
         }
       }
     },
-    "Winamp Zoom" : {
+    "Miniamp Zoom" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Winamp-Zoom"
+            "value" : "Miniamp-Zoom"
           }
         },
         "el" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Μεγέθυνση Winamp"
+            "value" : "Μεγέθυνση Miniamp"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zoom de Winamp"
+            "value" : "Zoom de Miniamp"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zoom Winamp"
+            "value" : "Zoom Miniamp"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zoom Winamp"
+            "value" : "Zoom Miniamp"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Winampの拡大"
+            "value" : "Miniampの拡大"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Winamp 缩放"
+            "value" : "Miniamp 缩放"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Winamp 縮放"
+            "value" : "Miniamp 縮放"
           }
         }
       }
@@ -60900,54 +60900,54 @@
         }
       }
     },
-    "Winamp Mode" : {
+    "Miniamp" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Winamp-Modus"
+            "value" : "Miniamp"
           }
         },
         "el" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Λειτουργία Winamp"
+            "value" : "Miniamp"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Modo Winamp"
+            "value" : "Miniamp"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mode Winamp"
+            "value" : "Miniamp"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Modalità Winamp"
+            "value" : "Miniamp"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Winampモード"
+            "value" : "Miniamp"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Winamp 模式"
+            "value" : "Miniamp"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Winamp 模式"
+            "value" : "Miniamp"
           }
         }
       }

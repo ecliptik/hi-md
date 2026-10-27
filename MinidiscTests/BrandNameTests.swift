@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import Minidisc
 
-/// The fork is called Hi-MD. These read the string tables
+/// The fork is called Hi-MD, and its skinned Mac player Miniamp. These read the string tables
 /// the build compiles from the catalogs, in every language, so a string added or translated
 /// with the old names fails here.
 @Suite("Brand names")
@@ -17,6 +17,13 @@ struct BrandNameTests {
         Mood.playlistPrefix,
         WrappedPlaylistService.wrappedPlaylistNamePrefix,
         "Minidisc. Minidisc. Minidisc.",
+    ]
+
+    /// Strings that name the Winamp skin and preset formats, which Miniamp reads; they keep
+    /// the Winamp name.
+    static let allowedWinampKeys: Set<String> = [
+        "This file isn't a Winamp skin, or it's damaged.",
+        "This file isn't a Winamp equalizer preset.",
     ]
 
     struct Entry: CustomStringConvertible {
@@ -72,6 +79,15 @@ struct BrandNameTests {
     func noUserFacingMinidisc() throws {
         let offenders = try Self.entries().filter { Self.saysMinidisc($0.value) }
         #expect(offenders.isEmpty, "Still says Minidisc:\n\(offenders.map(\.description).joined(separator: "\n"))")
+    }
+
+    @Test("The skinned player is Miniamp; only the skin and preset formats say Winamp")
+    func noUserFacingWinampMode() throws {
+        let offenders = try Self.entries().filter {
+            $0.value.contains("Winamp") && !Self.allowedWinampKeys.contains($0.key)
+        }
+        #expect(offenders.isEmpty, "Still says Winamp:\n\(offenders.map(\.description).joined(separator: "\n"))")
+        #expect(String(localized: "Miniamp") == "Miniamp")
     }
 
     @Test("The app's name is Hi-MD")
