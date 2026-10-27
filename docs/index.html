@@ -59,7 +59,7 @@
           <p class="hero__sub">A native app for iPhone and Mac, for Navidrome and other Subsonic and OpenSubsonic servers.</p>
         </div>
         <div class="hero__disc">
-          <img src="assets/disc.webp" srcset="assets/disc-560.webp 560w, assets/disc.webp 960w" sizes="(min-width: 1100px) 420px, 62vw" width="960" height="960" alt="The Hi-MD disc: a clear MiniDisc cartridge, its label hand-lettered Hi-MD, tilted on its side." fetchpriority="high">
+          <img src="assets/disc.webp" srcset="assets/disc-560.webp 560w, assets/disc.webp 960w" sizes="(min-width: 1100px) 420px, 62vw" width="420" height="420" alt="The Hi-MD disc: a clear MiniDisc cartridge, its label hand-lettered Hi-MD, tilted on its side." fetchpriority="high">
         </div>
       </div>
       <div class="band">
@@ -79,10 +79,10 @@
         <h2 class="release__title" id="release-title">“Hi-MD” Established: The Music Player Has Evolved into a Versatile Listening App for the Self-Hosted Era</h2>
         <div class="release__photos">
           <figure class="cutout release__photo release__photo--blue">
-            <img src="assets/photo-walkman-disc.webp" width="760" height="892" loading="lazy" alt="A blue portable MiniDisc recorder with a gold disc, hand-labelled, half-way into its slot.">
+            <img src="assets/photo-walkman-disc.webp" width="380" height="446" loading="lazy" alt="A blue portable MiniDisc recorder with a gold disc, hand-labelled, half-way into its slot.">
           </figure>
           <figure class="cutout release__photo release__photo--silver">
-            <img src="assets/photo-walkman-silver.webp" width="760" height="847" loading="lazy" alt="The same recorder in silver, loading a disc whose label is a hand-drawn illustration.">
+            <img src="assets/photo-walkman-silver.webp" width="380" height="424" loading="lazy" alt="The same recorder in silver, loading a disc whose label is a hand-drawn illustration.">
           </figure>
         </div>
       </div>
@@ -115,13 +115,13 @@
     <section class="hall wrap" id="features" aria-labelledby="hall-title">
       <div class="hall__grid">
         <figure class="shot shot--mac hall__a">
-          <img src="assets/mac-albums.webp" width="1200" height="762" loading="lazy" alt="Hi-MD on Mac: the album grid.">
+          <img src="assets/mac-albums.webp" width="600" height="381" loading="lazy" alt="Hi-MD on Mac: the album grid.">
         </figure>
         <figure class="shot shot--mac hall__d">
-          <img src="assets/mac-lyrics.webp" width="1200" height="753" loading="lazy" alt="Hi-MD on Mac: Now Playing with synced lyrics beside the album cover.">
+          <img src="assets/mac-lyrics.webp" width="600" height="377" loading="lazy" alt="Hi-MD on Mac: Now Playing with synced lyrics beside the album cover.">
         </figure>
         <figure class="phone hall__p">
-          <img src="screenshots/ios/02-now-playing.jpg" width="553" height="1200" loading="lazy" alt="Hi-MD on iPhone: Now Playing, with the album cover, controls and volume.">
+          <img src="screenshots/ios/02-now-playing.jpg" width="184" height="400" loading="lazy" alt="Hi-MD on iPhone: Now Playing, with the album cover, controls and volume.">
         </figure>
       </div>
       <div class="hall__text">
@@ -136,14 +136,15 @@
     </section>
 
     <!-- The label card: Hi-MD's features, handwritten -->
-    <section class="cardsec wrap" id="label" aria-label="Features">
+    <section class="cardsec wrap" id="label" aria-labelledby="label-title">
+      <h2 class="visually-hidden" id="label-title">Features</h2>
       <figure class="labelcard">
-        <img src="assets/photo-label-card.webp" width="1000" height="1053" loading="lazy" alt="A MiniDisc label sheet, filled in by hand with Hi-MD&apos;s features.">
+        <img src="assets/photo-label-card.webp" width="500" height="527" loading="lazy" alt="A MiniDisc label sheet, filled in by hand with Hi-MD&apos;s features.">
         <figcaption class="labelcard__notes">
           <p class="labelcard__title">Hi-MD</p>
           <p class="labelcard__spine">Features</p>
           <ul class="labelcard__side labelcard__side--a" aria-label="Sound">
-            <li class="labelcard__head">Sound</li>
+            <li class="labelcard__head" aria-hidden="true">Sound</li>
             <li>lossless &gt; ATRAC</li>
             <li>gapless, crossfade</li>
             <li>10-band EQ, AutoEq</li>
@@ -153,7 +154,7 @@
             <li>synced lyrics</li>
           </ul>
           <ul class="labelcard__side labelcard__side--b" aria-label="Extras">
-            <li class="labelcard__head">Extras</li>
+            <li class="labelcard__head" aria-hidden="true">Extras</li>
             <li>Recommendations</li>
             <li>Discover + radio</li>
             <li>Miniamp + skins</li>
@@ -168,14 +169,14 @@
     <section class="tunes wrap" id="offline" aria-labelledby="tunes-title">
       <h2 class="tunes__title" id="tunes-title"><span>You could carry</span> <span>a lot more tunes.</span></h2>
       <figure class="cutout tunes__photo">
-        <img src="assets/photo-stack.webp" width="900" height="798" loading="lazy" alt="A stack of a dozen MiniDiscs in clear cases, their spines hand-labelled with album titles, an orange disc on top.">
+        <img src="assets/photo-stack.webp" width="450" height="399" loading="lazy" alt="A stack of a dozen MiniDiscs in clear cases, their spines hand-labelled with album titles, an orange disc on top.">
       </figure>
       <div class="tunes__fan" role="group" aria-label="Five iPhone screens from Hi-MD, fanned out like a hand of cards">
-        <img style="--i:-2" src="screenshots/ios/01-home.jpg" width="553" height="1200" loading="lazy" alt="Home: your playlists and favourite songs.">
-        <img style="--i:-1" src="screenshots/ios/06-library.jpg" width="553" height="1200" loading="lazy" alt="Library: albums, artists, tracks, genres, favourites and downloads.">
-        <img style="--i:0" src="screenshots/ios/07-albums.jpg" width="553" height="1200" loading="lazy" alt="Albums: the full list, with an index down the side.">
-        <img style="--i:1" src="screenshots/ios/05-album.jpg" width="553" height="1200" loading="lazy" alt="An album page, with its play, shuffle and favourite buttons.">
-        <img style="--i:2" src="screenshots/ios/13-playlist.jpg" width="553" height="1200" loading="lazy" alt="A playlist, ready to play or shuffle.">
+        <img style="--i:-2" src="screenshots/ios/01-home.jpg" width="184" height="400" loading="lazy" alt="Home: your playlists and favourite songs.">
+        <img style="--i:-1" src="screenshots/ios/06-library.jpg" width="184" height="400" loading="lazy" alt="Library: albums, artists, tracks, genres, favourites and downloads.">
+        <img style="--i:0" src="screenshots/ios/07-albums.jpg" width="184" height="400" loading="lazy" alt="Albums: the full list, with an index down the side.">
+        <img style="--i:1" src="screenshots/ios/05-album.jpg" width="184" height="400" loading="lazy" alt="An album page, with its play, shuffle and favourite buttons.">
+        <img style="--i:2" src="screenshots/ios/13-playlist.jpg" width="184" height="400" loading="lazy" alt="A playlist, ready to play or shuffle.">
       </div>
       <div class="tunes__column">
         <p>Hi-MD buffers as though the network is out to get it. Songs buffer four minutes ahead on both decks, and the one that’s playing downloads in full from its first second, so a dead spot on the train is only a dead spot on the train.</p>
@@ -194,14 +195,14 @@
     <!-- Ad 5: Miniamp -->
     <section class="amp wrap" id="miniamp" aria-labelledby="amp-title">
       <figure class="amp__shot">
-        <img src="assets/miniamp.webp" width="1600" height="1043" loading="lazy" alt="Miniamp on the Mac, wearing the gold-and-black Hi-MD Gold skin: the main window with its time display and visualizer, beside a playlist window of sixteen songs.">
+        <img src="assets/miniamp.webp" width="800" height="521" loading="lazy" alt="Miniamp on the Mac, wearing the gold-and-black Hi-MD Gold skin: the main window with its time display and visualizer, beside a playlist window of sixteen songs.">
       </figure>
       <div class="amp__text">
         <p class="amp__kicker">It really whips.</p>
         <h2 class="amp__title" id="amp-title">Miniamp.</h2>
         <p>Play your music like it’s 2001. Miniamp is a compact player on the Mac that loads classic Winamp 2 skins, the <span class="nowrap">.wsz</span> files still sitting on a backup drive somewhere.</p>
         <p>Bring out your old Winamp Skins and show off your style. Miniamp comes in its own custom skin, Hi-MD Gold, and zooms to 2× or 4× for modern hi-fi screens.</p>
-        <img class="amp__icon" src="assets/apple-touch-icon.png" width="180" height="180" loading="lazy" alt="The Hi-MD app icon: the disc on a gold tile.">
+        <img class="amp__icon" src="assets/apple-touch-icon.png" width="90" height="90" loading="lazy" alt="The Hi-MD app icon: the disc on a gold tile.">
       </div>
     </section>
 
@@ -209,10 +210,10 @@
     <section class="specs wrap" id="specs" aria-labelledby="specs-title">
       <p class="specs__tagline">One library, on your own server.</p>
       <div class="specs__scatter" role="group" aria-label="Three iPhone screens from Hi-MD and a blue MiniDisc, scattered on the page">
-        <img class="s1" src="screenshots/ios/04-discover.jpg" width="553" height="1200" loading="lazy" alt="Discover: Recommended for You, Stations for You and Smart Shuffle.">
-        <img class="s2" src="screenshots/ios/02-now-playing.jpg" width="553" height="1200" loading="lazy" alt="Now Playing, with the cover, controls and volume.">
-        <img class="s3 cutout" src="assets/photo-md74-blue.webp" width="760" height="725" loading="lazy" alt="A translucent blue MiniDisc with a hand-made label for Massive Attack’s Blue Lines.">
-        <img class="s4" src="screenshots/ios/01-home.jpg" width="553" height="1200" loading="lazy" alt="Home, with playlists and favourite songs.">
+        <img class="s1" src="screenshots/ios/04-discover.jpg" width="184" height="400" loading="lazy" alt="Discover: Recommended for You, Stations for You and Smart Shuffle.">
+        <img class="s2" src="screenshots/ios/02-now-playing.jpg" width="184" height="400" loading="lazy" alt="Now Playing, with the cover, controls and volume.">
+        <img class="s3 cutout" src="assets/photo-md74-blue.webp" width="380" height="363" loading="lazy" alt="A translucent blue MiniDisc with a hand-made label for Massive Attack’s Blue Lines.">
+        <img class="s4" src="screenshots/ios/01-home.jpg" width="184" height="400" loading="lazy" alt="Home, with playlists and favourite songs.">
       </div>
       <div class="specs__head">
         <h2 class="specs__title" id="specs-title">Four places to play.</h2>
@@ -233,10 +234,8 @@
           <li><a href="https://github.com/Loriage/Minidisc">The original app: Minidisc</a></li>
         </ul>
       </div>
-      <figure class="spindisc" role="img" aria-label="The Hi-MD disc, its ring turning as it would in a player.">
-        <img src="assets/spin-base.webp" width="800" height="770" loading="lazy" alt="">
-        <img class="spindisc__hub" src="assets/spin-hub.webp" width="800" height="770" loading="lazy" alt="">
-        <img src="assets/spin-front.webp" width="800" height="770" loading="lazy" alt="">
+      <figure class="spindisc">
+        <img src="assets/spin-base.webp" width="400" height="385" loading="lazy" alt="The Hi-MD disc, its ring turning as it would in a player.">
       </figure>
     </section>
 
@@ -249,17 +248,17 @@
       <p>Hi-MD</p>
     </div>
     <ol class="notes" id="notes">
-      <li id="note-quality"><span class="mark" aria-hidden="true">*</span> Original quality means the file as it sits on your server, so lossless files play lossless. On other networks Hi-MD picks a lighter format.</li>
+      <li id="note-quality"><span class="mark" aria-hidden="true">*</span> Exactly as stored on your server. Other networks get a lighter format.</li>
       <li id="note-recs"><span class="mark" aria-hidden="true">†</span> Anthropic and OpenAI recommendations use your own key. The names of recent and favourite albums, top artists and playlists are sent; the app lists them and asks before the first request. Server credentials are never sent. <a href="https://github.com/ecliptik/hi-md#privacy">Privacy</a></li>
       <li id="note-carplay"><span class="mark" aria-hidden="true">‡</span> A CarPlay build for a device needs Apple’s CarPlay audio entitlement.</li>
     </ol>
     <div class="smallprint__cols">
-      <p>Hi-MD does not track you and has no accounts. Library and playback traffic goes directly to your server, and credentials are kept only in the Keychain.</p>
+      <p>Hi-MD does not track you and has no accounts.</p>
       <p>Hi-MD is a fork of <a href="https://github.com/Loriage/Minidisc">Minidisc</a> by Loriage, itself a fork of <a href="https://github.com/CassetteLab/cassette">Cassette</a> by Mathieu Dubart. It talks to servers through <a href="https://github.com/MathieuDubart/swiftsonic">SwiftSonic</a> by Mathieu Dubart, and its headphone corrections come from <a href="https://github.com/jaakkopasanen/AutoEq">AutoEq</a> by Jaakko Pasanen.</p>
       <p>Licensed under the <a href="https://github.com/ecliptik/hi-md/blob/main/LICENSE">Mozilla Public License 2.0</a>. This project was 100% built agentically using <a href="https://claude.ai/code">Claude Code</a>.</p>
       <p>“MiniDisc” and “Hi-MD” are trademarks of Sony, and “Winamp” is a trademark of its owner. Hi-MD and Miniamp are not affiliated with or endorsed by Sony, Apple, Nullsoft, or Winamp and Llama Group; those names are used only to describe the app.</p>
     </div>
-    <p class="smallprint__links"><a href="https://github.com/ecliptik/hi-md">Source on GitHub</a> <a href="https://github.com/ecliptik/hi-md/issues">Issues</a> <a href="https://github.com/ecliptik/hi-md/blob/main/FORK.md">FORK.md</a> <a href="#top">Back to the top</a></p>
+    <p class="smallprint__links"><a href="https://github.com/ecliptik/hi-md">Source on GitHub</a> <a href="https://github.com/ecliptik/hi-md/issues">Issues</a> <a href="#top">Back to the top</a></p>
   </footer>
 </body>
 </html>
