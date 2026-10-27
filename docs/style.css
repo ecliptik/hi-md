@@ -110,7 +110,11 @@ a:hover { text-decoration-thickness: 2px; }
 /* ------------------------------------------------------------------ */
 /* Masthead: the small print at the top of the page                    */
 
+/* Above the hero: the wordmark's letters reach higher than its lines, and
+   would otherwise take the menu's clicks. */
 .masthead {
+  position: relative;
+  z-index: 2;
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
@@ -475,6 +479,9 @@ a:hover { text-decoration-thickness: 2px; }
 
 .tunes {
   margin-top: var(--spread);
+}
+.cardsec + .tunes { margin-top: clamp(48px, 6vw, 88px); }
+.tunes {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(15rem, 19rem);
   grid-template-areas:
@@ -590,10 +597,13 @@ a:hover { text-decoration-thickness: 2px; }
   font-family: var(--display);
   font-weight: 900;
   font-variation-settings: "opsz" 144, "SOFT" 100, "WONK" 0;
-  font-size: clamp(3.4rem, 7vw, 6.5rem);
-  line-height: 0.85;
+  /* one line, never hyphenated: "Miniamp." is about 4.3em wide */
+  font-size: clamp(3rem, 6vw, 5.25rem);
+  line-height: 0.95;
   letter-spacing: -0.035em;
   text-align: left;
+  white-space: nowrap;
+  hyphens: manual;
   margin-top: 0.1em !important;
 }
 
@@ -676,7 +686,7 @@ a:hover { text-decoration-thickness: 2px; }
    hand as the label on the Hi-MD disc. Positions are percentages of the
    card, and type is in container units, so it scales with the photo. */
 .cardsec {
-  margin-top: var(--spread);
+  margin-top: clamp(40px, 5vw, 72px);
   display: flex;
   justify-content: center;
 }
