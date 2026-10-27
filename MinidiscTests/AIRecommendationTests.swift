@@ -44,6 +44,16 @@ struct AIRecommendationTests {
         #expect(throws: AIRecommendationError.badResponse) { try AIRecommendationParser.parsePicks("No.") }
     }
 
+    @Test("A reply whose closing bracket comes before its opening one is a bad response, not a trap")
+    func invertedBracketsAreBadResponses() {
+        for reply in ["Sorry} please try again {", "1] see [", "} only {", "]["] {
+            #expect(throws: AIRecommendationError.badResponse) { try AIRecommendationParser.parse(reply) }
+            #expect(throws: AIRecommendationError.badResponse) { try AIRecommendationParser.parsePicks(reply) }
+        }
+        #expect(AIRecommendationParser.span(of: "x } y {", from: "{", to: "}") == nil)
+        #expect(AIRecommendationParser.span(of: #"a {"k": 1} b"#, from: "{", to: "}") == #"{"k": 1}"#)
+    }
+
     @Test func ampersandMatchesAnd() {
         #expect(AIRecommendationMatcher.key("Slanted & Enchanted") == AIRecommendationMatcher.key("Slanted and Enchanted"))
     }

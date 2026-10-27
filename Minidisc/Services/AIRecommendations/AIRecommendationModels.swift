@@ -190,12 +190,12 @@ nonisolated enum AIRecommendationParser {
     /// Reads `{"recommendations": [...]}` or a bare array, tolerating prose or code fences around it.
     static func parse(_ text: String) throws -> [AIRecommendation] {
         let decoder = JSONDecoder()
-        if let start = text.firstIndex(of: "{"), let end = text.lastIndex(of: "}"),
-           let envelope = try? decoder.decode(Envelope.self, from: Data(text[start...end].utf8)) {
+        if let object = span(of: text, from: "{", to: "}"),
+           let envelope = try? decoder.decode(Envelope.self, from: Data(object.utf8)) {
             return clean(envelope.recommendations)
         }
-        if let start = text.firstIndex(of: "["), let end = text.lastIndex(of: "]"),
-           let list = try? decoder.decode([AIRecommendation].self, from: Data(text[start...end].utf8)) {
+        if let array = span(of: text, from: "[", to: "]"),
+           let list = try? decoder.decode([AIRecommendation].self, from: Data(array.utf8)) {
             return clean(list)
         }
         throw AIRecommendationError.badResponse
@@ -206,15 +206,23 @@ nonisolated enum AIRecommendationParser {
     /// Reads `{"picks": [{"id": …, "reason": …}]}` or a bare array, like `parse`.
     static func parsePicks(_ text: String) throws -> [AIRecommendationPick] {
         let decoder = JSONDecoder()
-        if let start = text.firstIndex(of: "{"), let end = text.lastIndex(of: "}"),
-           let envelope = try? decoder.decode(PicksEnvelope.self, from: Data(text[start...end].utf8)) {
+        if let object = span(of: text, from: "{", to: "}"),
+           let envelope = try? decoder.decode(PicksEnvelope.self, from: Data(object.utf8)) {
             return envelope.picks
         }
-        if let start = text.firstIndex(of: "["), let end = text.lastIndex(of: "]"),
-           let list = try? decoder.decode([AIRecommendationPick].self, from: Data(text[start...end].utf8)) {
+        if let array = span(of: text, from: "[", to: "]"),
+           let list = try? decoder.decode([AIRecommendationPick].self, from: Data(array.utf8)) {
             return list
         }
         throw AIRecommendationError.badResponse
+    }
+
+    /// The text from the first `open` to the last `close`, or nil without such a pair. A reply
+    /// whose only `}` comes before its first `{` ("…} try again {") gives nil instead of an
+    /// inverted range, which traps.
+    static func span(of text: String, from open: Character, to close: Character) -> Substring? {
+        guard let start = text.firstIndex(of: open), let end = text.lastIndex(of: close), start < end else { return nil }
+        return text[start...end]
     }
 
     private static func clean(_ items: [AIRecommendation]) -> [AIRecommendation] {

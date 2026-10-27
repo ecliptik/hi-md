@@ -1618,7 +1618,13 @@ actor PlayerService: PlayerServiceProtocol {
             return
         }
         await MainActor.run {
-            state.queue = Array(state.queue[0..<target])
+            // Worked out again from the queue as it is now: it can change between the two hops (a
+            // stop, a new queue, a removal from the UI), and slicing past its end traps.
+            if let liveTarget = Self.truncationTarget(boundary: state.originalQueueEndIndex,
+                                                      currentIndex: state.currentIndex,
+                                                      queueCount: state.queue.count) {
+                state.queue = Array(state.queue[0..<liveTarget])
+            }
             state.originalQueueEndIndex = nil
         }
         await invalidatePrefetchIfNextTrackChanged(

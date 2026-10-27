@@ -22,6 +22,18 @@ struct WinampHardeningTests {
         #expect(regions["windowshade"]?.first?.count == 3)
     }
 
+    // MARK: Analyser levels
+
+    @Test("A non-finite analyser level draws an empty bar instead of trapping in Int(NaN)")
+    func nonFiniteLevelsDrawEmptyBars() {
+        #expect(WinampMainRenderer.level(.nan, rows: 16) == 0)
+        #expect(WinampMainRenderer.level(.infinity, rows: 16) == 0)
+        #expect(WinampMainRenderer.level(-.infinity, rows: 16) == 0)
+        #expect(WinampMainRenderer.level(0.5, rows: 16) == 8)
+        #expect(WinampMainRenderer.level(2, rows: 16) == 16)
+        #expect(WinampMainRenderer.level(-1, rows: 16) == 0)
+    }
+
     // MARK: Skin bitmaps
 
     @Test func onlyBitmapsWithTheBMMagicNumberAreDecoded() {
