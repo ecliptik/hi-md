@@ -245,6 +245,125 @@ nonisolated enum QueueHistory {
     }
 }
 
+/// The MiniPlayer queue's rows from top to bottom: "Back To" and the songs played earlier, "Now
+/// Playing" and the current song, then the listener's songs and Autoplay's under their headings.
+///
+/// It's one list in queue order, and each song keeps its identity (its id and which occurrence of
+/// it in the queue) whichever section it's in, so clicking a song further down only moves the
+/// headings and the highlight: no row is rebuilt and the rows below stay where they were. The
+/// current song is the queue's, at `currentIndex`, so the list doesn't show the old song twice in
+/// the moment before the player has caught up with a jump.
+nonisolated enum MiniPlayerQueueRows {
+    enum Heading: String, Hashable, Sendable {
+        case backTo, nowPlaying, playingNext, continuePlaying
+    }
+
+    enum Role: Equatable, Sendable {
+        /// Played earlier; dimmed, and clicking it goes back.
+        case history
+        case current
+        /// Coming up, queued by the listener.
+        case requested
+        /// Coming up, added by Autoplay.
+        case autoplay
+    }
+
+    struct Song: Equatable, Sendable {
+        let index: Int
+        let song: DisplayableSong
+        let role: Role
+        /// Its place among the upcoming songs, for Move Up and Move Down; nil for the others.
+        let upcomingPosition: Int?
+        /// Which occurrence of the song in the queue this is, 0 for the first.
+        let occurrence: Int
+    }
+
+    enum Item: Equatable, Sendable, Identifiable {
+        case heading(Heading)
+        case song(Song)
+
+        enum ID: Hashable, Sendable {
+            case heading(Heading)
+            /// The song's id and which of its occurrences in the queue this is.
+            case song(String, occurrence: Int)
+        }
+
+        var id: ID {
+            switch self {
+            case .heading(let heading): .heading(heading)
+            case .song(let row): .song(row.song.id, occurrence: row.occurrence)
+            }
+        }
+    }
+
+    /// - Parameters:
+    ///   - isPlaying: something from the queue is playing; without it there's no current row.
+    ///   - autoplayStart: the queue index where Autoplay's songs begin, nil when it added none.
+    ///   - historyLimit: at most this many earlier songs, the most recent ones.
+    static func items(queue: [DisplayableSong], currentIndex: Int, isPlaying: Bool, autoplayStart: Int?,
+                      historyLimit: Int = 100) -> [Item] {
+        let counts = occurrences(queue)
+        var items: [Item] = []
+        let historyEnd = min(max(currentIndex, 0), queue.count)
+        let historyStart = max(historyEnd - historyLimit, 0)
+        if historyStart < historyEnd {
+            items.append(.heading(.backTo))
+            for index in historyStart..<historyEnd {
+                items.append(.song(Song(index: index, song: queue[index], role: .history, upcomingPosition: nil,
+                                        occurrence: counts[index])))
+            }
+        }
+        if isPlaying, queue.indices.contains(currentIndex) {
+            items.append(.heading(.nowPlaying))
+            items.append(.song(Song(index: currentIndex, song: queue[currentIndex], role: .current,
+                                    upcomingPosition: nil, occurrence: counts[currentIndex])))
+        }
+        items += upcomingItems(queue: queue, after: currentIndex, autoplayStart: autoplayStart, occurrences: counts)
+        return items
+    }
+
+    /// Whether anything is coming up after the current song.
+    static func hasUpcoming(_ items: [Item]) -> Bool {
+        items.contains { item in
+            if case .song(let row) = item { return row.upcomingPosition != nil }
+            return false
+        }
+    }
+
+    private static func upcomingItems(queue: [DisplayableSong], after currentIndex: Int, autoplayStart: Int?,
+                                      occurrences: [Int]) -> [Item] {
+        let upcoming = Array(queue.indices.filter { $0 > currentIndex })
+        let sections = MiniPlayerQueueSections.split(upcoming, queueIndex: { $0 }, autoplayStart: autoplayStart)
+        var items: [Item] = []
+        if !sections.requested.isEmpty, !sections.autoplay.isEmpty {
+            items.append(.heading(.playingNext))
+        }
+        for (position, index) in sections.requested.enumerated() {
+            items.append(.song(Song(index: index, song: queue[index], role: .requested, upcomingPosition: position,
+                                    occurrence: occurrences[index])))
+        }
+        if !sections.autoplay.isEmpty {
+            items.append(.heading(.continuePlaying))
+            for (offset, index) in sections.autoplay.enumerated() {
+                items.append(.song(Song(index: index, song: queue[index], role: .autoplay,
+                                        upcomingPosition: sections.requested.count + offset,
+                                        occurrence: occurrences[index])))
+            }
+        }
+        return items
+    }
+
+    /// For each place in the queue, how many times its song came before it.
+    private static func occurrences(_ queue: [DisplayableSong]) -> [Int] {
+        var seen: [String: Int] = [:]
+        return queue.map { song in
+            let occurrence = seen[song.id, default: 0]
+            seen[song.id] = occurrence + 1
+            return occurrence
+        }
+    }
+}
+
 /// Moving a song in Up Next one place with the MiniPlayer's Move Up and Move Down, in the terms
 /// of the queue's move: the place it's inserted before, counted in the queue as it is now.
 nonisolated enum QueueStep {
