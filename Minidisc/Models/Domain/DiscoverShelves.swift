@@ -38,6 +38,37 @@ enum WrappedCarouselItem: Identifiable {
         return items
     }
 
+    /// The year whose palette the card is drawn in.
+    var year: Int {
+        switch self {
+        case .yearly(let playlist): playlist.year
+        case .currentYear(let year): year
+        case .month(let year, _): year
+        }
+    }
+
+    /// The card's big line: the year, or the month's name ("October").
+    func cardTitle(calendar: Calendar = .current, locale: Locale = .current) -> String {
+        switch self {
+        case .yearly, .currentYear:
+            return String(year)
+        case .month(let year, let month):
+            var format = Date.FormatStyle.dateTime.month(.wide)
+            format.calendar = calendar
+            format.locale = locale
+            format.timeZone = calendar.timeZone
+            return calendar.date(from: DateComponents(year: year, month: month, day: 15))?.formatted(format) ?? String(month)
+        }
+    }
+
+    /// The line under it: "Wrapped" for a year, the year for a month.
+    var cardSubtitle: String {
+        switch self {
+        case .yearly, .currentYear: String(localized: "Wrapped")
+        case .month(let year, _): String(year)
+        }
+    }
+
     private static func months(now: Date, calendar: Calendar) -> [WrappedCarouselItem] {
         let year = calendar.component(.year, from: now)
         let month = calendar.component(.month, from: now)

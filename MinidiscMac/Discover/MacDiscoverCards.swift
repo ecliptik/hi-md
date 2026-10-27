@@ -319,14 +319,6 @@ struct MacWrappedCard: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var isHovering = false
 
-    private var year: Int {
-        switch item {
-        case .yearly(let playlist): playlist.year
-        case .currentYear(let year): year
-        case .month(let year, _): year
-        }
-    }
-
     private var destination: MacDestination {
         switch item {
         case .yearly(let playlist): .playlist(id: playlist.id)
@@ -335,51 +327,40 @@ struct MacWrappedCard: View {
         }
     }
 
-    private var title: String {
-        switch item {
-        case .yearly, .currentYear: String(year)
-        case .month(let year, let month):
-            Calendar.current.date(from: DateComponents(year: year, month: month))?
-                .formatted(.dateTime.month(.wide)) ?? String(month)
-        }
-    }
-
-    private var subtitle: String {
-        switch item {
-        case .yearly, .currentYear: String(localized: "Wrapped")
-        case .month(let year, _): String(year)
-        }
-    }
+    private var title: String { item.cardTitle() }
+    private var subtitle: String { item.cardSubtitle }
 
     var body: some View {
         let side = MacShelfMetrics.albumSide
         NavigationLink(value: destination) {
-            MeshGradientBackground(palette: WrappedYearPalette.colors(for: year), animated: !reduceMotion)
-                .frame(width: side, height: side)
-                .overlay(alignment: .bottomLeading) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(verbatim: title)
-                            .font(.system(size: isMonth ? 24 : 40, weight: .black, design: .rounded))
-                            .foregroundStyle(.white)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.6)
-                        Text(verbatim: subtitle)
-                            .font(.system(size: 12, weight: .medium, design: .rounded))
-                            .foregroundStyle(.white.opacity(WrappedYearPalette.secondaryTextOpacity))
-                            .lineLimit(1)
-                    }
-                    .padding(10)
+            // The text sits in a ZStack above the gradient, with no `drawingGroup()`: flattened into
+            // one layer with the animating mesh, the cards showed only the gradient on the Mac.
+            ZStack(alignment: .bottomLeading) {
+                MeshGradientBackground(palette: WrappedYearPalette.colors(for: item.year), animated: !reduceMotion)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(verbatim: title)
+                        .font(.system(size: isMonth ? 24 : 40, weight: .black, design: .rounded))
+                        .foregroundStyle(.white)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
+                    Text(verbatim: subtitle)
+                        .font(.system(size: 12, weight: .medium, design: .rounded))
+                        .foregroundStyle(.white.opacity(WrappedYearPalette.secondaryTextOpacity))
+                        .lineLimit(1)
                 }
-                .clipShape(RoundedRectangle(cornerRadius: 10))
-                .drawingGroup()
-                .overlay(alignment: .topTrailing) {
-                    if isHovering, case .yearly(let playlist) = item {
-                        MacHoverPlayButton { playback.playPlaylist(id: playlist.id) }
-                            .padding(8)
-                            .transition(.opacity)
-                    }
+                .padding(10)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
+            }
+            .frame(width: side, height: side)
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .overlay(alignment: .topTrailing) {
+                if isHovering, case .yearly(let playlist) = item {
+                    MacHoverPlayButton { playback.playPlaylist(id: playlist.id) }
+                        .padding(8)
+                        .transition(.opacity)
                 }
-                .contentShape(Rectangle())
+            }
+            .contentShape(RoundedRectangle(cornerRadius: 10))
         }
         .buttonStyle(.plain)
         .macCardHover($isHovering)

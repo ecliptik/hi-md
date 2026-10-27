@@ -38,6 +38,17 @@ struct DiscoverShelvesTests {
         #expect(items.map(\.id) == ["current-2026", "yearly-w2025", "month-2026-2", "month-2026-1"])
     }
 
+    @Test("Every Wrapped card has its period and a caption to show")
+    func cardText() {
+        let english = Locale(identifier: "en_US")
+        let items = WrappedCarouselItem.shelfItems(yearly: [yearly(2025)], now: date(year: 2026, month: 10), calendar: calendar)
+        #expect(items.prefix(4).map { $0.cardTitle(calendar: calendar, locale: english) } == ["2025", "2026", "October", "September"])
+        #expect(items.prefix(4).map(\.cardSubtitle) == [String(localized: "Wrapped"), String(localized: "Wrapped"), "2026", "2026"])
+        #expect(items.prefix(4).map(\.year) == [2025, 2026, 2026, 2026])
+        #expect(items.allSatisfy { !$0.cardTitle(calendar: calendar).isEmpty && !$0.cardSubtitle.isEmpty })
+        #expect(WrappedCarouselItem.month(year: 2026, month: 1).cardTitle(calendar: calendar, locale: Locale(identifier: "fr_FR")) == "janvier")
+    }
+
     @Test("Saved Wrapped and mood playlists are recognised by name")
     func savedPlaylists() {
         let prefix = WrappedPlaylistService.wrappedPlaylistNamePrefix
