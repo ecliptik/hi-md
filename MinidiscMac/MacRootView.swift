@@ -15,34 +15,32 @@ struct MacRootView: View {
         let playback = interface.playback(for: container)
         let playlists = interface.playlists(for: container)
         @Bindable var bindableNavigator = navigator
-        HStack(spacing: 0) {
-            NavigationSplitView {
-                MacSidebar(container: container)
-            } detail: {
-                // The player sits below the content, centred and clear of the sidebar, in a glass
-                // capsule. Not an overlay or safe-area inset: pages opened above a section are
-                // AppKit-backed (song tables) and drew over it, hiding the controls.
-                // The page always fills the space above, and the bar always keeps its own height:
-                // otherwise a short page (an empty search) left the bar mid-window, and a long
-                // song table pushed it off the bottom.
-                VStack(spacing: 0) {
+        // The player has its own row along the bottom of the window, below the sidebar and the
+        // content, in a centred glass capsule. Not inside the content column: Apple's split view
+        // lets pages opened there (AppKit-backed song tables) fill the whole column, drawing over
+        // anything below or on top of them.
+        VStack(spacing: 0) {
+            HStack(spacing: 0) {
+                NavigationSplitView {
+                    MacSidebar(container: container)
+                } detail: {
                     MacDetailColumn(container: container)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    MacPlayerBar()
-                        .padding(.top, 6)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .layoutPriority(1)
+                }
+                .searchable(text: $bindableNavigator.searchText, placement: .toolbar, prompt: Text("Artists, Albums, Songs"))
+                // The lyrics and queue panel, like the Music app's Playing Next. Read here, in the
+                // root view's body, so showing and hiding it always redraws the window.
+                if navigator.inspector != nil {
+                    Divider()
+                    MacInspector(container: container)
+                        .frame(width: 320)
+                        .transition(.move(edge: .trailing))
                 }
             }
-            .searchable(text: $bindableNavigator.searchText, placement: .toolbar, prompt: Text("Artists, Albums, Songs"))
-            // The lyrics and queue panel, like the Music app's Playing Next. Read here, in the
-            // root view's body, so showing and hiding it always redraws the window.
-            if navigator.inspector != nil {
-                Divider()
-                MacInspector(container: container)
-                    .frame(width: 320)
-                    .transition(.move(edge: .trailing))
-            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            MacPlayerBar()
+                .padding(.top, 6)
+                .fixedSize(horizontal: false, vertical: true)
+                .layoutPriority(1)
         }
         .animation(.smooth(duration: 0.25), value: navigator.inspector)
         .overlay {
