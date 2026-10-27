@@ -21,6 +21,9 @@ struct MacFavoritesView: View {
     @Environment(MacPlayback.self) private var playback
     @State private var viewModel: FavoritesViewModel?
     @AppStorage("minidisc.mac.favoritesKind") private var kind: Kind = .songs
+    @AppStorage("minidisc.mac.favoriteSongsSort") private var songSort = LibrarySortOrder<SongSortField>(.title)
+    @AppStorage("minidisc.mac.favoriteAlbumsSort") private var albumSort = LibrarySortOrder<AlbumSortField>(.name)
+    @AppStorage("minidisc.mac.favoriteArtistsSort") private var artistSort = LibrarySortOrder<ArtistSortField>(.name)
 
     var body: some View {
         let model = viewModel
@@ -34,14 +37,14 @@ struct MacFavoritesView: View {
                         emptyTitle: "No Favorites", emptySystemImage: "heart", retry: { await model?.load() }) {
             switch kind {
             case .songs:
-                MacSongTable(songs: songs)
+                MacSongTable(songs: songs, sort: $songSort)
             case .albums:
                 ScrollView {
-                    MacAlbumGrid(albums: model?.albums ?? [])
+                    MacAlbumGrid(albums: albumSort.sorted(model?.albums ?? []))
                         .padding(20)
                 }
             case .artists:
-                List(model?.artists ?? []) { artist in
+                List(artistSort.sorted(model?.artists ?? [])) { artist in
                     NavigationLink(value: MacDestination.artist(id: artist.id, name: artist.name)) {
                         MacArtistRow(artist: artist)
                     }
@@ -61,10 +64,17 @@ struct MacFavoritesView: View {
             }
             if kind == .songs {
                 ToolbarItemGroup {
-                    Button("Play", systemImage: "play.fill") { playback.play(songs) }
+                    Button("Play", systemImage: "play.fill") { playback.play(songSort.sorted(songs)) }
                         .disabled(songs.isEmpty)
                     Button("Shuffle", systemImage: "shuffle") { playback.shuffle(songs) }
                         .disabled(songs.isEmpty)
+                }
+            }
+            ToolbarItem {
+                switch kind {
+                case .songs: MacSortMenu(order: $songSort, fields: SongSortField.withoutPosition)
+                case .albums: MacSortMenu(order: $albumSort)
+                case .artists: MacSortMenu(order: $artistSort)
                 }
             }
         }

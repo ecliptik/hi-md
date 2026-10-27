@@ -10,6 +10,7 @@ struct MacPlaylistDetailView: View {
     @Environment(MacPlayback.self) private var playback
     @Environment(MacPlaylists.self) private var playlists
     @State private var viewModel: PlaylistDetailViewModel?
+    @AppStorage("minidisc.mac.playlistSort") private var sort = LibrarySortOrder<SongSortField>(.position)
 
     var body: some View {
         Group {
@@ -29,7 +30,7 @@ struct MacPlaylistDetailView: View {
                                         return true
                                     }
                             } else {
-                                MacSongTable(songs: viewModel.songs, style: .playlist, editing: editing(viewModel))
+                                MacSongTable(songs: viewModel.songs, style: .playlist, editing: editing(viewModel), sort: $sort)
                             }
                         }
                     }
@@ -40,6 +41,11 @@ struct MacPlaylistDetailView: View {
             }
         }
         .navigationTitle(viewModel?.name ?? playlists.playlist(id: playlistID)?.name ?? "")
+        .toolbar {
+            ToolbarItem {
+                MacSortMenu(order: $sort)
+            }
+        }
         .task(id: container.serverState.accessSnapshot) {
             let model = viewModel ?? PlaylistDetailViewModel(
                 playlistId: playlistID,
@@ -106,7 +112,7 @@ struct MacPlaylistDetailView: View {
                     .foregroundStyle(.secondary)
                 HStack(spacing: 10) {
                     Button {
-                        Task { playback.play(await model.playbackSongs(from: model.songs)) }
+                        Task { playback.play(await model.playbackSongs(from: sort.sorted(model.songs))) }
                     } label: {
                         Label("Play", systemImage: "play.fill")
                             .frame(minWidth: 72)

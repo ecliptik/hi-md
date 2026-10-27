@@ -27,6 +27,9 @@ struct MacSongTable: View {
     var editing: PlaylistEditing? = nil
     /// Selects this song when the table appears, as Go to Current Song does.
     var highlightedSongID: String? = nil
+    /// The list's stored sort, which its toolbar's sort menu also sets; clicking a column header
+    /// changes it. Without one the table sorts by its headers only while it's on screen.
+    var sort: Binding<LibrarySortOrder<SongSortField>>? = nil
 
     @Environment(MacPlayback.self) private var playback
     @Environment(\.minidiscPlayingAccent) private var playingAccent
@@ -34,9 +37,31 @@ struct MacSongTable: View {
     @State private var selection: Set<SongTableRow.ID> = []
     @State private var sortOrder: [SongTableComparator] = []
 
+    /// The comparators in effect: the stored sort's, or the headers' clicked here.
+    private var comparators: [SongTableComparator] {
+        sort.map { [$0.wrappedValue.comparator] } ?? sortOrder
+    }
+
+    private var comparatorsBinding: Binding<[SongTableComparator]> {
+        Binding {
+            comparators
+        } set: { newValue in
+            if let sort {
+                if let first = newValue.first { sort.wrappedValue = LibrarySortOrder(comparator: first) }
+            } else {
+                sortOrder = newValue
+            }
+        }
+    }
+
+    /// Whether the rows show in the list's own order.
+    private var isListOrder: Bool {
+        comparators.allSatisfy { $0.column == .position && $0.order == .forward }
+    }
+
     private var rows: [SongTableRow] {
         let rows = SongTableRow.rows(songs)
-        return sortOrder.isEmpty ? rows : rows.sorted(using: sortOrder)
+        return isListOrder ? rows : rows.sorted(using: comparators)
     }
 
     private var favoriteIDs: Set<String> { Set(favoriteRecords.map(\.itemId)) }
@@ -49,7 +74,7 @@ struct MacSongTable: View {
     var body: some View {
         let rows = rows
         let favorites = favoriteIDs
-        Table(of: SongTableRow.self, selection: $selection, sortOrder: $sortOrder) {
+        Table(of: SongTableRow.self, selection: $selection, sortOrder: comparatorsBinding) {
             if style != .standard {
                 TableColumn(Text(verbatim: "#"), sortUsing: SongTableComparator(column: .position)) { row in
                     numberCell(row)
@@ -198,7 +223,7 @@ struct MacSongTable: View {
     private func drop(_ items: [MacSongDrag], at index: Int, into editing: PlaylistEditing, shownRows: [SongTableRow]) {
         let ownPositions = items.compactMap { $0.playlistID == editing.playlistID ? $0.position : nil }
         if ownPositions.count == items.count {
-            guard sortOrder.isEmpty, !ownPositions.isEmpty else { return }
+            guard isListOrder, !ownPositions.isEmpty else { return }
             editing.move(IndexSet(ownPositions), index)
             selection = []
         } else {

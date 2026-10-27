@@ -5,7 +5,7 @@ import SwiftUI
 struct MacAlbumsView: View {
     let container: AppContainer
     @State private var viewModel: AlbumListViewModel?
-    @AppStorage("minidisc.mac.albumSort") private var sort: AlbumSort = .name
+    @AppStorage("minidisc.mac.albumSort") private var sort = LibrarySortOrder<AlbumSortField>(.name)
 
     var body: some View {
         let albums = viewModel.map { sort.sorted($0.albums) } ?? []
@@ -19,7 +19,7 @@ struct MacAlbumsView: View {
         .navigationTitle("Albums")
         .toolbar {
             ToolbarItem {
-                AlbumSortMenu(sort: $sort)
+                MacSortMenu(order: $sort)
             }
         }
         .task(id: container.serverState.accessSnapshot) {
@@ -36,8 +36,10 @@ struct MacRecentlyAddedView: View {
     @State private var albums: [AlbumID3] = []
     @State private var isLoading = true
     @State private var error: UserFacingError?
+    @AppStorage("minidisc.mac.recentlyAddedSort") private var sort = LibrarySortOrder<AlbumSortField>(.recentlyAdded)
 
     var body: some View {
+        let albums = sort.sorted(self.albums)
         MacLoadingState(isLoading: isLoading, isEmpty: albums.isEmpty, error: error,
                         emptyTitle: "No Albums", emptySystemImage: "clock", retry: load) {
             ScrollView {
@@ -46,6 +48,11 @@ struct MacRecentlyAddedView: View {
             }
         }
         .navigationTitle("Recently Added")
+        .toolbar {
+            ToolbarItem {
+                MacSortMenu(order: $sort)
+            }
+        }
         .task(id: container.serverState.accessSnapshot) { await load() }
     }
 

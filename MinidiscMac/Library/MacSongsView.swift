@@ -1,16 +1,22 @@
 import SwiftSonic
 import SwiftUI
 
-/// Library > Songs: every song in one table. Click a column header to sort.
+/// Library > Songs: every song in one table, sorted from the toolbar or by a column header.
 struct MacSongsView: View {
     let container: AppContainer
     @State private var viewModel: SongsListViewModel?
+    @AppStorage("minidisc.mac.songsSort") private var sort = LibrarySortOrder<SongSortField>(.title)
 
     var body: some View {
         let songs = viewModel?.displaySongs ?? []
         MacLoadingState(isLoading: viewModel?.isLoading ?? true, isEmpty: songs.isEmpty, error: viewModel?.error,
                         emptyTitle: "No Songs", retry: { await viewModel?.load(sort: .title) }) {
-            MacSongTable(songs: songs)
+            MacSongTable(songs: songs, sort: $sort)
+        }
+        .toolbar {
+            ToolbarItem {
+                MacSortMenu(order: $sort, fields: SongSortField.withoutPosition)
+            }
         }
         .overlay(alignment: .bottom) {
             if let viewModel, viewModel.isLoading, viewModel.loadedCount > 0 {
@@ -66,16 +72,20 @@ struct MacGenreDetailView: View {
 
     @Environment(MacPlayback.self) private var playback
     @State private var songs: [DisplayableSong]?
+    @AppStorage("minidisc.mac.genreSongsSort") private var sort = LibrarySortOrder<SongSortField>(.title)
 
     var body: some View {
         MacLoadingState(isLoading: songs == nil, isEmpty: songs?.isEmpty ?? true, emptyTitle: "No Songs") {
-            MacSongTable(songs: songs ?? [])
+            MacSongTable(songs: songs ?? [], sort: $sort)
         }
         .navigationTitle(genre.name)
         .toolbar {
             ToolbarItemGroup {
-                Button("Play", systemImage: "play.fill") { playback.play(songs ?? []) }
+                Button("Play", systemImage: "play.fill") { playback.play(sort.sorted(songs ?? [])) }
                 Button("Shuffle", systemImage: "shuffle") { playback.shuffle(songs ?? []) }
+            }
+            ToolbarItem {
+                MacSortMenu(order: $sort, fields: SongSortField.withoutPosition)
             }
         }
         .task(id: genre) {

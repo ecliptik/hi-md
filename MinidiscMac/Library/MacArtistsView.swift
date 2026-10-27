@@ -5,7 +5,7 @@ import SwiftUI
 struct MacArtistsView: View {
     let container: AppContainer
     @State private var viewModel: ArtistListViewModel?
-    @AppStorage("minidisc.mac.artistSort") private var sort: ArtistSort = .name
+    @AppStorage("minidisc.mac.artistSort") private var sort = LibrarySortOrder<ArtistSortField>(.name)
 
     var body: some View {
         let artists = viewModel.map { sort.sorted($0.indexes.flatMap(\.artist)) } ?? []
@@ -22,7 +22,7 @@ struct MacArtistsView: View {
         .navigationTitle("Artists")
         .toolbar {
             ToolbarItem {
-                ArtistSortMenu(sort: $sort)
+                MacSortMenu(order: $sort)
             }
         }
         .task(id: container.serverState.accessSnapshot) {
