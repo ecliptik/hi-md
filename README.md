@@ -93,12 +93,14 @@ The fork follows its own direction and doesn't send changes upstream, but it mer
 
 | | | |
 |:-:|:-:|:-:|
-| <img src="docs/screenshots/ios/05-album.jpg" alt="Album page" width="240"> | <img src="docs/screenshots/ios/11-now-playing-colours.jpg" alt="Now Playing coloured by the cover" width="240"> | <img src="docs/screenshots/ios/06-library.jpg" alt="Library" width="240"> |
-| Albums, with a favourite button | The player takes its colours from the cover | Library |
-| <img src="docs/screenshots/ios/07-albums.jpg" alt="Albums list" width="240"> | <img src="docs/screenshots/ios/08-playlists.jpg" alt="Playlists" width="240"> | <img src="docs/screenshots/ios/09-recommended.jpg" alt="Recommended for You" width="240"> |
-| Albums, with an index | Playlists, with search | Recommendations from Apple Intelligence |
-| <img src="docs/screenshots/ios/10-playback-settings.jpg" alt="Playback settings" width="240"> | | |
-| Playback settings, in Plexamp's order | | |
+| <img src="docs/screenshots/ios/12-now-playing-disc.jpg" alt="Now Playing with the spinning Hi-MD disc" width="240"> | <img src="docs/screenshots/ios/11-now-playing-colours.jpg" alt="Now Playing coloured by the cover" width="240"> | <img src="docs/screenshots/ios/05-album.jpg" alt="Album page" width="240"> |
+| Tap the cover for the spinning disc | The player takes its colours from the cover | Albums, with a favourite button |
+| <img src="docs/screenshots/ios/06-library.jpg" alt="Library" width="240"> | <img src="docs/screenshots/ios/07-albums.jpg" alt="Albums list" width="240"> | <img src="docs/screenshots/ios/08-playlists.jpg" alt="Playlists" width="240"> |
+| Library | Albums, with an index | Playlists, with search |
+| <img src="docs/screenshots/ios/13-playlist.jpg" alt="Playlist page" width="240"> | <img src="docs/screenshots/ios/09-recommended.jpg" alt="Recommended for You" width="240"> | <img src="docs/screenshots/ios/10-playback-settings.jpg" alt="Playback settings" width="240"> |
+| Playlists, with hearts on favourite songs | Recommendations from Apple Intelligence, checked against MusicBrainz | Playback settings, in Plexamp's order |
+| <img src="docs/screenshots/ios/14-quality.jpg" alt="Quality settings" width="240"> |  |  |
+| Separate quality for Wi-Fi and cellular |  |  |
 
 ## Features from upstream
 
