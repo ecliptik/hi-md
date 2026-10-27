@@ -109,15 +109,15 @@ The fork follows its own direction and doesn't send changes upstream, but it mer
 
 <table>
   <tr>
-    <td align="center" width="50%"><img src="docs/screenshots/mac/01-home.jpg" alt="Hi-MD for Mac: Home with playlists, favourite songs and albums" width="420"><br>Home, with the floating glass player</td>
+    <td align="center" width="50%"><img src="docs/screenshots/mac/01-home.jpg" alt="Hi-MD for Mac: Home with playlists, favourite songs and albums" width="420"><br>macOS Home</td>
     <td align="center" width="50%"><img src="docs/screenshots/mac/06-albums.jpg" alt="The album grid" width="420"><br>Albums</td>
   </tr>
   <tr>
     <td align="center" width="50%"><img src="docs/screenshots/mac/02-now-playing-queue.jpg" alt="Now Playing with Playing Next" width="420"><br>Now Playing</td>
-    <td align="center" width="50%"><img src="docs/screenshots/mac/03-now-playing-lyrics.jpg" alt="Now Playing with synced lyrics" width="420"><br>Synced lyrics that follow the song</td>
+    <td align="center" width="50%"><img src="docs/screenshots/mac/03-now-playing-lyrics.jpg" alt="Now Playing with synced lyrics" width="420"><br>Synced lyrics</td>
   </tr>
   <tr>
-    <td align="center" width="50%"><img src="docs/screenshots/mac/08-album-miniamp.jpg" alt="Miniamp with the Hi-MD Gold skin, beside Playing Next" width="420"><br>Miniamp, beside Playing Next</td>
+    <td align="center" width="50%"><img src="docs/screenshots/mac/08-album-miniamp.jpg" alt="Miniamp with the Hi-MD Gold skin, beside Playing Next" width="420"><br>Miniamp</td>
     <td align="center" width="50%"><img src="docs/screenshots/mac/09-miniamp.jpg" alt="Miniamp with the Hi-MD Gold skin and its playlist" width="420"><br>Miniamp, with the Hi-MD Gold skin</td>
   </tr>
 </table>
