@@ -2,9 +2,10 @@ import SwiftUI
 
 /// How the lyric lines around the one being sung recede.
 nonisolated enum LyricsLineDepth: Equatable, Sendable {
-    /// Every other line dims alike: the iPhone player, the MiniPlayer and the main window's panel.
+    /// Every other line dims alike: the iPhone player and the main window's panel.
     case dimmed
-    /// A light depth of field: the Mac Now Playing view, which shows many lines beside the player.
+    /// A light depth of field: the Mac Now Playing view and MiniPlayer, which show many lines
+    /// beside the player.
     case gentle
     /// A strong depth of field around one huge line: the Mac's full-screen lyrics, about four
     /// lines tall.

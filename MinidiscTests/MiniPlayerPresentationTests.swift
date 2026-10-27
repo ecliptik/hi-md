@@ -3,7 +3,7 @@ import Foundation
 import Testing
 @testable import Minidisc
 
-@Suite("Mac MiniPlayer layouts, tabs and details")
+@Suite("Mac MiniPlayer layouts, panes and details")
 struct MiniPlayerPresentationTests {
     private func song(_ id: String) -> DisplayableSong {
         DisplayableSong(
@@ -69,31 +69,142 @@ struct MiniPlayerPresentationTests {
         #expect(tallSide <= 300 - 2 * MiniPlayerLayout.inset)
         #expect(tallSide + MiniPlayerLayout.tallChrome + MiniPlayerLayout.minimumPanelHeight
                 + MiniPlayerLayout.inset <= tall.height)
+        // Below the traffic lights' band, and the inset at the bottom.
         let wide = CGSize(width: 620, height: 260)
-        #expect(MiniPlayerLayout.wide.artworkSide(in: wide) == 260 - 2 * MiniPlayerLayout.inset)
+        #expect(MiniPlayerLayout.wide.artworkSide(in: wide) == 260 - MiniPlayerLayout.titleBarBand - MiniPlayerLayout.inset)
     }
 
-    // MARK: Tabs and lyrics
+    @Test func contentStartsBelowTheTrafficLights() {
+        // The measured band pushes every layout's top down; without buttons the inset is left.
+        #expect(MiniPlayerLayout.topSpace(28) == 28)
+        #expect(MiniPlayerLayout.topSpace(0) == MiniPlayerLayout.inset)
+        #expect(MiniPlayerLayout.compactHeight(forWidth: 300, topInset: 32) == 32 + 272 + MiniPlayerLayout.compactChrome)
+        #expect(MiniPlayerLayout.compactHeight(forWidth: 300, topInset: 0)
+                == MiniPlayerLayout.inset + 272 + MiniPlayerLayout.compactChrome)
+        let wide = CGSize(width: 700, height: 300)
+        #expect(MiniPlayerLayout.wide.artworkSide(in: wide, topInset: 40) == 300 - 40 - MiniPlayerLayout.inset)
+        let compact = CGSize(width: 300, height: 600)
+        #expect(MiniPlayerLayout.compact.artworkSide(in: compact, topInset: 40) <= 600 - 40 - MiniPlayerLayout.compactChrome)
+    }
 
-    @Test func lyricsTurnOnAndOffAndTheTabComesBack() {
-        var state = MiniPlayerPanelState(tab: .related, showsLyrics: false)
-        state.toggleLyrics()
-        #expect(state.isShowingLyrics(canShowLyrics: true))
-        #expect(!state.isSelected(.related, canShowLyrics: true))
-        state.toggleLyrics()
-        #expect(!state.isShowingLyrics(canShowLyrics: true))
-        #expect(state.isSelected(.related, canShowLyrics: true))
-        // Choosing a tab while lyrics are on turns them off.
-        state.toggleLyrics()
-        state.select(.history)
-        #expect(!state.showsLyrics)
-        #expect(state.isSelected(.history, canShowLyrics: true))
-        // A song without lyrics shows the tab even with lyrics on.
-        state.toggleLyrics()
-        #expect(!state.isShowingLyrics(canShowLyrics: false))
-        #expect(state.isSelected(.history, canShowLyrics: false))
+    // MARK: Panes
+
+    @Test func eachLayoutShowsThePaneItCan() {
+        #expect(!MiniPlayerLayout.compact.showsPane(isOpen: true))
+        #expect(MiniPlayerLayout.tall.showsPane(isOpen: false))
+        #expect(MiniPlayerLayout.wide.showsPane(isOpen: true))
+        #expect(!MiniPlayerLayout.wide.showsPane(isOpen: false))
         // Stored with @AppStorage by raw value.
-        #expect(MiniPlayerTab(rawValue: "upNext") == .upNext)
+        #expect(MiniPlayerPane(rawValue: "library") == .library)
+        #expect(MiniPlayerPane(rawValue: "lyrics") == .lyrics)
+    }
+
+    @Test func tabsSelectAPane() {
+        var state = MiniPlayerPanelState(pane: .upNext, isOpen: false)
+        state.select(.library)
+        #expect(state.isShowing(.library, in: .tall, canShowLyrics: true))
+        #expect(state.isShowing(.library, in: .wide, canShowLyrics: true))
+        #expect(!state.isShowing(.library, in: .compact, canShowLyrics: true))
+        // A song without lyrics shows Playing Next in their place.
+        state.select(.lyrics)
+        #expect(state.shownPane(canShowLyrics: false) == .upNext)
+        #expect(state.isShowing(.upNext, in: .tall, canShowLyrics: false))
+        #expect(state.isShowing(.lyrics, in: .tall, canShowLyrics: true))
+    }
+
+    @Test func compactGrowsToShowThePaneAndCollapsesBack() {
+        var state = MiniPlayerPanelState(pane: .upNext, isOpen: false)
+        #expect(state.toggle(.lyrics, in: .compact, canShowLyrics: true, grewFromCompact: false) == .grow)
+        #expect(state.pane == .lyrics && state.isOpen)
+        // Grown wide: clicking Lyrics again goes back to compact.
+        #expect(state.toggle(.lyrics, in: .wide, canShowLyrics: true, grewFromCompact: true) == .collapse)
+        #expect(!state.isOpen)
+        // Grown tall: the same.
+        #expect(state.toggle(.library, in: .compact, canShowLyrics: true, grewFromCompact: false) == .grow)
+        #expect(state.toggle(.library, in: .tall, canShowLyrics: true, grewFromCompact: true) == .collapse)
+        // On a compact window the buttons are never on, so a click always grows it.
+        #expect(state.toggle(.library, in: .compact, canShowLyrics: true, grewFromCompact: false) == .grow)
+    }
+
+    @Test func wideOpensAndClosesItsPaneInPlace() {
+        var state = MiniPlayerPanelState(pane: .upNext, isOpen: false)
+        #expect(state.toggle(.library, in: .wide, canShowLyrics: true, grewFromCompact: false) == .show)
+        #expect(state.isShowing(.library, in: .wide, canShowLyrics: true))
+        // The other button switches the pane rather than closing it.
+        #expect(state.toggle(.lyrics, in: .wide, canShowLyrics: true, grewFromCompact: false) == .show)
+        #expect(state.pane == .lyrics)
+        #expect(state.toggle(.lyrics, in: .wide, canShowLyrics: true, grewFromCompact: false) == .close)
+        #expect(!state.isOpen)
+        // A tall window shows the tab; clicking the one on screen collapses it to compact.
+        #expect(state.toggle(.library, in: .tall, canShowLyrics: true, grewFromCompact: false) == .show)
+        #expect(state.toggle(.library, in: .tall, canShowLyrics: true, grewFromCompact: false) == .collapse)
+    }
+
+    @Test func aCompactWindowGrowsToTheCloserLayoutThatFits() {
+        let compact = CGSize(width: 300, height: MiniPlayerLayout.compactHeight(forWidth: 300))
+        let wide = MiniPlayerLayout.wideSize(fromCompact: compact)
+        #expect(MiniPlayerLayout.layout(for: wide) == .wide)
+        // An artwork at least as big as the compact one, beside a pane with room to show.
+        #expect(MiniPlayerLayout.wide.artworkSide(in: wide) >= MiniPlayerLayout.compact.artworkSide(in: compact))
+        #expect(Double(wide.height) >= MiniPlayerLayout.titleBarBand + MiniPlayerLayout.inset
+                + MiniPlayerLayout.wideDetailsChrome + MiniPlayerLayout.wideMinimumPaneHeight)
+        #expect(MiniPlayerLayout.clamped(wide) == wide)
+
+        let tall = CGSize(width: 300, height: MiniPlayerLayout.tallHeight(forWidth: 300))
+        // With room for both, the smaller change: tall for the default window.
+        #expect(MiniPlayerLayout.grownSize(fromCompact: compact, available: nil) == tall)
+        // A short screen can't fit the tall window, so it grows wide.
+        #expect(MiniPlayerLayout.grownSize(fromCompact: compact, available: CGSize(width: 1400, height: 600)) == wide)
+        // Fitting neither, wide, the shorter.
+        #expect(MiniPlayerLayout.grownSize(fromCompact: compact, available: CGSize(width: 320, height: 500)) == wide)
+        // A big square compact window is closer to wide.
+        let big = CGSize(width: 520, height: MiniPlayerLayout.compactHeight(forWidth: 520))
+        #expect(MiniPlayerLayout.layout(for: MiniPlayerLayout.grownSize(fromCompact: big, available: nil)) == .wide)
+    }
+
+    @Test func collapsingFindsACompactWindow() {
+        let tall = CGSize(width: 300, height: 750)
+        #expect(MiniPlayerLayout.collapsedSize(from: tall)
+                == CGSize(width: 300, height: MiniPlayerLayout.compactHeight(forWidth: 300)))
+        let wide = CGSize(width: 700, height: 360)
+        let collapsed = MiniPlayerLayout.collapsedSize(from: wide)
+        #expect(MiniPlayerLayout.layout(for: collapsed) == .compact)
+        // About as wide as the wide window's artwork (318 points), with its insets.
+        #expect(collapsed == CGSize(width: 346, height: MiniPlayerLayout.compactHeight(forWidth: 346)))
+        let compact = CGSize(width: 300, height: 460)
+        #expect(MiniPlayerLayout.collapsedSize(from: compact) == compact)
+    }
+
+    @Test func aShortWideWindowGrowsForItsPane() {
+        let grown = MiniPlayerLayout.wideSizeShowingPane(from: CGSize(width: 620, height: 260))
+        #expect(grown?.width == 620)
+        #expect(grown.map { MiniPlayerLayout.layout(for: $0) } == .wide)
+        #expect((grown?.height ?? 0) > 260)
+        // Already tall enough, or not wide: nothing to do.
+        #expect(MiniPlayerLayout.wideSizeShowingPane(from: CGSize(width: 800, height: 420)) == nil)
+        #expect(MiniPlayerLayout.wideSizeShowingPane(from: CGSize(width: 300, height: 460)) == nil)
+        // Taller would stop it being wide, so it widens too.
+        let narrow = MiniPlayerLayout.wideSizeShowingPane(from: CGSize(width: 400, height: 260))
+        #expect(narrow.map { MiniPlayerLayout.layout(for: $0) } == .wide)
+    }
+
+    // MARK: Moving songs in Up Next
+
+    @Test func moveUpAndDownStepOnePlace() {
+        // Up Next is queue places 3, 4, 5 and 6 of a seven-song queue.
+        let places = [3, 4, 5, 6]
+        func destination(_ position: Int, _ delta: Int) -> Int? {
+            QueueStep.destination(movingPosition: position, by: delta, upcomingCount: places.count,
+                                  queueIndex: { places[$0] }, queueCount: 7)
+        }
+        #expect(destination(1, -1) == 3)
+        #expect(destination(1, 1) == 6)
+        // Down from the second to last goes past the end.
+        #expect(destination(2, 1) == 7)
+        #expect(destination(0, -1) == nil)
+        #expect(destination(3, 1) == nil)
+        #expect(destination(9, 1) == nil)
+        #expect(destination(1, 2) == nil)
     }
 
     // MARK: History and related songs

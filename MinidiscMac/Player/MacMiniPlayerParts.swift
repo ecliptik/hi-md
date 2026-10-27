@@ -19,6 +19,34 @@ extension MacWindowHandle {
         window.contentMaxSize = MiniPlayerLayout.maximumContentSize(for: content)
         window.contentMinSize = CGSize(width: MiniPlayerLayout.minimumWidth, height: MiniPlayerLayout.minimumHeight)
     }
+
+    var contentSize: CGSize? {
+        window.map { $0.contentRect(forFrameRect: $0.frame).size }
+    }
+
+    /// The band along the window's top that the close, minimise and zoom buttons take, from
+    /// their real frames: down to the lowest one's bottom edge and a little more. Buttons only
+    /// faded out (between hovers) still count, so the content doesn't move as they come and go;
+    /// with none in the window there's no band.
+    func trafficLightsBand() -> Double {
+        guard let window else { return MiniPlayerLayout.titleBarBand }
+        let buttons = [NSWindow.ButtonType.closeButton, .miniaturizeButton, .zoomButton]
+            .compactMap { window.standardWindowButton($0) }
+            .filter { !$0.isHiddenOrHasHiddenAncestor && $0.window != nil }
+        guard !buttons.isEmpty else { return 0 }
+        // Window coordinates run up from the bottom edge.
+        let lowest = buttons.map { $0.convert($0.bounds, to: nil).minY }.min() ?? window.frame.height
+        let band = (Double(window.frame.height - lowest) + 6).rounded()
+        return min(max(band, 0), 60)
+    }
+
+    /// The most the content can grow to while the top edge stays put: down to the bottom of the
+    /// screen's visible area and across its width.
+    var availableContentSize: CGSize? {
+        guard let window, let visible = window.screen?.visibleFrame else { return nil }
+        let room = CGRect(x: visible.minX, y: visible.minY, width: visible.width, height: window.frame.maxY - visible.minY)
+        return window.contentRect(forFrameRect: room).size
+    }
 }
 
 
@@ -176,68 +204,74 @@ struct MiniPlayerMetadataRow: View {
 
 // MARK: - Tabs
 
-/// History, Playing Next, Related and the Lyrics toggle, in Plexamp's small capitals.
+/// Library, Playing Next, Related and Lyrics, in Plexamp's small capitals. A narrow pane, or a
+/// language with long names, gets the tabs' icons instead.
 struct MiniPlayerTabBar: View {
-    @Binding var panel: MiniPlayerPanelState
+    /// The pane on screen.
+    let selection: MiniPlayerPane
     let canShowLyrics: Bool
+    let select: (MiniPlayerPane) -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        HStack(spacing: 4) {
-            tab("Back To", .history)
-            tab("Playing Next", .upNext)
-            tab("Related", .related)
-            Spacer(minLength: 0)
-            lyricsTab
+        ViewThatFits(in: .horizontal) {
+            tabs(showsTitles: true)
+            tabs(showsTitles: false)
         }
         .font(.caption.weight(.bold))
         .textCase(.uppercase)
     }
 
-    private func tab(_ title: LocalizedStringKey, _ tab: MiniPlayerTab) -> some View {
-        let isSelected = panel.isSelected(tab, canShowLyrics: canShowLyrics)
-        return Button {
-            withAnimation(reduceMotion ? nil : .smooth(duration: 0.2)) { panel.select(tab) }
-        } label: {
-            Text(title)
-                .lineLimit(1)
-                .padding(.horizontal, 7)
-                .padding(.vertical, 4)
-                .foregroundStyle(isSelected ? Color.white : Color.white.opacity(NowPlayingText.secondaryOpacity))
-                .background(isSelected ? Color.white.opacity(0.16) : .clear, in: Capsule())
-                .contentShape(Capsule())
+    private func tabs(showsTitles: Bool) -> some View {
+        HStack(spacing: 4) {
+            tab(.library, title: "Library", systemImage: "books.vertical", showsTitle: showsTitles)
+            tab(.upNext, title: "Playing Next", systemImage: "list.bullet", showsTitle: showsTitles)
+            tab(.related, title: "Related", systemImage: "sparkles", showsTitle: showsTitles)
+            Spacer(minLength: 0)
+            tab(.lyrics, title: "Lyrics", systemImage: "quote.bubble", showsTitle: false)
+                .disabled(!canShowLyrics)
         }
-        .buttonStyle(.plain)
-        .accessibilityAddTraits(isSelected ? [.isSelected, .isHeader] : .isHeader)
     }
 
-    /// A toggle: on shows lyrics in the panel, off brings back the tab.
-    private var lyricsTab: some View {
-        let isOn = panel.isShowingLyrics(canShowLyrics: canShowLyrics)
+    private func tab(_ pane: MiniPlayerPane, title: LocalizedStringKey, systemImage: String,
+                     showsTitle: Bool) -> some View {
+        let isSelected = selection == pane
+        // Lyrics keeps the accent it had as the old toggle; the other tabs are a faint capsule.
+        let fill: Color = pane == .lyrics ? .minidiscAccent : .white.opacity(0.16)
+        let selectedText: Color = pane == .lyrics ? .minidiscAccentText : .white
         return Button {
-            withAnimation(reduceMotion ? nil : .smooth(duration: 0.2)) { panel.toggleLyrics() }
+            withAnimation(reduceMotion ? nil : .smooth(duration: 0.2)) { select(pane) }
         } label: {
-            Image(systemName: "quote.bubble")
-                .font(.system(size: 12, weight: .bold))
-                .padding(.horizontal, 7)
-                .padding(.vertical, 4)
-                .foregroundStyle(isOn ? Color.minidiscAccentText : Color.white.opacity(NowPlayingText.secondaryOpacity))
-                .background(isOn ? Color.minidiscAccent : .clear, in: Capsule())
-                .contentShape(Capsule())
+            Group {
+                if showsTitle {
+                    Text(title)
+                        .lineLimit(1)
+                } else {
+                    Image(systemName: systemImage)
+                        .font(.system(size: 12, weight: .bold))
+                }
+            }
+            .padding(.horizontal, 7)
+            .padding(.vertical, 4)
+            .foregroundStyle(isSelected ? selectedText : Color.white.opacity(NowPlayingText.secondaryOpacity))
+            .background(isSelected ? fill : .clear, in: Capsule())
+            .contentShape(Capsule())
+            .fixedSize()
         }
         .buttonStyle(.plain)
-        .disabled(!canShowLyrics)
-        .accessibilityLabel("Lyrics")
-        .accessibilityValue(isOn ? Text("On") : Text("Off"))
-        .accessibilityAddTraits(isOn ? .isSelected : [])
-        .help("Lyrics")
+        .accessibilityLabel(Text(title))
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .help(Text(title))
     }
 }
 
-/// A song in the History and Related tabs.
+/// A song in the Playing Next, Related and Library lists.
 struct MiniPlayerSongRow<Accessory: View>: View {
     let song: DisplayableSong
+    var isCurrent = false
+    /// Earlier songs are dimmed, as Plexamp's history is.
+    var isDimmed = false
     @ViewBuilder var accessory: () -> Accessory
 
     var body: some View {
@@ -246,8 +280,8 @@ struct MiniPlayerSongRow<Accessory: View>: View {
                 .frame(width: 32, height: 32)
             VStack(alignment: .leading, spacing: 1) {
                 Text(song.title)
-                    .font(.callout)
-                    .foregroundStyle(.white)
+                    .font(.callout.weight(isCurrent ? .semibold : .regular))
+                    .foregroundStyle(isCurrent ? Color.minidiscAccent : .white)
                     .lineLimit(1)
                 if let artist = song.artist {
                     Text(artist)
@@ -260,43 +294,161 @@ struct MiniPlayerSongRow<Accessory: View>: View {
             accessory()
         }
         .padding(.vertical, 3)
+        .opacity(isDimmed ? 0.7 : 1)
         .contentShape(Rectangle())
     }
 }
 
-/// The songs before the current one, the most recent first. Clicking one goes back to it.
-struct MiniPlayerHistoryList: View {
+/// A song's length, as the lists show it.
+struct MiniPlayerDuration: View {
+    let seconds: TimeInterval
+
+    var body: some View {
+        Text(Duration.seconds(seconds).formatted(.time(pattern: .minuteSecond)))
+            .font(.caption)
+            .monospacedDigit()
+            .foregroundStyle(Color.white.opacity(NowPlayingText.secondaryOpacity))
+    }
+}
+
+/// A small-capitals heading inside a pane's list.
+struct MiniPlayerListHeading<Trailing: View>: View {
+    let title: LocalizedStringKey
+    @ViewBuilder var trailing: () -> Trailing
+
+    var body: some View {
+        HStack {
+            Text(title)
+                .font(.caption2.weight(.bold))
+                .textCase(.uppercase)
+                .foregroundStyle(Color.white.opacity(NowPlayingText.secondaryOpacity))
+                .accessibilityAddTraits(.isHeader)
+            Spacer(minLength: 0)
+            trailing()
+        }
+        .padding(.top, 10)
+        .padding(.bottom, 2)
+    }
+}
+
+extension MiniPlayerListHeading where Trailing == EmptyView {
+    init(title: LocalizedStringKey) {
+        self.init(title: title) { EmptyView() }
+    }
+}
+
+/// The queue as Plexamp shows it: the songs played earlier (scroll up for them), the one playing,
+/// then Playing Next. Clicking a song jumps to it; Up Next's songs move and leave through their
+/// menu. Drawn with a lazy stack rather than a List: the MiniPlayer's layouts come and go as its
+/// window is resized, and a List (an NSTableView) taken down in the middle of a live resize
+/// builds a row for a view graph that's already gone, which crashes.
+struct MiniPlayerQueueList: View {
+    var rowInset: Double
+    var beforeNavigating: () -> Void
+
     @Environment(MacPlayback.self) private var playback
+
+    private static let currentAnchor = "now-playing"
 
     var body: some View {
         let state = playback.state
-        let history = QueueHistory.earlier(in: state.queue, currentIndex: state.currentIndex)
-        if history.isEmpty {
-            MiniPlayerEmptyTab(title: "No earlier songs", systemImage: "clock.arrow.circlepath")
+        let history = Array(QueueHistory.earlier(in: state.queue, currentIndex: state.currentIndex).reversed())
+        let upcoming = MacQueueEntry.upcoming(in: state)
+        if state.currentTrack == nil, upcoming.isEmpty {
+            MiniPlayerEmptyTab(title: "Nothing up next", systemImage: "list.bullet")
         } else {
-            ScrollView {
-                LazyVStack(spacing: 0) {
-                    ForEach(history) { entry in
-                        Button {
-                            guard let selection = QueueTrackSelection(playerState: state, destinationIndex: entry.index,
-                                                                      destinationTrackID: entry.song.id) else { return }
-                            playback.jump(to: selection)
-                        } label: {
-                            MiniPlayerSongRow(song: entry.song) {
-                                Text(Duration.seconds(entry.song.duration).formatted(.time(pattern: .minuteSecond)))
-                                    .font(.caption)
-                                    .monospacedDigit()
-                                    .foregroundStyle(Color.white.opacity(NowPlayingText.secondaryOpacity))
+            ScrollViewReader { proxy in
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 0) {
+                        if !history.isEmpty {
+                            MiniPlayerListHeading(title: "Back To")
+                            ForEach(history) { entry in
+                                historyRow(entry, state: state)
                             }
                         }
-                        .buttonStyle(.plain)
-                        .accessibilityHint("Play")
-                        .contextMenu { MacSongMenu(songs: [entry.song]) }
+                        if let current = state.currentTrack {
+                            MiniPlayerListHeading(title: "Now Playing")
+                                .id(Self.currentAnchor)
+                            MiniPlayerSongRow(song: current, isCurrent: true) {
+                                MiniPlayerDuration(seconds: current.duration)
+                            }
+                            .accessibilityElement(children: .combine)
+                            .contextMenu { MacSongMenu(songs: [current], beforeNavigating: beforeNavigating) }
+                        }
+                        MiniPlayerListHeading(title: "Playing Next") {
+                            Button("Clear", action: playback.clearUpNext)
+                                .buttonStyle(.plain)
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(Color.white.opacity(NowPlayingText.secondaryOpacity))
+                                .disabled(upcoming.isEmpty)
+                        }
+                        if upcoming.isEmpty {
+                            Text("Nothing up next")
+                                .font(.callout)
+                                .foregroundStyle(Color.white.opacity(NowPlayingText.secondaryOpacity))
+                                .padding(.vertical, 6)
+                        }
+                        ForEach(Array(upcoming.enumerated()), id: \.element.id) { position, entry in
+                            upcomingRow(entry, at: position, in: upcoming, queueCount: state.queue.count)
+                        }
                     }
+                    .padding(.horizontal, rowInset)
+                    .padding(.bottom, 8)
                 }
-                .padding(.horizontal, MiniPlayerLayout.inset)
+                .onAppear { proxy.scrollTo(Self.currentAnchor, anchor: .top) }
+                .onChange(of: state.currentIndex) { _, _ in
+                    proxy.scrollTo(Self.currentAnchor, anchor: .top)
+                }
             }
         }
+    }
+
+    private func historyRow(_ entry: QueueHistoryEntry, state: PlayerState) -> some View {
+        Button {
+            guard let selection = QueueTrackSelection(playerState: state, destinationIndex: entry.index,
+                                                      destinationTrackID: entry.song.id) else { return }
+            playback.jump(to: selection)
+        } label: {
+            MiniPlayerSongRow(song: entry.song, isDimmed: true) {
+                MiniPlayerDuration(seconds: entry.song.duration)
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityHint("Play")
+        .contextMenu { MacSongMenu(songs: [entry.song], beforeNavigating: beforeNavigating) }
+    }
+
+    private func upcomingRow(_ entry: MacQueueEntry, at position: Int, in entries: [MacQueueEntry],
+                             queueCount: Int) -> some View {
+        Button {
+            playback.jump(to: entry.selection)
+        } label: {
+            MiniPlayerSongRow(song: entry.song) {
+                MiniPlayerDuration(seconds: entry.song.duration)
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityHint("Play")
+        .contextMenu {
+            Button("Move Up", systemImage: "arrow.up") { move(position, by: -1, in: entries, queueCount: queueCount) }
+                .disabled(position == 0)
+            Button("Move Down", systemImage: "arrow.down") { move(position, by: 1, in: entries, queueCount: queueCount) }
+                .disabled(position == entries.count - 1)
+            Button("Remove from Queue", systemImage: "minus.circle") { playback.removeFromQueue([entry.selection]) }
+            Divider()
+            MacSongMenu(songs: [entry.song], beforeNavigating: beforeNavigating)
+        }
+        .accessibilityAction(named: "Move Up") { move(position, by: -1, in: entries, queueCount: queueCount) }
+        .accessibilityAction(named: "Move Down") { move(position, by: 1, in: entries, queueCount: queueCount) }
+        .accessibilityAction(named: "Remove from Queue") { playback.removeFromQueue([entry.selection]) }
+    }
+
+    private func move(_ position: Int, by delta: Int, in entries: [MacQueueEntry], queueCount: Int) {
+        guard let destination = QueueStep.destination(
+            movingPosition: position, by: delta, upcomingCount: entries.count,
+            queueIndex: { entries[$0].selection.destinationIndex }, queueCount: queueCount
+        ) else { return }
+        playback.moveInQueue(entries[position].selection, to: destination)
     }
 }
 
@@ -305,6 +457,7 @@ struct MiniPlayerHistoryList: View {
 struct MiniPlayerRelatedList: View {
     let model: MacMiniPlayerModel
     let container: AppContainer
+    var rowInset: Double
     var beforeNavigating: () -> Void
 
     @Environment(MacPlayback.self) private var playback
@@ -363,7 +516,8 @@ struct MiniPlayerRelatedList: View {
                             .padding(.vertical, 8)
                         }
                     }
-                    .padding(.horizontal, MiniPlayerLayout.inset)
+                    .padding(.horizontal, rowInset)
+                    .padding(.top, 4)
                 }
             }
         }
@@ -383,8 +537,10 @@ struct MiniPlayerEmptyTab: View {
                 .font(.title2)
             Text(title)
                 .font(.callout)
+                .multilineTextAlignment(.center)
         }
         .foregroundStyle(Color.white.opacity(NowPlayingText.secondaryOpacity))
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.horizontal, 8)
     }
 }
