@@ -153,6 +153,9 @@ private struct MacMiniPlayerContent: View {
         .onReceive(NotificationCenter.default.publisher(for: .minidiscFavoritesChanged)) { _ in
             if library.location == .favorites { library.reload() }
         }
+        .onReceive(NotificationCenter.default.publisher(for: MiniPlayerZoomButton.clickedNotification)) { _ in
+            change(storedPane, toggling: true)
+        }
         .onChange(of: container.serverState.activeServer?.id) { _, _ in
             library.reset()
         }
@@ -435,12 +438,18 @@ private struct MacMiniPlayerContent: View {
         window.applyMiniPlayerLimits(for: layout)
     }
 
-    /// No title bar, moved by dragging anywhere, floating unless turned off, and no zoom: a
-    /// double-click on the artwork would otherwise blow the window up to fill the screen.
+    /// No title bar, moved by dragging anywhere, and floating unless turned off. The green button
+    /// opens and closes the list below the artwork instead of zooming, which would blow the window
+    /// up to fill the screen; enabled, it keeps its colour like the other two.
     private func configure(_ nsWindow: NSWindow) {
         nsWindow.isMovableByWindowBackground = true
         nsWindow.level = floatsOnTop ? .floating : .normal
-        nsWindow.standardWindowButton(.zoomButton)?.isEnabled = false
+        if let zoom = nsWindow.standardWindowButton(.zoomButton) {
+            zoom.isEnabled = true
+            zoom.target = MiniPlayerZoomButton.shared
+            zoom.action = #selector(MiniPlayerZoomButton.clicked(_:))
+            zoom.toolTip = String(localized: "Show or Hide the List")
+        }
         nsWindow.collectionBehavior.insert(.fullScreenNone)
         window.setTrafficLightsVisible(chrome.isVisible, animated: false)
         // A window restored from an earlier launch, or an older version's shapes, fits the pane
@@ -467,5 +476,17 @@ private struct MacMiniPlayerContent: View {
         } else {
             openWindow(id: MacMenuBarPlayer.mainWindowID)
         }
+    }
+}
+
+/// The MiniPlayer's green window button: it shows or hides the list below the artwork, as the
+/// glass toggles do, rather than zooming.
+@MainActor
+final class MiniPlayerZoomButton: NSObject {
+    static let shared = MiniPlayerZoomButton()
+    static let clickedNotification = Notification.Name("minidisc.miniPlayerZoomClicked")
+
+    @objc func clicked(_ sender: Any?) {
+        NotificationCenter.default.post(name: Self.clickedNotification, object: nil)
     }
 }

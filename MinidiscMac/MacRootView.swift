@@ -20,6 +20,12 @@ struct MacRootView: View {
                 MacSidebar(container: container)
             } detail: {
                 MacDetailColumn(container: container)
+                    // The player floats over the bottom of the content, centred and clear of the
+                    // sidebar, in a glass capsule. As a safe-area inset, the lists and grids
+                    // scroll under it and their last rows stop above it.
+                    .safeAreaInset(edge: .bottom, spacing: 0) {
+                        MacPlayerBar()
+                    }
             }
             .searchable(text: $bindableNavigator.searchText, placement: .toolbar, prompt: Text("Artists, Albums, Songs"))
             // The lyrics and queue panel, like the Music app's Playing Next. Read here, in the
@@ -32,11 +38,6 @@ struct MacRootView: View {
             }
         }
         .animation(.smooth(duration: 0.25), value: navigator.inspector)
-        // The player floats over the bottom of the window in a glass capsule. As a safe-area
-        // inset, the lists and grids scroll under it and their last rows stop above it.
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            MacPlayerBar()
-        }
         .overlay {
             // The large player covers the whole window, player bar included, like the Music app's.
             if navigator.isNowPlayingShown {

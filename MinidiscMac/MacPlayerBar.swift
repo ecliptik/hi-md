@@ -12,9 +12,10 @@ struct MacPlayerBar: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Namespace private var paneSelection
 
-    /// The capsule's height, and the margin it floats at from the window's edges.
-    static let height: Double = 58
-    static let margin: Double = 12
+    /// The capsule's height, its widest, and the margin it floats at from the content's edges.
+    static let height: Double = 48
+    static let maxWidth: Double = 780
+    static let margin: Double = 10
 
     private var playerState: PlayerState { playback.state }
 
@@ -23,36 +24,36 @@ struct MacPlayerBar: View {
         // Read here, not only inside the bindings, so the buttons redraw when the panel changes.
         let shownPane = navigator.inspector
         GlassEffectContainer(spacing: 12) {
-            HStack(spacing: 16) {
+            HStack(spacing: 12) {
                 MacTransportControls(commands: commands)
-                    .frame(width: 200, alignment: .leading)
+                    .frame(width: 150, alignment: .leading)
                 MacNowPlayingDisplay()
-                    .frame(maxWidth: 560)
                     .frame(maxWidth: .infinity)
-                HStack(spacing: 12) {
+                HStack(spacing: 8) {
                     MacVolumeSlider()
-                        .frame(width: 110)
+                        .frame(width: 84)
                     HStack(spacing: 2) {
                         MacGlassSegment(title: "Lyrics", systemImage: "quote.bubble", isOn: shownPane == .lyrics,
-                                        side: 26, selection: paneSelection) {
+                                        side: 24, selection: paneSelection) {
                             toggle(.lyrics, shown: shownPane)
                         }
                         .disabled(!commands.canShowLyrics && shownPane != .lyrics)
                         MacGlassSegment(title: "Playing Next", systemImage: "list.bullet", isOn: shownPane == .queue,
-                                        side: 26, selection: paneSelection) {
+                                        side: 24, selection: paneSelection) {
                             toggle(.queue, shown: shownPane)
                         }
                     }
                 }
-                .frame(width: 200, alignment: .trailing)
+                .frame(width: 150, alignment: .trailing)
             }
-            .controlSize(.large)
-            .padding(.leading, 22)
-            .padding(.trailing, 12)
+            .padding(.leading, 16)
+            .padding(.trailing, 10)
             .frame(height: Self.height)
             .macGlass(in: Capsule(), interactive: false)
+            .frame(maxWidth: Self.maxWidth)
         }
-        .padding(.horizontal, Self.margin)
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, Self.margin * 2)
         .padding(.bottom, Self.margin)
     }
 
@@ -164,7 +165,7 @@ private struct MacNowPlayingDisplay: View {
                             .padding(4)
                     }
                 }
-                .frame(width: 44, height: 44)
+                .frame(width: 36, height: 36)
                 .overlay(alignment: .bottomTrailing) {
                     Image(systemName: "arrow.up.left.and.arrow.down.right")
                         .font(.system(size: 8, weight: .bold))
@@ -180,10 +181,10 @@ private struct MacNowPlayingDisplay: View {
             .accessibilityHint("Opens the large player with lyrics and the queue.")
             .help("Now Playing")
 
-            VStack(spacing: 2) {
+            VStack(spacing: 1) {
                 if let radio = state.currentRadio {
                     Text(radio.name)
-                        .font(.callout.weight(.medium))
+                        .font(.subheadline.weight(.medium))
                         .lineLimit(1)
                     Text("Live")
                         .font(.caption)
@@ -191,7 +192,7 @@ private struct MacNowPlayingDisplay: View {
                 } else if let track = state.currentTrack {
                     Button(track.title) { navigator.showAlbum(of: track, highlighting: true) }
                         .buttonStyle(.plain)
-                        .font(.callout.weight(.medium))
+                        .font(.subheadline.weight(.medium))
                         .lineLimit(1)
                         .disabled(track.albumId == nil || track.isLocalFile)
                         .help("Go to Album")
@@ -205,16 +206,16 @@ private struct MacNowPlayingDisplay: View {
                     }
                 } else {
                     Text("Not Playing")
-                        .font(.callout)
+                        .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
                 MacScrubber()
             }
             .frame(maxWidth: .infinity)
         }
-        .padding(.leading, 4)
-        .padding(.trailing, 10)
-        .padding(.vertical, 3)
+        .padding(.leading, 3)
+        .padding(.trailing, 8)
+        .padding(.vertical, 2)
         // The centre segment, a shade inside the glass, as the Music app's.
         .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
