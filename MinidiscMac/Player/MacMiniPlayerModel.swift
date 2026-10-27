@@ -33,6 +33,7 @@ final class MacMiniPlayerModel {
     func load(_ track: DisplayableSong?, container: AppContainer) async {
         guard let track, !track.isLocalFile else {
             reset(to: track?.id)
+            waveform = nil
             formatLabel = track.flatMap { NowPlayingFormat.codecName($0.audioFormat, bitRate: $0.bitRate) }
             return
         }
@@ -44,12 +45,13 @@ final class MacMiniPlayerModel {
         _ = await (details, local)
     }
 
+    /// Leaves the waveform to `loadLocalCopy`, which replaces it with the new song's (or none)
+    /// straight away, so the scrubber doesn't flick to a plain bar and back between two songs.
     private func reset(to id: String?) {
         songID = id
         formatLabel = nil
         playCount = nil
         year = nil
-        waveform = nil
         if relatedSongID != id {
             related = []
             relatedState = .idle
@@ -81,11 +83,15 @@ final class MacMiniPlayerModel {
     /// The format and waveform from a downloaded or cached copy. A song that is streaming gets
     /// both once the stream cache has the whole file.
     private func loadLocalCopy(_ track: DisplayableSong, container: AppContainer) async {
-        guard let serverID = container.serverState.activeServer?.id else { return }
-        let key = "\(serverID.uuidString)-\(track.id)"
-        if let cached = await Self.waveforms.cached(forKey: key), songID == track.id {
-            waveform = cached
+        guard let serverID = container.serverState.activeServer?.id else {
+            waveform = nil
+            return
         }
+        let key = "\(serverID.uuidString)-\(track.id)"
+        let cached = await Self.waveforms.cached(forKey: key)
+        guard songID == track.id else { return }
+        // Also when there's none yet: the previous song's waveform mustn't stay up.
+        if waveform != cached { waveform = cached }
         while !Task.isCancelled {
             if let url = await localURL(track, serverID: serverID, container: container) {
                 guard songID == track.id else { return }
