@@ -75,10 +75,10 @@ struct MacPlaylistDetailView: View {
         guard canEdit(model) else { return nil }
         return MacSongTable.PlaylistEditing(
             playlistID: playlistID,
+            // The table's rows carry their stored positions (sorted or not, a song held twice is
+            // two positions), so these are the server's indexes; one request removes them all.
             remove: { positions in
-                Task {
-                    for position in positions.sorted(by: >) { await model.removeTrack(at: position) }
-                }
+                Task { await model.removeTracks(at: Array(positions)) }
             },
             move: { positions, destination in
                 Task { await model.moveTracks(from: positions, to: destination) }

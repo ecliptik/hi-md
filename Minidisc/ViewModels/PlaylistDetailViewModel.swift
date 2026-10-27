@@ -205,6 +205,23 @@ final class PlaylistDetailViewModel {
         }
     }
 
+    /// Removes the songs at these stored positions in one request: each position counts in the
+    /// playlist's order as it is now, before any of them goes.
+    func removeTracks(at positions: [Int]) async {
+        let positions = Set(positions.filter { songs.indices.contains($0) }).sorted(by: >)
+        guard !positions.isEmpty else { return }
+        if positions.count == 1 { return await removeTrack(at: positions[0]) }
+        let removed = positions.map { ($0, songs[$0]) }
+        for position in positions { songs.remove(at: position) }
+        do {
+            try await playlistService.removeTracks(playlistId: playlistId, indices: positions)
+        } catch {
+            for (position, song) in removed.reversed() { songs.insert(song, at: min(position, songs.count)) }
+            Logger.playlist.error("PlaylistDetailViewModel: remove tracks failed: \(error)")
+            toastService.showError("Failed to remove track")
+        }
+    }
+
     func moveTracks(from source: IndexSet, to destination: Int) async {
         let originalSongs = songs
         songs.move(fromOffsets: source, toOffset: destination)

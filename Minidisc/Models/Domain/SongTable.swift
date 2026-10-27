@@ -38,6 +38,46 @@ nonisolated struct SongOccurrence: Identifiable, Hashable, Sendable {
     }
 }
 
+/// A playlist's songs as a list shows them, sorted or filtered locally, each row knowing its
+/// position in the playlist's stored order: the server's order, which Subsonic's
+/// `songIndexToRemove` counts in. A song the playlist holds twice is two rows with two
+/// positions, so removing a row removes that copy, not the first one.
+nonisolated struct PlaylistRowPositions: Equatable, Sendable {
+    /// The stored position of each shown row, in the order the rows are shown.
+    let positions: [Int]
+
+    /// - Parameters:
+    ///   - songs: The playlist's songs in stored order.
+    ///   - areInIncreasingOrder: The list's sort, or nil for the playlist's own order. Songs that
+    ///     tie keep their playlist order.
+    ///   - isIncluded: The list's filter, or nil to show every song.
+    init(_ songs: [DisplayableSong],
+         sortedBy areInIncreasingOrder: ((DisplayableSong, DisplayableSong) -> Bool)? = nil,
+         where isIncluded: ((DisplayableSong) -> Bool)? = nil) {
+        var shown = Array(songs.indices)
+        if let isIncluded { shown = shown.filter { isIncluded(songs[$0]) } }
+        if let areInIncreasingOrder {
+            shown.sort { lhs, rhs in
+                if areInIncreasingOrder(songs[lhs], songs[rhs]) { return true }
+                if areInIncreasingOrder(songs[rhs], songs[lhs]) { return false }
+                return lhs < rhs
+            }
+        }
+        positions = shown
+    }
+
+    /// The shown songs, in the order they're shown.
+    func rows(of songs: [DisplayableSong]) -> [DisplayableSong] {
+        positions.compactMap { songs.indices.contains($0) ? songs[$0] : nil }
+    }
+
+    /// The stored positions of the shown rows at `offsets`, highest first and each once, so they
+    /// can be removed in one go without one removal moving the next.
+    func storedPositions(ofRows offsets: some Sequence<Int>) -> [Int] {
+        Set(offsets.compactMap { positions.indices.contains($0) ? positions[$0] : nil }).sorted(by: >)
+    }
+}
+
 /// Orders song table rows by one column. Text compares the way the Finder does (ignoring case,
 /// numbers in numeric order) and missing values sort after names. Equal values keep the list's order
 /// in both directions, so clicking a column twice never shuffles tracks that tie.

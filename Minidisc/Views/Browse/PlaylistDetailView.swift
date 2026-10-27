@@ -5,7 +5,7 @@ import OSLog
 import UniformTypeIdentifiers
 
 /// Local ordering for the track list. Release date is absent on purpose: `DisplayableSong` carries no year.
-enum PlaylistSortOrder: String, CaseIterable, Identifiable {
+nonisolated enum PlaylistSortOrder: String, CaseIterable, Identifiable {
     case playlistOrder
     case title
     case artist
@@ -19,6 +19,20 @@ enum PlaylistSortOrder: String, CaseIterable, Identifiable {
         case .title: "Title"
         case .artist: "Artist"
         case .album: "Album"
+        }
+    }
+
+    /// How this order sorts two songs, or nil for the playlist's own order.
+    var areInIncreasingOrder: ((DisplayableSong, DisplayableSong) -> Bool)? {
+        switch self {
+        case .playlistOrder:
+            nil
+        case .title:
+            { $0.title.localizedStandardCompare($1.title) == .orderedAscending }
+        case .artist:
+            { ($0.artist ?? "").localizedStandardCompare($1.artist ?? "") == .orderedAscending }
+        case .album:
+            { ($0.albumName ?? "").localizedStandardCompare($1.albumName ?? "") == .orderedAscending }
         }
     }
 }
@@ -145,16 +159,22 @@ struct PlaylistDetailView: View {
     /// The order the list and playback follow. Purely local — the stored order is untouched, so edit / remove
     /// keep working against the real positions.
     private func sortedSongs(_ songs: [DisplayableSong]) -> [DisplayableSong] {
-        switch sortOrder {
-        case .playlistOrder:
-            return songs
-        case .title:
-            return songs.sorted { $0.title.localizedStandardCompare($1.title) == .orderedAscending }
-        case .artist:
-            return songs.sorted { ($0.artist ?? "").localizedStandardCompare($1.artist ?? "") == .orderedAscending }
-        case .album:
-            return songs.sorted { ($0.albumName ?? "").localizedStandardCompare($1.albumName ?? "") == .orderedAscending }
-        }
+        rowPositions(songs).rows(of: songs)
+    }
+
+    /// Where each shown row sits in the playlist's stored order.
+    private func rowPositions(_ songs: [DisplayableSong]) -> PlaylistRowPositions {
+        PlaylistRowPositions(songs, sortedBy: sortOrder.areInIncreasingOrder)
+    }
+
+    /// Removes the shown rows at `offsets`: the copies of the songs those rows show, by their
+    /// positions in the server's order, even when the playlist holds a song twice or the list is
+    /// sorted. Only while the list shows the server's songs, whose order those positions count in.
+    private func removeRows(_ offsets: IndexSet, vm: PlaylistDetailViewModel) {
+        let stored = vm.songs
+        let positions = rowPositions(stored).storedPositions(ofRows: offsets)
+        guard !positions.isEmpty else { return }
+        Task { await vm.removeTracks(at: positions) }
     }
 
     private func playSongs(_ requested: [DisplayableSong], startIndex: Int) async {
@@ -247,13 +267,16 @@ struct PlaylistDetailView: View {
                     .listRowBackground(bodyColor)
                 } else {
                     let serverId = container?.serverState.activeServer?.id ?? UUID()
-                    // Rows are displayed in the sorted order, the view model removes by stored position.
-                    let removeTrack: ((Int) -> Void)? = vm.isOffline ? nil : { index in
-                        guard songs.indices.contains(index) else { return }
-                        let song = songs[index]
-                        guard let stored = resolvedSongs(vm).firstIndex(where: { $0.id == song.id }) else { return }
-                        Task { await vm.removeTrack(at: stored) }
-                    }
+                    // Rows are displayed in the sorted order; the view model removes by stored
+                    // position, so only while the rows are the server's songs (not the offline or
+                    // downloaded copies the list falls back to).
+                    let showsServerSongs = container?.serverState.isOnline != false && !vm.isRemovedFromServer
+                        && !vm.songs.isEmpty
+                    let canRemove = !vm.isOffline && showsServerSongs
+                    let removeSwipedRows: ((IndexSet) -> Void)? = canRemove
+                        ? { offsets in removeRows(offsets, vm: vm) } : nil
+                    let removeRow: ((Int) -> Void)? = canRemove
+                        ? { index in removeRows(IndexSet(integer: index), vm: vm) } : nil
                     TrackCountRow(count: songs.count, totalDuration: songs.reduce(0) { $0 + $1.duration },
                                   color: headerSecondaryColor)
                         .listRowInsets(EdgeInsets())
@@ -276,8 +299,8 @@ struct PlaylistDetailView: View {
                         onRemoveDownload: { songId in
                             Task { await container?.toastService.perform { try await container?.downloadService.remove(songId: songId, serverId: serverId) } }
                         },
-                        onRemove: removeTrack,
-                        onContextRemove: removeTrack,
+                        onRemove: removeSwipedRows,
+                        onContextRemove: removeRow,
                         onAddToPlaylist: playlistAddition.present,
                         rowBackground: bodyColor,
                         trailingAccessory: .duration
@@ -973,7 +996,8 @@ struct PlaylistSongRows: View {
     let onTap: (Int) -> Void
     let onDownload: ((String) -> Void)?
     let onRemoveDownload: ((String) -> Void)?
-    let onRemove: ((Int) -> Void)?
+    /// Removes the rows at these offsets, swiped or deleted together.
+    let onRemove: ((IndexSet) -> Void)?
     let onReorder: ((IndexSet, Int) -> Void)?
     let onContextRemove: ((Int) -> Void)?
     let onAddToPlaylist: ((DisplayableSong) -> Void)?
@@ -990,7 +1014,7 @@ struct PlaylistSongRows: View {
         Set(allFavorites.map(\.id))
     }
 
-    init(songs: [DisplayableSong], serverId: UUID, downloadingIds: Set<String> = [], titleColor: Color = .primary, secondaryColor: Color = .secondary, onTap: @escaping (Int) -> Void, onDownload: ((String) -> Void)? = nil, onRemoveDownload: ((String) -> Void)? = nil, onRemove: ((Int) -> Void)? = nil, onReorder: ((IndexSet, Int) -> Void)? = nil, onContextRemove: ((Int) -> Void)? = nil, onAddToPlaylist: ((DisplayableSong) -> Void)? = nil, rowBackground: Color? = nil, trailingAccessory: SongRowTrailingAccessory = .duration) {
+    init(songs: [DisplayableSong], serverId: UUID, downloadingIds: Set<String> = [], titleColor: Color = .primary, secondaryColor: Color = .secondary, onTap: @escaping (Int) -> Void, onDownload: ((String) -> Void)? = nil, onRemoveDownload: ((String) -> Void)? = nil, onRemove: ((IndexSet) -> Void)? = nil, onReorder: ((IndexSet, Int) -> Void)? = nil, onContextRemove: ((Int) -> Void)? = nil, onAddToPlaylist: ((DisplayableSong) -> Void)? = nil, rowBackground: Color? = nil, trailingAccessory: SongRowTrailingAccessory = .duration) {
         self.songs = songs
         self.downloadingIds = downloadingIds
         self.titleColor = titleColor
@@ -1026,7 +1050,7 @@ struct PlaylistSongRows: View {
                     .listRowBackground(rowBackground)
             }
             .onDelete { indexSet in
-                for index in indexSet.sorted(by: >) { removeAction(index) }
+                removeAction(indexSet)
             }
             .onMove { source, destination in
                 onReorder?(source, destination)

@@ -15,7 +15,9 @@ struct PlayPauseControl: ControlWidget {
 }
 
 /// Reads the last published state; the app reloads controls whenever playback starts or stops.
-struct PlayingValueProvider: ControlValueProvider {
+/// Nonisolated: the system may ask for the value off the main thread, where a main-actor
+/// conformance would trap, and reading the snapshot file needs no main actor.
+nonisolated struct PlayingValueProvider: ControlValueProvider {
     var previewValue: Bool { false }
 
     func currentValue() async throws -> Bool {

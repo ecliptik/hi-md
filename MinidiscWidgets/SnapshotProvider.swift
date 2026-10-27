@@ -2,14 +2,18 @@ import SwiftUI
 import UIKit
 import WidgetKit
 
-struct SnapshotEntry: TimelineEntry {
+nonisolated struct SnapshotEntry: TimelineEntry {
     let date: Date
     let snapshot: WidgetSnapshot
 }
 
 /// Every widget reads the same snapshot. The app reloads timelines when it changes, so no
 /// widget refreshes on a schedule.
-struct SnapshotProvider: TimelineProvider {
+///
+/// Nonisolated, as is everything it calls: WidgetKit may ask for the placeholder, snapshot and
+/// timeline off the main thread, and a main-actor conformance (the target's default isolation)
+/// would trap there. It only reads the App Group's snapshot file, so it needs no main actor.
+nonisolated struct SnapshotProvider: TimelineProvider {
     func placeholder(in context: Context) -> SnapshotEntry {
         SnapshotEntry(date: .now, snapshot: .preview)
     }
@@ -24,7 +28,7 @@ struct SnapshotProvider: TimelineProvider {
     }
 }
 
-extension WidgetSnapshot {
+nonisolated extension WidgetSnapshot {
     static let preview = WidgetSnapshot(
         hasServer: true,
         nowPlaying: Track(title: "Song Title", artist: "Artist", artworkFile: nil, isPlaying: true),

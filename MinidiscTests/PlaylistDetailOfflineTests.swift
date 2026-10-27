@@ -68,7 +68,7 @@ private final class PDPlaylistStub: PlaylistServiceProtocol {
     func renamePlaylist(id: String, newName: String) async throws { try record("rename") }
     func updateDescription(id: String, description: String) async throws { try record("description:\(description)") }
     func addTracks(playlistId: String, songs: [Song]) async throws { throw URLError(.unknown) }
-    func removeTracks(playlistId: String, indices: [Int]) async throws { throw URLError(.unknown) }
+    func removeTracks(playlistId: String, indices: [Int]) async throws { try record("remove:\(indices)") }
     func reorderTracks(playlistId: String, orderedSongIds: [String]) async throws { try record("reorder") }
     func deletePlaylist(id: String, purgeDownloads: Bool) async throws { throw URLError(.unknown) }
 }
@@ -239,5 +239,64 @@ struct PlaylistEditCommitterTests {
         let saved = await toast.perform { throw CancellationError() }
         #expect(!saved)
         #expect(toast.current == nil)
+    }
+}
+
+/// Removing rows sends the server the swiped copies' positions, in one request.
+@Suite("PlaylistDetailViewModel — removing rows")
+@MainActor
+struct PlaylistDetailRemovalTests {
+    private static func song(_ id: String) -> DisplayableSong {
+        DisplayableSong(
+            id: id, title: "Track \(id)", artist: "Artist", albumId: nil,
+            albumName: nil, artistId: nil, genre: nil, duration: 180,
+            trackNumber: nil, isDownloaded: false, coverArtId: nil, audioFormat: nil,
+            replayGainTrackGain: nil, replayGainTrackPeak: nil,
+            replayGainAlbumGain: nil, replayGainAlbumPeak: nil,
+            replayGainBaseGain: nil, replayGainFallbackGain: nil
+        )
+    }
+
+    private static func makeVM(_ ids: [String], playlist: PDPlaylistStub) -> PlaylistDetailViewModel {
+        let state = ServerState()
+        state.isOnline = true
+        let vm = PlaylistDetailViewModel(playlistId: "playlist-1", libraryService: PDLibraryStub(),
+                                         downloadService: PDDownloadStub(), playlistService: playlist,
+                                         toastService: ToastService(), serverState: state)
+        vm.songs = ids.map(song)
+        return vm
+    }
+
+    @Test func theSecondCopyOfASongIsTheOneRemoved() async {
+        let playlist = PDPlaylistStub()
+        let vm = Self.makeVM(["a", "b", "a", "c"], playlist: playlist)
+        let positions = PlaylistRowPositions(vm.songs).storedPositions(ofRows: [2])
+        await vm.removeTracks(at: positions)
+        #expect(playlist.calls == ["remove:[2]"])
+        #expect(vm.songs.map(\.id) == ["a", "b", "c"])
+    }
+
+    @Test func severalRowsGoInOneRequestHighestFirst() async {
+        let playlist = PDPlaylistStub()
+        let vm = Self.makeVM(["a", "b", "a", "c", "a"], playlist: playlist)
+        await vm.removeTracks(at: [0, 4, 2, 4])
+        #expect(playlist.calls == ["remove:[4, 2, 0]"])
+        #expect(vm.songs.map(\.id) == ["b", "c"])
+    }
+
+    @Test func aFailedRemovalPutsTheSongsBackInPlace() async {
+        let playlist = PDPlaylistStub()
+        playlist.failsAt = "remove:[3, 1]"
+        let vm = Self.makeVM(["a", "b", "a", "c"], playlist: playlist)
+        await vm.removeTracks(at: [1, 3])
+        #expect(vm.songs.map(\.id) == ["a", "b", "a", "c"])
+    }
+
+    @Test func positionsOutsideThePlaylistAreIgnored() async {
+        let playlist = PDPlaylistStub()
+        let vm = Self.makeVM(["a", "b"], playlist: playlist)
+        await vm.removeTracks(at: [5, -1])
+        #expect(playlist.calls.isEmpty)
+        #expect(vm.songs.count == 2)
     }
 }

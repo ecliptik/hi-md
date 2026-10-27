@@ -53,6 +53,11 @@ nonisolated enum MinidiscMood: String, AppEnum, CaseIterable, Sendable {
 
 // The intents below back widget and control buttons only. They are hidden from Shortcuts and
 // Spotlight because the app's own intents already offer the same actions there.
+//
+// AppIntent is Sendable, so these main-actor structs' conformances are nonisolated, never
+// main-actor-isolated: the system can make them and run perform() from any thread, and
+// perform(), main-actor isolated and async, hops to the main actor rather than trapping. All
+// it does there is hand the command to the main-actor relay.
 
 struct SetMinidiscPlayingIntent: SetValueIntent, AudioPlaybackIntent {
     static let title: LocalizedStringResource = "Play or Pause"
