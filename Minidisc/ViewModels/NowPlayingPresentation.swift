@@ -25,8 +25,19 @@ nonisolated enum NowPlayingSidePane: String, CaseIterable, Sendable {
 nonisolated enum NowPlayingText {
     /// "Artist — Album", as the Music app's player shows it; whichever is missing is left out.
     static func subtitle(artist: String?, album: String?) -> String? {
-        let parts = [artist, album].compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
-        return parts.isEmpty ? nil : parts.joined(separator: " — ")
+        let parts = subtitleParts(artist: artist, album: album)
+        let joined = [parts.artist, parts.album].compactMap { $0 }
+        return joined.isEmpty ? nil : joined.joined(separator: " — ")
+    }
+
+    /// The artist and the album, trimmed, each nil when missing. The views lay them out side by
+    /// side so the album truncates before the artist does.
+    static func subtitleParts(artist: String?, album: String?) -> (artist: String?, album: String?) {
+        func clean(_ text: String?) -> String? {
+            let trimmed = text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            return trimmed.isEmpty ? nil : trimmed
+        }
+        return (clean(artist), clean(album))
     }
 
     /// White text over the artwork backdrop. `PlayerBackgroundPalette` keeps every backdrop colour
@@ -58,8 +69,37 @@ nonisolated enum NowPlayingText {
     }
 }
 
+/// The type and controls of the Mac's player column, in Now Playing and full-screen lyrics. As in
+/// the Music app they grow only a little with the window, the artwork taking the extra room: at
+/// about 1,470 points the title is 17 points on one line, "Artist — Album" 14, the transport 23
+/// with a 31-point play button, and the heart and menu 24-point buttons.
+nonisolated struct NowPlayingControlSizes: Equatable, Sendable {
+    static let smallWidth: Double = 900
+    static let largeWidth: Double = 2560
+
+    /// 0 in a window 900 points wide or less, 1 at 2,560 points or more.
+    let growth: Double
+
+    init(windowWidth: Double) {
+        growth = min(max((windowWidth - Self.smallWidth) / (Self.largeWidth - Self.smallWidth), 0), 1)
+    }
+
+    private func size(_ small: Double, _ large: Double) -> Double {
+        (small + (large - small) * growth).rounded()
+    }
+
+    var titleSize: Double { size(15, 20) }
+    var subtitleSize: Double { size(13, 16) }
+    var timeSize: Double { size(10, 12) }
+    var transportSize: Double { size(20, 28) }
+    var playSize: Double { size(28, 38) }
+    /// The heart's and the menu's buttons, beside the title.
+    var songButtonSize: Double { size(22, 28) }
+}
+
 /// The Mac Now Playing view's sizes for a window: the player column grows with the window, as
-/// the Music app's does, and the artwork takes what the height leaves after the controls.
+/// the Music app's does, and the artwork takes what the height leaves after the controls. The
+/// type and the controls grow only gently (`NowPlayingControlSizes`).
 nonisolated struct NowPlayingMetrics: Equatable, Sendable {
     /// Points around the content and between the player and the side pane.
     static let horizontalInset: Double = 48
@@ -74,13 +114,15 @@ nonisolated struct NowPlayingMetrics: Equatable, Sendable {
     let artworkSide: Double
     /// The side pane's width, or 0 when it's hidden.
     let paneWidth: Double
+    let controls: NowPlayingControlSizes
 
-    var titleSize: Double { (22 * scale).rounded() }
-    var subtitleSize: Double { (17 * scale).rounded() }
-    var timeSize: Double { (11 * scale).rounded() }
-    var transportSize: Double { (24 * scale).rounded() }
-    var playSize: Double { (44 * scale).rounded() }
-    var columnSpacing: Double { (22 * scale).rounded() }
+    var titleSize: Double { controls.titleSize }
+    var subtitleSize: Double { controls.subtitleSize }
+    var timeSize: Double { controls.timeSize }
+    var transportSize: Double { controls.transportSize }
+    var playSize: Double { controls.playSize }
+    var songButtonSize: Double { controls.songButtonSize }
+    var columnSpacing: Double { (18 * scale).rounded() }
 
     /// What the column needs under the artwork: the song, the scrubber, the transport and gaps.
     static func controlsHeight(scale: Double) -> Double { 230 * scale }
@@ -93,13 +135,14 @@ nonisolated struct NowPlayingMetrics: Equatable, Sendable {
         let byHeight = height - 2 * Self.verticalInset - Self.controlsHeight(scale: scale)
         artworkSide = max(min(column, byHeight, 720), 200)
         paneWidth = showsPane ? column : 0
+        controls = NowPlayingControlSizes(windowWidth: width)
     }
 }
 
 /// The Mac's full-screen lyrics for a window: the artwork, the song and its controls in a column
 /// on the left, about 40% of the width, and the lyrics on the right in huge lines, only about
-/// four of them showing. Everything grows with the window; the lines are about 60 points in a
-/// 1,000-point window.
+/// four of them showing. The artwork and the lines grow with the window, the lines being about
+/// 60 points in a 1,000-point window; the song's type and the controls grow only gently.
 nonisolated struct FullScreenLyricsMetrics: Equatable, Sendable {
     /// 1 in a 1,000-point window, from 0.85 to 1.6.
     let scale: Double
@@ -114,14 +157,17 @@ nonisolated struct FullScreenLyricsMetrics: Equatable, Sendable {
     let lineSize: Double
     /// The height the lyrics show in.
     let lyricsHeight: Double
+    /// The player column's type and controls, which grow only gently.
+    let controls: NowPlayingControlSizes
 
     var lineSpacing: Double { (lineSize * 0.42).rounded() }
-    var titleSize: Double { (17 * scale).rounded() }
-    var subtitleSize: Double { (14 * scale).rounded() }
-    var timeSize: Double { (11 * scale).rounded() }
-    var transportSize: Double { (19 * scale).rounded() }
-    var playSize: Double { (32 * scale).rounded() }
-    var columnSpacing: Double { (16 * scale).rounded() }
+    var titleSize: Double { controls.titleSize }
+    var subtitleSize: Double { controls.subtitleSize }
+    var timeSize: Double { controls.timeSize }
+    var transportSize: Double { controls.transportSize }
+    var playSize: Double { controls.playSize }
+    var songButtonSize: Double { controls.songButtonSize }
+    var columnSpacing: Double { (12 * scale).rounded() }
     /// Roughly how many lines show, if none wraps.
     static let visibleLines = 4.2
 
@@ -143,5 +189,6 @@ nonisolated struct FullScreenLyricsMetrics: Equatable, Sendable {
         lineSize = min(max(min(size, lyricsWidth / 7.5), 36), 84).rounded()
         let pitch = lineSize * 1.25 + (lineSize * 0.42).rounded()
         lyricsHeight = max(min(pitch * Self.visibleLines, height - 2 * verticalInset), 0)
+        controls = NowPlayingControlSizes(windowWidth: width)
     }
 }

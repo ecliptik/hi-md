@@ -89,6 +89,48 @@ struct NowPlayingPresentationTests {
         #expect(alone.artworkSide > medium.artworkSide)
     }
 
+    @Test func playerTypeAndControlsGrowOnlyGently() {
+        // Apple Music's proportions at about 1,470 × 900: a 15–17 point title on one line, a
+        // 13–14 point subtitle, a 20–24 point transport with a play button around 28–32.
+        let music = NowPlayingControlSizes(windowWidth: 1470)
+        #expect((15...17).contains(music.titleSize))
+        #expect((13...14).contains(music.subtitleSize))
+        #expect((20...24).contains(music.transportSize))
+        #expect((28...32).contains(music.playSize))
+        #expect((22...26).contains(music.songButtonSize))
+        // 900 points and less start at the smallest sizes; 2,560 and more end at the largest.
+        for width in [600.0, 900] {
+            let small = NowPlayingControlSizes(windowWidth: width)
+            #expect([small.titleSize, small.subtitleSize, small.transportSize, small.playSize, small.timeSize]
+                    == [15, 13, 20, 28, 10])
+        }
+        for width in [2560.0, 3840] {
+            let large = NowPlayingControlSizes(windowWidth: width)
+            #expect([large.titleSize, large.subtitleSize, large.transportSize, large.playSize, large.timeSize]
+                    == [20, 16, 28, 38, 12])
+        }
+        // Both players use them, whatever the artwork does.
+        for (width, height) in [(1000.0, 700.0), (1470, 900), (1728, 1080), (2560, 1440)] {
+            let controls = NowPlayingControlSizes(windowWidth: width)
+            let nowPlaying = NowPlayingMetrics(width: width, height: height, showsPane: true)
+            let fullScreen = FullScreenLyricsMetrics(width: width, height: height)
+            #expect(nowPlaying.controls == controls && fullScreen.controls == controls)
+            #expect(nowPlaying.titleSize == controls.titleSize && fullScreen.playSize == controls.playSize)
+            // The title and the subtitle fit their one line beside the buttons in the column.
+            #expect(nowPlaying.titleSize <= 20 && fullScreen.titleSize <= 20)
+            #expect(fullScreen.artworkSide > 4 * fullScreen.songButtonSize)
+        }
+    }
+
+    @Test func subtitlePartsLeaveOutWhatIsMissing() {
+        let both = NowPlayingText.subtitleParts(artist: " The Jesus and Mary Chain ", album: "The Magnificent Tree")
+        #expect(both.artist == "The Jesus and Mary Chain" && both.album == "The Magnificent Tree")
+        let noAlbum = NowPlayingText.subtitleParts(artist: "Low", album: "  ")
+        #expect(noAlbum.artist == "Low" && noAlbum.album == nil)
+        let neither = NowPlayingText.subtitleParts(artist: "", album: nil)
+        #expect(neither.artist == nil && neither.album == nil)
+    }
+
     @Test func macLyricsAreLargeAndScaleWithThePane() {
         #expect(LyricsTypography.iPhone.lineSize == nil)
         let beside = LyricsTypography.scaled(forWidth: 424)

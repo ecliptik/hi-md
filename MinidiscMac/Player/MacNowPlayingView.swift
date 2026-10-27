@@ -223,43 +223,51 @@ struct MacNowPlayingView: View {
         .frame(width: metrics.artworkSide)
     }
 
+    /// The title on one line with the small heart and menu at its right, and "Artist — Album" on
+    /// one line under it, across the whole column.
     private func songInfo(_ metrics: NowPlayingMetrics) -> some View {
-        HStack(alignment: .center, spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 2) {
+            HStack(alignment: .center, spacing: 8) {
                 Text(state.currentTrack?.title ?? state.currentRadio?.name ?? String(localized: "Not Playing"))
-                    .font(.system(size: metrics.titleSize, weight: .bold))
-                    .lineLimit(2)
+                    .font(.system(size: metrics.titleSize, weight: .semibold))
+                    .lineLimit(1)
+                    .truncationMode(.tail)
                     .textSelection(.enabled)
-                Group {
-                    if let track = state.currentTrack {
-                        subtitle(track)
-                    } else if state.currentRadio != nil {
-                        Text("Live")
-                            .foregroundStyle(.white.opacity(NowPlayingText.secondaryOpacity))
-                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                if let track = state.currentTrack, !track.isLocalFile {
+                    MacSongButtons(track: track, buttonSide: metrics.songButtonSize)
                 }
-                .font(.system(size: metrics.subtitleSize))
             }
-            Spacer(minLength: 0)
-            if let track = state.currentTrack, !track.isLocalFile {
-                MacSongButtons(track: track, size: metrics.transportSize)
+            Group {
+                if let track = state.currentTrack {
+                    subtitle(track)
+                } else if state.currentRadio != nil {
+                    Text("Live")
+                        .foregroundStyle(.white.opacity(NowPlayingText.secondaryOpacity))
+                }
             }
+            .font(.system(size: metrics.subtitleSize))
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
-    /// "Artist — Album": each part opens its page and closes the player.
+    /// "Artist — Album": each part opens its page and closes the player. The album truncates
+    /// before the artist.
     private func subtitle(_ track: DisplayableSong) -> some View {
-        HStack(spacing: 4) {
-            if let artist = track.artist, !artist.isEmpty {
+        let parts = NowPlayingText.subtitleParts(artist: track.artist, album: track.albumName)
+        return HStack(spacing: 4) {
+            if let artist = parts.artist {
                 Button(artist) { navigator.showArtist(of: track) }
                     .disabled(track.artistId == nil || track.isLocalFile)
                     .help("Go to Artist")
+                    .layoutPriority(1)
             }
-            if NowPlayingText.subtitle(artist: track.artist, album: track.albumName)?.contains(" — ") == true {
+            if parts.artist != nil, parts.album != nil {
                 Text(verbatim: "—")
                     .accessibilityHidden(true)
+                    .layoutPriority(1)
             }
-            if let album = track.albumName, !album.isEmpty {
+            if let album = parts.album {
                 Button(album) { navigator.showAlbum(of: track, highlighting: true) }
                     .disabled(track.albumId == nil || track.isLocalFile)
                     .help("Go to Album")
@@ -267,6 +275,7 @@ struct MacNowPlayingView: View {
         }
         .buttonStyle(.plain)
         .lineLimit(1)
+        .truncationMode(.tail)
         .foregroundStyle(.white.opacity(NowPlayingText.secondaryOpacity))
     }
 
@@ -413,7 +422,10 @@ struct MacNowPlayingView: View {
 /// The playing song's heart and its menu, beside the title in Now Playing and full-screen lyrics.
 struct MacSongButtons: View {
     let track: DisplayableSong
-    let size: Double
+    /// Each button's side; the glyph is a little over half of it.
+    let buttonSide: Double
+
+    private var glyphSize: Double { (buttonSide * 0.56).rounded() }
 
     @Environment(MacPlayback.self) private var playback
 
@@ -424,8 +436,8 @@ struct MacSongButtons: View {
                     playback.setFavorite(toggle.toggled, songs: [track])
                 } label: {
                     Image(systemName: toggle.systemImage)
-                        .font(.system(size: size * 0.9))
-                        .frame(width: size * 1.6, height: size * 1.6)
+                        .font(.system(size: glyphSize))
+                        .frame(width: buttonSide, height: buttonSide)
                         .contentTransition(.symbolEffect(.replace))
                 }
                 .buttonStyle(.borderless)
@@ -440,8 +452,8 @@ struct MacSongButtons: View {
                     MacSongMenu(songs: [track], isFavorite: toggle.isFavorite)
                 } label: {
                     Image(systemName: "ellipsis")
-                        .font(.system(size: size * 0.9))
-                        .frame(width: size * 1.6, height: size * 1.6)
+                        .font(.system(size: glyphSize))
+                        .frame(width: buttonSide, height: buttonSide)
                 }
                 .menuStyle(.button)
                 .buttonStyle(.borderless)

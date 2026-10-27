@@ -107,28 +107,54 @@ struct MacFullScreenLyrics: View {
         }
     }
 
-    /// The title on one line, "Artist — Album" under it, the heart and menu at the right.
+    /// The title on one line with the small heart and menu at its right, and "Artist — Album" on
+    /// one line under it, across the whole column; the album truncates before the artist.
     private func songInfo(_ metrics: FullScreenLyricsMetrics) -> some View {
-        HStack(alignment: .center, spacing: 10) {
-            VStack(alignment: .leading, spacing: 3) {
+        VStack(alignment: .leading, spacing: 2) {
+            HStack(alignment: .center, spacing: 8) {
                 Text(state.currentTrack?.title ?? state.currentRadio?.name ?? String(localized: "Not Playing"))
-                    .font(.system(size: metrics.titleSize, weight: .bold))
+                    .font(.system(size: metrics.titleSize, weight: .semibold))
                     .lineLimit(1)
                     .truncationMode(.tail)
-                if let track = state.currentTrack,
-                   let subtitle = NowPlayingText.subtitle(artist: track.artist, album: track.albumName) {
-                    Text(subtitle)
-                        .font(.system(size: metrics.subtitleSize))
-                        .lineLimit(1)
-                        .foregroundStyle(.white.opacity(NowPlayingText.secondaryOpacity))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                if let track = state.currentTrack, !track.isLocalFile {
+                    MacSongButtons(track: track, buttonSide: metrics.songButtonSize)
                 }
             }
-            .accessibilityElement(children: .combine)
-            Spacer(minLength: 0)
-            if let track = state.currentTrack, !track.isLocalFile {
-                MacSongButtons(track: track, size: metrics.transportSize * 0.85)
+            if let track = state.currentTrack {
+                MacSongSubtitle(artist: track.artist, album: track.albumName)
+                    .font(.system(size: metrics.subtitleSize))
+                    .foregroundStyle(.white.opacity(NowPlayingText.secondaryOpacity))
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
+    }
+}
+
+/// "Artist — Album" on one line, the album truncating first so the artist stays readable.
+struct MacSongSubtitle: View {
+    let artist: String?
+    let album: String?
+
+    var body: some View {
+        let parts = NowPlayingText.subtitleParts(artist: artist, album: album)
+        HStack(spacing: 0) {
+            if let artist = parts.artist {
+                Text(verbatim: artist)
+                    .layoutPriority(1)
+            }
+            if parts.artist != nil, parts.album != nil {
+                Text(verbatim: " — ")
+                    .layoutPriority(1)
+                    .accessibilityHidden(true)
+            }
+            if let album = parts.album {
+                Text(verbatim: album)
+            }
+        }
+        .lineLimit(1)
+        .truncationMode(.tail)
+        .accessibilityElement(children: .combine)
     }
 }
 
