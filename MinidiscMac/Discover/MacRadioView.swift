@@ -38,7 +38,7 @@ struct MacRadioView: View {
                 }
             } else {
                 List(stations, id: \.id, selection: $selection) { station in
-                    MacRadioRow(station: station)
+                    MacRadioRow(station: station, playback: playback)
                 }
                 .listStyle(.inset(alternatesRowBackgrounds: true))
                 .contextMenu(forSelectionType: String.self) { ids in
@@ -84,10 +84,11 @@ struct MacRadioView: View {
     }
 }
 
+/// A List row: AppKit hosts each one in its own view, which can be laid out before the list's
+/// environment reaches it, so the row takes playback from the list rather than the environment.
 private struct MacRadioRow: View {
     let station: InternetRadioStation
-
-    @Environment(MacPlayback.self) private var playback
+    let playback: MacPlayback
 
     private var isPlaying: Bool { playback.state.currentRadio?.id == station.id }
 
