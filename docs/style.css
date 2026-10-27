@@ -702,10 +702,10 @@ a:hover { text-decoration-thickness: 2px; }
    starts one note-height above its first line; the side's name sits just
    above, on the ruled header. */
 .labelcard__head { position: absolute; bottom: 100%; left: 0; height: auto !important; font-size: 1.05em; }
-/* Side A: 3 mm lines (2.75% of the card's height) */
+/* Left panel (Sound): 3 mm lines (2.75% of the card's height) */
 .labelcard__side--a { left: 10.5%; top: 43.41%; width: 39%; font-size: 5.6cqw; }
 .labelcard__side--a li { height: 7.54cqw; }
-/* Side B: 4 mm lines (3.65%) */
+/* Right panel (Extras): 4 mm lines (3.65%) */
 .labelcard__side--b { left: 54.5%; top: 43.78%; width: 39%; font-size: 6.6cqw; }
 .labelcard__side--b li { height: 10cqw; }
 
