@@ -7,8 +7,9 @@ import SwiftUI
 /// Lyrics tabs) or wide (the artwork beside everything else, with a pane between the song and
 /// the controls when one is open). The chevron switches between compact and tall; the toolbar's
 /// Library and Lyrics buttons open their pane, growing a compact window to show it. Clicking the
-/// artwork shows the spinning MiniDisc. Closing it leaves playback alone. It's separate from the
-/// menu bar player and Winamp mode.
+/// artwork shows the spinning MiniDisc. Opening it closes Now Playing in the main window, so
+/// there's one player on screen; closing it leaves playback alone. It's separate from the menu
+/// bar player and Winamp mode.
 ///
 /// Nothing in it is a List or Table: its layouts are rebuilt as the window crosses from one shape
 /// to another during a live resize, and an NSTableView torn down then crashes.
@@ -24,7 +25,11 @@ struct MacMiniPlayer: View {
             .environment(playback)
             .environment(interface.navigator)
             .environment(interface.playlists(for: container))
-            .onAppear { MacSpaceKeyMonitor.shared.install(playback: playback) }
+            .onAppear {
+                MacSpaceKeyMonitor.shared.install(playback: playback)
+                // One player at a time: the main window goes back to the library.
+                interface.navigator.closeNowPlaying()
+            }
     }
 }
 

@@ -301,6 +301,9 @@ struct MacNowPlayingView: View {
             .help("Close Now Playing")
 
             Button {
+                // The MiniPlayer takes over: the window goes back to the library, even when the
+                // MiniPlayer was already open and only comes forward.
+                navigator.closeNowPlaying()
                 openWindow(id: MacMiniPlayer.windowID)
             } label: {
                 Image(systemName: "pip.enter")
