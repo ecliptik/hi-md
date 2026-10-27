@@ -106,7 +106,7 @@ app_setting() {
     ' "$project_file"
 }
 
-printf 'Minidisc Doctor\n\n'
+printf 'Hi-MD Doctor\n\n'
 
 for command_name in git plutil xcodebuild; do
     if command -v "$command_name" >/dev/null 2>&1; then

@@ -1,9 +1,14 @@
 import Foundation
 
 extension HomeDestination {
-    /// Parses `minidisc://album|playlist|artist/<id>?name=…&cover=…`, the links widgets open.
+    /// The app's URL schemes: `minidisc`, which widgets, Spotlight and Shortcuts use, and `himd`,
+    /// an alias matching the Hi-MD name. Both open the same links.
+    static let urlSchemes: Set<String> = ["minidisc", "himd"]
+
+    /// Parses `minidisc://album|playlist|artist/<id>?name=…&cover=…` (or the same link with
+    /// `himd://`), the links widgets open.
     init?(url: URL) {
-        guard url.scheme == "minidisc",
+        guard let scheme = url.scheme?.lowercased(), Self.urlSchemes.contains(scheme),
               let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return nil }
         let id = String(components.path.dropFirst())
         guard !id.isEmpty else { return nil }
