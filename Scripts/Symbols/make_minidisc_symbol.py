@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Generates the `minidisc` and `minidisc.fill` SF Symbols custom-symbol templates.
 
-A line-art MiniDisc after the 💽 emoji: a cartridge outline with a chamfered top-left corner, the
-disc as a ring with a hub dot, and the shutter coming in from the right edge over the disc's right
-side. `minidisc.fill` is the solid cartridge with the disc, hub and shutter knocked out.
+A line-art MiniDisc after the 💽 emoji: a rounded cartridge outline, the disc as a closed ring
+with a hub dot, and the shutter as a solid tab reaching in from the right edge beside the disc.
+`minidisc.fill` is the solid cartridge with the disc, hub and shutter knocked out.
 
 Every weight is built from the same centerlines with the same number of path commands, so SF Symbols
 (and actool) can interpolate the Ultralight, Regular and Black sources into all nine weights.
@@ -23,19 +23,19 @@ CY = CAP / 2            # symbols are centred on the cap height's midline
 SIDEBEARING = 9.5       # square/square.stack keep ~10 units each side at the small scale
 
 # Per-weight parameters. t is the stroke; SF's square is 2.25 / 7.0 / 14.25 at the small scale.
-# ring: the disc's centerline radius; ringx: its centre; hub: the hub dot's radius; tabgap: from the
-# hub to the shutter's left edge; tabh: half the shutter's height (outer edge).
+# ring: the disc's centerline radius; ringx: its centre; hub: the hub dot's radius; tableft and
+# tabhalf: the shutter's outer left edge and half its outer height.
 WEIGHTS = {
-    "Ultralight": dict(t=2.25, ring=17.5, ringx=33.0, hub=2.4, tabgap=10.6, tabh=10.5),
-    "Regular":    dict(t=7.0,  ring=16.5, ringx=33.0, hub=4.4, tabgap=5.0, tabh=11.0),
-    "Black":      dict(t=13.0, ring=14.5, ringx=32.5, hub=4.5, tabgap=3.0, tabh=11.5),
+    "Ultralight": dict(t=2.25, ring=14.5, ringx=27.5, hub=2.2, tableft=47.5, tabhalf=13.0),
+    "Regular":    dict(t=7.0,  ring=13.5, ringx=28.0, hub=3.8, tableft=50.0, tabhalf=12.5),
+    "Black":      dict(t=13.0, ring=11.5, ringx=29.5, hub=3.2, tableft=50.5, tabhalf=12.5),
 }
 
-# Cartridge centerline (independent of weight; strokes grow both ways like SF's).
+# Cartridge centerline (independent of weight; strokes grow both ways like SF's): a plain rounded
+# rectangle, slightly taller than wide like a real MiniDisc, with one corner radius all round.
 X0, X1 = 3.5, 66.5
 Y0, Y1 = CY - 34.5, CY + 34.5
-CHAMFER = 15.0
-R_BOTTOM, R_TOPRIGHT, R_CHAMFER = 10.0, 12.0, 8.0
+R_CORNER = 10.5
 
 
 def v_add(a, b): return (a[0] + b[0], a[1] + b[1])
@@ -117,86 +117,48 @@ def hull_of_circles(path, circles, offset, reverse=False):
     path.close()
 
 
-def circle(path, c, r):
+def circle(path, c, r, reverse=False):
     a0 = math.pi / 2
     path.move(polar(c, r, a0))
-    path.arc(c, r, a0, a0 + 2 * math.pi, 4)
+    path.arc(c, r, a0, a0 + (-2 if reverse else 2) * math.pi, 4)
     path.close()
 
 
 def cartridge_circles():
-    verts = [(X0, Y0), (X1, Y0), (X1, Y1), (X0 + CHAMFER, Y1), (X0, Y1 - CHAMFER)]
-    radii = [R_BOTTOM, R_BOTTOM, R_TOPRIGHT, R_CHAMFER, R_CHAMFER]
-    return rounded_polygon_circles(verts, radii)
+    return rounded_polygon_circles([(X0, Y0), (X1, Y0), (X1, Y1), (X0, Y1)], [R_CORNER] * 4)
 
 
-def reversed_contour(cmds):
-    """The same closed contour (M, then L/C segments, then Z) traversed the other way."""
-    assert cmds[0][0] == "M" and cmds[-1][0] == "Z"
-    segs, cur = [], cmds[0][1]
-    for cmd in cmds[1:-1]:
-        segs.append((cur, cmd))
-        cur = cmd[-1]
-    out = [("M", cur)]
-    for start, cmd in reversed(segs):
-        out.append(("L", start) if cmd[0] == "L" else ("C", cmd[2], cmd[1], start))
-    out.append(("Z",))
-    return out
-
-
-def add(path, contour, reverse=False):
-    path.cmds += reversed_contour(contour.cmds) if reverse else contour.cmds
-
-
-def disc_and_shutter(p, right, corner):
-    """The disc's outer edge merged with the shutter, which runs from inside the disc to `right`."""
-    t, c, h = p["t"], (p["ringx"], CY), p["tabh"]
-    R = p["ring"] + t / 2
-    a = math.asin(h / R)
-    path = Path()
-    path.move(polar(c, R, a))
-    path.arc(c, R, a, 2 * math.pi - a, 4)
-    path.line((right - corner, CY - h))
-    path.arc((right - corner, CY - h + corner), corner, -math.pi / 2, 0, 1)
-    path.line((right, CY + h - corner))
-    path.arc((right - corner, CY + h - corner), corner, 0, math.pi / 2, 1)
-    path.close()
-    return path
-
-
-def disc_window(p):
-    """The disc's inner edge, cut off on the right by the shutter's left edge (a D shape)."""
-    t, c = p["t"], (p["ringx"], CY)
-    ri = p["ring"] - t / 2
-    xl = p["hub"] + p["tabgap"]           # the shutter's left edge, from the disc's centre
-    assert xl < ri, "the shutter must cut the disc's window"
-    a = math.acos(xl / ri)
-    assert ri * math.sin(a) < p["tabh"], "the shutter must be taller than the window it cuts"
-    path = Path()
-    path.move(polar(c, ri, a))
-    path.arc(c, ri, a, 2 * math.pi - a, 4)
-    path.close()
-    return path
+def rounded_rect_circles(x0, x1, half, r_left, r_right):
+    """Corner circles of a rectangle (outer edges given), centred on the cap height's midline."""
+    return [((x0 + r_left, CY - half + r_left), r_left), ((x1 - r_right, CY - half + r_right), r_right),
+            ((x1 - r_right, CY + half - r_right), r_right), ((x0 + r_left, CY + half - r_left), r_left)]
 
 
 def build(weight, filled):
-    """Outline: cartridge, disc + shutter, window, hub. Fill: the same with the inner parts knocked out."""
+    """Outline: cartridge, closed disc ring, hub dot, solid shutter reaching in from the right edge.
+    Fill: the solid cartridge with the ring, hub and shutter knocked out."""
     p = WEIGHTS[weight]
     t = p["t"]
+    c = (p["ringx"], CY)
+    assert c[0] + p["ring"] + t / 2 < p["tableft"], "the shutter must clear the disc"
+    assert c[0] - p["ring"] - t / 2 > X0 + t / 2, "the disc must clear the cartridge"
     path = Path()
     cart = cartridge_circles()
     hull_of_circles(path, cart, t / 2)
     if not filled:
         hull_of_circles(path, cart, -t / 2, reverse=True)
+        circle(path, c, p["ring"] + t / 2)
+        circle(path, c, p["ring"] - t / 2, reverse=True)
+        circle(path, c, p["hub"])
         # The shutter runs into the cartridge's right edge, so it ends inside that stroke.
-        add(path, disc_and_shutter(p, X1, 1.0))
+        hull_of_circles(path, rounded_rect_circles(p["tableft"], X1, p["tabhalf"], 2.5, 1.0), 0)
     else:
-        # Cut out of the solid cartridge, leaving a rim as wide as the outline's stroke.
-        add(path, disc_and_shutter(p, X1 - t / 2, 2.5), reverse=True)
-    add(path, disc_window(p), reverse=not filled)
-    hub = Path()
-    circle(hub, (p["ringx"], CY), p["hub"])
-    add(path, hub, reverse=filled)
+        circle(path, c, p["ring"] + t / 2, reverse=True)
+        circle(path, c, p["ring"] - t / 2)
+        circle(path, c, p["hub"], reverse=True)
+        # Cut out of the solid cartridge, leaving a rim on the right as wide as the outline's stroke.
+        hull_of_circles(path, rounded_rect_circles(p["tableft"], X1 - t / 2, p["tabhalf"], 2.5, 2.5), 0,
+                        reverse=True)
     return path
 
 
