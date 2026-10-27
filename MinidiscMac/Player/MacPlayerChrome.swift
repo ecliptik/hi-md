@@ -114,10 +114,16 @@ extension View {
 enum MacGlass {
     /// Reduce Transparency's fill in place of glass: dark on the player surfaces (white glyphs on
     /// it are above 12:1) and light in a light window (black glyphs above 15:1).
-    static let solidFill = Color(nsColor: NSColor(name: nil) { appearance in
-        appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
-            ? NSColor(white: 0.16, alpha: 1) : NSColor(white: 0.95, alpha: 1)
-    })
+    static let solidFill = Color(nsColor: solidFillColor())
+
+    /// Nonisolated so the provider closure is too: AppKit and SwiftUI resolve dynamic colours off
+    /// the main thread, and a main-actor closure traps there (as `AppearanceSettings` notes).
+    private nonisolated static func solidFillColor() -> NSColor {
+        NSColor(name: nil) { appearance in
+            appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+                ? NSColor(white: 0.16, alpha: 1) : NSColor(white: 0.95, alpha: 1)
+        }
+    }
     /// The selected toggle's fill in a glass group, where the Music app uses red.
     static let selectedFill = Color.minidiscAccent
     static let selectedGlyph = Color.minidiscAccentText
