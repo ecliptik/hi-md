@@ -215,7 +215,7 @@ struct MacFullScreenLyricsLines: View {
                 .scrollIndicators(.hidden)
                 .onAppear {
                     viewModel.syncToPlayback()
-                    guard let index = viewModel.currentLineIndex else { return }
+                    guard viewModel.autoScrollEnabled, let index = viewModel.currentLineIndex else { return }
                     LyricsScrolling.scroll(proxy, to: .init(index: index, animated: false, revision: 0),
                                            reduceMotion: reduceMotion, animation: Self.glide)
                 }

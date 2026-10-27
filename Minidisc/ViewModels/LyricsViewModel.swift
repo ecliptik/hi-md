@@ -15,7 +15,17 @@ final class LyricsViewModel {
     private(set) var currentLineIndex: Int?
     private(set) var availableLanguages: [String] = []
     var selectedLanguage: String?
-    var autoScrollEnabled: Bool = true
+    /// Follow Lyrics. Off, the views never scroll by themselves, though the line being sung
+    /// still lights up; turned on, they go to that line once and follow from there. Kept on the
+    /// player state, so it holds across songs and for every lyrics view.
+    var autoScrollEnabled: Bool {
+        get { playerState.followsLyrics }
+        set {
+            let wasOn = playerState.followsLyrics
+            playerState.followsLyrics = newValue
+            if newValue, !wasOn { resumeFollowing() }
+        }
+    }
     private(set) var isUserScrolling: Bool = false
     /// Where the lyrics views should scroll next: set when the current line moves while the
     /// lyrics follow the song, and when a scrub or seek makes them follow again.
@@ -167,13 +177,18 @@ final class LyricsViewModel {
         }
     }
 
-    /// Follows the song again and scrolls to the line now being sung, straight there: where the
-    /// listener scrolled to is unknown.
+    /// Follows the song again after a scrub or seek.
     private func followAgain() {
+        playerState.followsLyrics = true
+        resumeFollowing()
+    }
+
+    /// Scrolls once to the line now being sung, straight there (where the listener scrolled to
+    /// is unknown), and follows the song from there.
+    private func resumeFollowing() {
         resumeTask?.cancel()
         resumeTask = nil
         isUserScrolling = false
-        autoScrollEnabled = true
         let before = currentLineIndex
         syncToPlayback()
         if let index = currentLineIndex, index == before {

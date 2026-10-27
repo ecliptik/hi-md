@@ -114,9 +114,10 @@ struct LyricsView: View {
             }
             .scrollIndicators(.hidden)
             .onAppear {
-                // Open on the line being sung instead of scrolling down to it from the top.
+                // Open on the line being sung instead of scrolling down to it from the top, unless
+                // Follow Lyrics is off: then the listener scrolls.
                 viewModel.syncToPlayback()
-                guard let index = viewModel.currentLineIndex else { return }
+                guard viewModel.autoScrollEnabled, let index = viewModel.currentLineIndex else { return }
                 var transaction = Transaction()
                 transaction.disablesAnimations = true
                 withTransaction(transaction) {

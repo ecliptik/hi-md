@@ -99,22 +99,17 @@ struct KaraokeLyricsView: View {
             .scrollIndicators(.hidden)
             .onAppear {
                 viewModel.syncToPlayback()
-                guard let index = viewModel.currentLineIndex else { return }
+                guard viewModel.autoScrollEnabled, let index = viewModel.currentLineIndex else { return }
                 LyricsScrolling.scroll(proxy, to: .init(index: index, animated: false, revision: 0),
                                        reduceMotion: reduceMotion, animation: .easeInOut(duration: 0.35))
             }
-            // A scrub or seek lands straight on its line; playback glides line to line.
+            // A scrub or seek lands straight on its line; playback glides line to line. Follow
+            // Lyrics off, nothing scrolls by itself here either; tapping a line seeks, which
+            // turns it back on.
             .onChange(of: viewModel.scrollRequest) { _, request in
                 guard let request else { return }
                 LyricsScrolling.scroll(proxy, to: request, reduceMotion: reduceMotion,
                                        animation: .easeInOut(duration: 0.35))
-            }
-            // Full screen follows the song even with Follow Lyrics off in the player.
-            .onChange(of: viewModel.currentLineIndex) { previous, index in
-                guard let index, !viewModel.autoScrollEnabled, !viewModel.isUserScrolling else { return }
-                LyricsScrolling.scroll(proxy, to: .init(index: index, animated: LyricsScrollPolicy.animates(from: previous, to: index),
-                                                        revision: 0),
-                                       reduceMotion: reduceMotion, animation: .easeInOut(duration: 0.35))
             }
             .onScrollPhaseChange { _, phase in
                 if phase == .interacting { viewModel.userStartedScrolling() }
