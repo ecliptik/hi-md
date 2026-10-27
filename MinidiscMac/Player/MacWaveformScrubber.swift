@@ -10,6 +10,13 @@ struct MacWaveformScrubber: View {
     var height: Double = 26
     var isStacked = false
     var centerLabel: String? = nil
+    /// In a row (not stacked): whether the times sit either side of the waveform, which a
+    /// narrow MiniPlayer bar drops.
+    var showsTimes = true
+    /// In a row: the time after the waveform counts down what's left rather than the length.
+    var showsRemaining = false
+    var timeFont: Font = .caption.weight(.bold)
+    var timeWidth: Double = 34
 
     @Environment(MacPlayback.self) private var playback
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -45,16 +52,20 @@ struct MacWaveformScrubber: View {
                     .font(.caption2.weight(.bold))
                 }
             } else {
-                HStack(spacing: 8) {
-                    Text(Self.time(shown))
-                        .frame(minWidth: 34, alignment: .trailing)
+                HStack(spacing: showsRemaining ? 6 : 8) {
+                    if showsTimes {
+                        Text(Self.time(shown))
+                            .frame(minWidth: timeWidth, alignment: .trailing)
+                    }
                     bar(shown: shown, duration: duration, canSeek: canSeek, state: state)
-                    Text(Self.time(duration))
-                        .frame(minWidth: 34, alignment: .leading)
+                    if showsTimes {
+                        Text(verbatim: showsRemaining ? "-" + Self.time(max(duration - shown, 0)) : Self.time(duration))
+                            .frame(minWidth: timeWidth, alignment: .leading)
+                    }
                 }
             }
         }
-        .font(.caption.weight(.bold))
+        .font(timeFont)
         .monospacedDigit()
         .foregroundStyle(Self.secondary)
         .opacity(canSeek || state.currentTrack == nil ? 1 : 0.6)
