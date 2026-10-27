@@ -6,11 +6,19 @@ import SwiftUI
 @MainActor
 final class MacWindowHandle {
     weak var window: NSWindow?
+    /// Which windows this handle may take: the MiniPlayer's turns away the main window's, so a
+    /// reader callback can never point its resizing at another window.
+    var adopts: ((NSWindow) -> Bool)?
+    /// Set once the window starts closing: from then on nothing here resizes or restyles it.
+    var isClosing = false
+
+    /// The window, unless it's closing.
+    var liveWindow: NSWindow? { isClosing ? nil : window }
 
     /// Hides or shows the close, minimise and zoom buttons. They stay in place, and VoiceOver
     /// still finds them.
     func setTrafficLightsVisible(_ visible: Bool, animated: Bool) {
-        guard let window else { return }
+        guard let window = liveWindow else { return }
         let buttons = [NSWindow.ButtonType.closeButton, .miniaturizeButton, .zoomButton]
             .compactMap { window.standardWindowButton($0) }
         NSAnimationContext.runAnimationGroup { context in
@@ -22,7 +30,7 @@ final class MacWindowHandle {
     /// Resizes the content to `size`, keeping the top edge where it is and the window on screen,
     /// then runs `completion`.
     func resizeContent(to size: CGSize, animated: Bool, completion: (@MainActor () -> Void)? = nil) {
-        guard let window else {
+        guard let window = liveWindow else {
             completion?()
             return
         }
@@ -45,7 +53,7 @@ final class MacWindowHandle {
     }
 
     private func setFrame(_ frame: CGRect, animated: Bool, completion: (@MainActor () -> Void)?) {
-        guard let window else {
+        guard let window = liveWindow else {
             completion?()
             return
         }
@@ -71,8 +79,15 @@ struct MacWindowReader: NSViewRepresentable {
     func makeNSView(context: Context) -> ReaderView {
         let view = ReaderView()
         view.onWindow = { [handle, onWindow] window in
+            guard let window else {
+                handle.window = nil
+                return
+            }
+            // Only the window this handle is for: never another one the view passes through.
+            guard handle.adopts?(window) != false else { return }
             handle.window = window
-            if let window { onWindow?(window) }
+            handle.isClosing = false
+            onWindow?(window)
         }
         return view
     }

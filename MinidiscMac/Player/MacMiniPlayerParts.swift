@@ -6,11 +6,22 @@ import SwiftUI
 // MARK: - Window
 
 extension MacWindowHandle {
+    /// A handle that only ever takes the MiniPlayer's own window, never a main window.
+    static func miniPlayer() -> MacWindowHandle {
+        let handle = MacWindowHandle()
+        handle.adopts = { window in
+            MiniPlayerWindowIdentity.mayAdopt(identifier: window.identifier?.rawValue,
+                                              miniPlayerID: MacMiniPlayer.windowID,
+                                              mainID: MacMenuBarPlayer.mainWindowID)
+        }
+        return handle
+    }
+
     /// The window's limits in `layout`: a compact window keeps a 1:1 aspect ratio between its
     /// smallest and largest side, so dragging any edge scales the artwork; with a pane it resizes
     /// freely above the layout's minimum.
     func applyMiniPlayerLimits(for layout: MiniPlayerLayout) {
-        guard let window else { return }
+        guard let window = liveWindow else { return }
         window.contentMinSize = layout.minimumSize
         window.contentMaxSize = layout.maximumSize
         if layout == .compact {

@@ -105,6 +105,38 @@ struct MiniPlayerPresentationTests {
         #expect(MiniPlayerLayout.reconciled(square, isPaneOpen: false) == square)
     }
 
+    // MARK: Windows
+
+    @Test func theMiniPlayerOnlyTakesItsOwnWindow() {
+        func mayAdopt(_ identifier: String?) -> Bool {
+            MiniPlayerWindowIdentity.mayAdopt(identifier: identifier, miniPlayerID: "miniPlayer", mainID: "main")
+        }
+        #expect(mayAdopt("miniPlayer"))
+        #expect(mayAdopt("miniPlayer-AppWindow-1"))
+        #expect(mayAdopt(nil))
+        #expect(!mayAdopt("main-AppWindow-1"))
+        #expect(!mayAdopt("main"))
+    }
+
+    @Test func closingTheMiniPlayerLeavesAShowingMainWindowAlone() {
+        typealias Window = MiniPlayerWindowIdentity.MainWindow
+        let zoomed = Window(number: 7, isVisible: true, isMiniaturized: false)
+        // A zoomed main window on screen: nothing is reordered, resized or opened.
+        #expect(MiniPlayerWindowIdentity.reveal(mainWindows: [zoomed], hiddenByMiniPlayer: []) == .none)
+        // A stale closed window beside it isn't brought back over it.
+        let closed = Window(number: 3, isVisible: false, isMiniaturized: false)
+        #expect(MiniPlayerWindowIdentity.reveal(mainWindows: [closed, zoomed], hiddenByMiniPlayer: []) == .none)
+        // Only the windows the MiniPlayer hid come back.
+        #expect(MiniPlayerWindowIdentity.reveal(mainWindows: [closed, Window(number: 9, isVisible: false, isMiniaturized: false)],
+                                                hiddenByMiniPlayer: [9]) == .orderFront([9]))
+        // A minimised one comes out of the Dock rather than a second window opening.
+        let docked = Window(number: 4, isVisible: false, isMiniaturized: true)
+        #expect(MiniPlayerWindowIdentity.reveal(mainWindows: [docked], hiddenByMiniPlayer: []) == .deminiaturize(4))
+        // No main window at all: one opens.
+        #expect(MiniPlayerWindowIdentity.reveal(mainWindows: [], hiddenByMiniPlayer: [1]) == .openNew)
+        #expect(MiniPlayerWindowIdentity.reveal(mainWindows: [closed], hiddenByMiniPlayer: []) == .openNew)
+    }
+
     // MARK: Panes
 
     @Test func lyricsAndQueueToggleTheirPane() {

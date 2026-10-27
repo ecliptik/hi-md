@@ -55,7 +55,7 @@ private struct MacMiniPlayerContent: View {
     @State private var backdrop = FullPlayerViewModel()
     @State private var model = MacMiniPlayerModel()
     @State private var library: LibraryBrowserModel
-    @State private var window = MacWindowHandle()
+    @State private var window = MacWindowHandle.miniPlayer()
     @State private var chrome = MacPlayerChrome()
     @State private var sizing = MiniPlayerWindowSizing()
     @State private var showsSpinningDisc = false
@@ -151,11 +151,14 @@ private struct MacMiniPlayerContent: View {
         .onChange(of: focus) { _, focused in chrome.set(.keyboardFocus, focused != nil) }
         .onChange(of: isVolumeShown) { _, shown in chrome.set(.popover, shown) }
         .onChange(of: floatsOnTop) { _, floats in
-            window.window?.level = floats ? .floating : .normal
+            window.liveWindow?.level = floats ? .floating : .normal
         }
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.willCloseNotification)) { note in
             guard let nsWindow = window.window, note.object as? NSWindow === nsWindow else { return }
-            MiniPlayerSettings.miniPlayerDidClose(showMainWindow: showMainWindow)
+            // Nothing resizes any window from here on: an animation finishing, a layout change
+            // as the content goes, or the reader seeing the view leave.
+            window.isClosing = true
+            MiniPlayerSettings.miniPlayerDidClose(openMainWindow: openMainWindow)
         }
         .onReceive(NotificationCenter.default.publisher(for: .minidiscFavoritesChanged)) { _ in
             if library.location == .favorites { library.reload() }
@@ -414,6 +417,7 @@ private struct MacMiniPlayerContent: View {
         var next = panel
         let change = toggling ? next.toggle(pane, canShowLyrics: canShowLyrics)
             : next.show(pane, canShowLyrics: canShowLyrics)
+        guard !window.isClosing else { return }
         guard let content = window.contentSize else {
             panel = next
             return
@@ -437,7 +441,7 @@ private struct MacMiniPlayerContent: View {
             let target = sizing.sizeClosingPane(from: content)
             transition = transition ?? MiniPlayerLayout.layout(for: content, isPaneOpen: true)
             // Down to the compact size; its square limits follow once the pane has gone.
-            window.window?.contentMinSize = MiniPlayerLayout.compact.minimumSize
+            window.liveWindow?.contentMinSize = MiniPlayerLayout.compact.minimumSize
             let finish: @MainActor () -> Void = {
                 panel = next
                 transition = nil
@@ -490,15 +494,13 @@ private struct MacMiniPlayerContent: View {
         }
     }
 
-    /// Brings the main window forward, reopening it if it was closed.
+    /// Brings the main window forward as it is, reopening it only if it was closed.
     private func showMainWindow() {
-        NSApp.activate()
-        let main = NSApp.windows.first { $0.identifier?.rawValue.hasPrefix(MacMenuBarPlayer.mainWindowID) == true && $0.isVisible }
-        if let main {
-            main.makeKeyAndOrderFront(nil)
-        } else {
-            openWindow(id: MacMenuBarPlayer.mainWindowID)
-        }
+        MiniPlayerSettings.showMainWindow(openMainWindow: openMainWindow)
+    }
+
+    private func openMainWindow() {
+        openWindow(id: MacMenuBarPlayer.mainWindowID)
     }
 }
 

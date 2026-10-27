@@ -207,6 +207,52 @@ nonisolated struct MiniPlayerWindowSizing: Equatable, Sendable {
     }
 }
 
+/// Which windows the MiniPlayer may touch, and what closing it does to the main window. The
+/// MiniPlayer only ever resizes, re-levels or re-targets its own window, never one of the main
+/// window group's, and closing it never moves or resizes a main window: it brings back only what
+/// it put away itself, and opens a new main window only when there's none at all.
+nonisolated enum MiniPlayerWindowIdentity {
+    /// Whether a window with `identifier` may be adopted by the MiniPlayer's window handle: not
+    /// one of the main window group's (`mainID-AppWindow-N`). Windows the system names otherwise,
+    /// or not at all, are the MiniPlayer's own, since its reader only lives in its own window.
+    static func mayAdopt(identifier: String?, miniPlayerID: String, mainID: String) -> Bool {
+        guard let identifier, !identifier.isEmpty else { return true }
+        if identifier.hasPrefix(miniPlayerID) { return true }
+        return !identifier.hasPrefix(mainID)
+    }
+
+    /// A main window as the MiniPlayer sees it when it closes, by window number.
+    struct MainWindow: Equatable, Sendable {
+        let number: Int
+        let isVisible: Bool
+        let isMiniaturized: Bool
+    }
+
+    enum Reveal: Equatable, Sendable {
+        /// A main window is on screen: leave every window as it is.
+        case none
+        /// Order these windows (the ones the MiniPlayer put away) back in, frames untouched.
+        case orderFront([Int])
+        /// Take this window out of the Dock.
+        case deminiaturize(Int)
+        /// No main window at all: open one.
+        case openNew
+    }
+
+    /// What closing the MiniPlayer (or Show Hi-MD) does so the app isn't left without a window,
+    /// given the main windows and the ones the MiniPlayer hid. It never picks a window it didn't
+    /// hide over one that's showing, and never opens a second main window beside an existing one:
+    /// a new window from a window group comes up at the default size, which looked like the main
+    /// window losing its zoomed frame.
+    static func reveal(mainWindows: [MainWindow], hiddenByMiniPlayer: Set<Int>) -> Reveal {
+        let hidden = mainWindows.filter { hiddenByMiniPlayer.contains($0.number) && !$0.isVisible && !$0.isMiniaturized }
+        if !hidden.isEmpty { return .orderFront(hidden.map(\.number)) }
+        if mainWindows.contains(where: \.isVisible) { return .none }
+        if let docked = mainWindows.first(where: \.isMiniaturized) { return .deminiaturize(docked.number) }
+        return .openNew
+    }
+}
+
 /// The MiniPlayer queue's sections, as the Music app has them: the songs the listener queued
 /// under "Playing Next", then the ones Autoplay added under "Continue Playing".
 nonisolated enum MiniPlayerQueueSections {
