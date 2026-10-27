@@ -8,9 +8,42 @@ nonisolated struct HomeFavorites: Codable, Sendable {
 }
 
 enum HomePersonalization {
-    static func unique(_ albums: [AlbumID3], excluding ids: Set<String> = []) -> [AlbumID3] {
+    nonisolated static func unique(_ albums: [AlbumID3], excluding ids: Set<String> = []) -> [AlbumID3] {
         var seen = ids
         return albums.filter { seen.insert($0.id).inserted }
+    }
+
+    /// Genre shelves that each show different albums. Servers list a genre's albums by name, and
+    /// an album tagged with several genres (electronic, ambient, experimental) topped every one
+    /// of those shelves alike. Albums keep to the first shelf that has them, each shelf is
+    /// shuffled by `seed` so the same artist's catalogue doesn't open every row, genres differing
+    /// only in case count once, and a shelf left with fewer than `minimum` albums is dropped.
+    nonisolated static func distinctGenreShelves(_ fetched: [(name: String, albums: [AlbumID3])], limit: Int = 5,
+                                     perShelf: Int = 20, minimum: Int = 6, seed: String) -> [(name: String, albums: [AlbumID3])] {
+        var shelves: [(name: String, albums: [AlbumID3])] = []
+        var seenAlbums = Set<String>()
+        var seenGenres = Set<String>()
+        for (name, albums) in fetched where shelves.count < limit {
+            guard seenGenres.insert(name.lowercased()).inserted else { continue }
+            let fresh = unique(albums, excluding: seenAlbums)
+                .sorted { shuffleKey($0.id, seed) < shuffleKey($1.id, seed) }
+                .prefix(perShelf)
+            guard fresh.count >= minimum else { continue }
+            seenAlbums.formUnion(fresh.map(\.id))
+            shelves.append((name, Array(fresh)))
+        }
+        return shelves
+    }
+
+    /// A stable order for `id` under `seed` (FNV-1a), so a shelf keeps its order until the seed
+    /// changes, unlike `hashValue`, which differs on every launch.
+    nonisolated private static func shuffleKey(_ id: String, _ seed: String) -> UInt64 {
+        var hash: UInt64 = 0xcbf2_9ce4_8422_2325
+        for byte in (seed + "|" + id).utf8 {
+            hash ^= UInt64(byte)
+            hash &*= 0x0000_0100_0000_01b3
+        }
+        return hash
     }
 
     static func rediscovery(favorites: [AlbumID3], frequent: [AlbumID3], recent: [AlbumID3]) -> [AlbumID3] {
