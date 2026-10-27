@@ -4,8 +4,8 @@ import SwiftUI
 /// The player along the bottom of the window, a floating Liquid Glass capsule like the Music
 /// app's: the controls on the left, the playing song with its artwork and scrubber in the middle,
 /// and volume and the lyrics and queue toggles on the right, the one open filled with the accent.
-/// The root view puts it in a bottom safe-area inset, so the window's content scrolls under it and
-/// the last rows stop above it.
+/// The root view puts it below the content column, so pages stop above it and no AppKit-backed
+/// table can draw over it.
 struct MacPlayerBar: View {
     @Environment(MacPlayback.self) private var playback
     @Environment(MacNavigator.self) private var navigator

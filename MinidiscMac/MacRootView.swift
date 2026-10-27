@@ -19,13 +19,14 @@ struct MacRootView: View {
             NavigationSplitView {
                 MacSidebar(container: container)
             } detail: {
-                MacDetailColumn(container: container)
-                    // The player floats over the bottom of the content, centred and clear of the
-                    // sidebar, in a glass capsule. As a safe-area inset, the lists and grids
-                    // scroll under it and their last rows stop above it.
-                    .safeAreaInset(edge: .bottom, spacing: 0) {
-                        MacPlayerBar()
-                    }
+                // The player sits below the content, centred and clear of the sidebar, in a glass
+                // capsule. Not an overlay or safe-area inset: pages opened above a section are
+                // AppKit-backed (song tables) and drew over it, hiding the controls.
+                VStack(spacing: 0) {
+                    MacDetailColumn(container: container)
+                    MacPlayerBar()
+                        .padding(.top, 6)
+                }
             }
             .searchable(text: $bindableNavigator.searchText, placement: .toolbar, prompt: Text("Artists, Albums, Songs"))
             // The lyrics and queue panel, like the Music app's Playing Next. Read here, in the
