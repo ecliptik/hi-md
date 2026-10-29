@@ -161,7 +161,7 @@ struct ArtistDetailView: View {
                             .environment(\.colorScheme, theme.isThemed ? (theme.isLight ? .light : .dark) : colorScheme)
                         }
                         .ignoresSafeArea(.container, edges: .top)
-                        .minidiscHideTopScrollEdgeEffect()
+                        .minidiscTopScrollEdgeEffect(afterScrolling: 360)
                         .minidiscSongSwipeContainer()
                         .background(bodyColor.ignoresSafeArea())
                         .refreshable {
@@ -206,10 +206,11 @@ struct ArtistDetailView: View {
 
             // The system "…" menu, which also takes Share when space runs out.
             ToolbarOverflowMenu {
-                Button("Automix", systemImage: instantMixSymbol) {
-                    startArtistAutomix()
+                // The same artist station as Discover's Stations for You.
+                Button("Station", systemImage: "dot.radiowaves.left.and.right") {
+                    startArtistStation()
                 }
-                .disabled(!canStartArtistAutomix)
+                .disabled(!canStartArtistStation)
             }
         }
         .task(id: container?.serverState.isOnline) {
@@ -334,15 +335,16 @@ struct ArtistDetailView: View {
         }
     }
 
-    private var canStartArtistAutomix: Bool {
+    private var canStartArtistStation: Bool {
         isOnline && viewModel?.artist?.album?.isEmpty == false && !isGeneratingMix
     }
 
-    private func startArtistAutomix() {
-        guard canStartArtistAutomix else { return }
+    private func startArtistStation() {
+        guard canStartArtistStation else { return }
         Task {
             isGeneratingMix = true
-            await runInstantMix(from: .artist(id: artist.id), using: container)
+            await runInstantMix(from: .artist(id: artist.id), using: container,
+                                context: .artistStation(artistId: artist.id, artistName: artist.name))
             isGeneratingMix = false
         }
     }
