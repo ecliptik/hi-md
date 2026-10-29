@@ -75,9 +75,14 @@ final class NowPlayingCenterPresenter {
     func setBaseInfo(for snapshot: NowPlayingSnapshot, generation: UInt64) {
         guard generation >= contentGeneration else { return }
         contentGeneration = generation
+        // The next song on the same album keeps its cover through the change, instead of
+        // publishing a song with no artwork and then the same artwork again, which the Dynamic
+        // Island and Lock Screen sometimes never redraw.
+        let keepsCover = !snapshot.isLiveStream && snapshot.coverArtId != nil
+            && snapshot.coverArtId == current?.coverArtId && current?.isLiveStream == false
         current = snapshot
         duration = snapshot.duration
-        artworkData = nil
+        if !keepsCover { artworkData = nil }
         rebuildContent()
         model.playbackSnapshot = Self.playbackSnapshot(position: snapshot.position, rate: snapshot.playbackRate)
         publishRelevantEntity(for: snapshot)
@@ -154,7 +159,9 @@ final class NowPlayingCenterPresenter {
             return
         }
         let artwork = artworkData.map { data in
-            Artwork(id: snapshot.coverArtId ?? snapshot.songId ?? snapshot.title) { _ in
+            // Unique to the song, so a new song's cover is always fetched afresh even when it is
+            // the same album art as the last one's.
+            Artwork(id: "\(snapshot.songId ?? snapshot.title)#\(snapshot.coverArtId ?? "")") { _ in
                 try ArtworkRepresentation(data: data)
             }
         }

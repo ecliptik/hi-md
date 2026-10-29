@@ -90,7 +90,7 @@ struct NowPlayingServiceArtworkTests {
 
         #expect(await eventually { await requests.requests() == ["cover-a"] })
         await requests.answer("cover-a")
-        #expect(await eventually { content(presenter)?.artwork?.id == "cover-a" })
+        #expect(await eventually { content(presenter)?.artwork?.id.hasSuffix("#cover-a") == true })
     }
 
     @Test("A late cover for the previous song never lands on the next one")
@@ -111,7 +111,7 @@ struct NowPlayingServiceArtworkTests {
         #expect(content(presenter)?.artwork == nil)
 
         await requests.answer("cover-b")
-        #expect(await eventually { content(presenter)?.artwork?.id == "cover-b" })
+        #expect(await eventually { content(presenter)?.artwork?.id.hasSuffix("#cover-b") == true })
     }
 
     @Test("A cover saved on disk is used without asking the server")
@@ -131,7 +131,7 @@ struct NowPlayingServiceArtworkTests {
         )
 
         await service.update(with: snapshot("a", title: "Offline"))
-        #expect(await eventually { content(presenter)?.artwork?.id == "cover-a" })
+        #expect(await eventually { content(presenter)?.artwork?.id.hasSuffix("#cover-a") == true })
         #expect(await requests.requests().isEmpty)
     }
 }

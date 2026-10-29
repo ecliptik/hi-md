@@ -46,6 +46,26 @@ struct NowPlayingCenterPresenterTests {
         #expect(content.appEntityIdentifiers.isEmpty)
     }
 
+    @Test("The next song on the same album keeps its cover, under its own artwork identity")
+    func sameAlbumKeepsCoverThroughTheChange() throws {
+        let presenter = NowPlayingCenterPresenter()
+        func albumSong(_ id: String) -> NowPlayingSnapshot {
+            NowPlayingSnapshot(title: id, artist: "Artist", album: "Album", duration: 200, position: 0,
+                               playbackRate: 1, artworkURL: nil, artworkHeaders: [:], coverArtId: "album-cover",
+                               isLiveStream: false, radioStationName: nil, songId: id)
+        }
+        presenter.setBaseInfo(for: albumSong("t1"), generation: 1)
+        presenter.setArtwork(image: image(), fallback: albumSong("t1"), generation: 1)
+        let first = try #require(presenter.model.content as? MusicContent)
+        let firstArtwork = try #require(first.artwork)
+
+        presenter.setBaseInfo(for: albumSong("t2"), generation: 2)
+        let second = try #require(presenter.model.content as? MusicContent)
+        let secondArtwork = try #require(second.artwork)
+        #expect(second.songTitle == "t2")
+        #expect(secondArtwork.id != firstArtwork.id)
+    }
+
     @Test("Late artwork for the previous track never lands on the next one")
     func crossfadeHandOffKeepsArtworkWithItsTrack() throws {
         let presenter = NowPlayingCenterPresenter()
@@ -59,7 +79,7 @@ struct NowPlayingCenterPresenterTests {
         #expect(content.artwork == nil)
 
         presenter.setArtwork(image: image(), fallback: snapshot("b", title: "Incoming"), generation: 2)
-        #expect((presenter.model.content as? MusicContent)?.artwork?.id == "cover-b")
+        #expect((presenter.model.content as? MusicContent)?.artwork?.id == "b#cover-b")
     }
 
     @Test("Position updates move the clock without replacing the song")
