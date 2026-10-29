@@ -710,8 +710,20 @@ final class MinidiscUXVerificationTests: XCTestCase {
     }
 
     func testSearchTabPutsTheCursorInTheSearchField() async throws {
-        try await launchFixtureApp(searchCatalog: true)
-        try tapTab("Recherche")
+        // With a song playing, so the mini player sits above the tab bar.
+        try await launchFixtureApp()
+        try tap(app.staticTexts["Escapade temporaire"].firstMatch, named: "search-focus-playlist")
+        try require(app.staticTexts[firstTitle].firstMatch)
+        try playPlaylistFromBeginning()
+        try require(app.staticTexts["player.mini.title"].firstMatch)
+        // Scrolling down collapses the tab bar to the selected tab, the player and Search; tap
+        // Search there, as it is, without expanding the bar first.
+        app.swipeUp()
+        app.swipeUp()
+        captureHierarchy("search-focus-collapsed-bar")
+        let search = app.buttons["Recherche"].firstMatch
+        try require(search)
+        search.tap()
         let keyboard = app.keyboards.firstMatch
         XCTAssertTrue(keyboard.waitForExistence(timeout: 5),
                       "Tapping the Search tab should focus its field and raise the keyboard.")
