@@ -67,7 +67,7 @@ struct LocalMusicCollectionView: View {
             .frame(maxWidth: .infinity)
         }
         .miniPlayerBottomMargin()
-        .minidiscHideTopScrollEdgeEffect()
+        .minidiscTopScrollEdgeEffect()
         .minidiscContentWidth()
         .environment(\.minidiscPlayingAccent, palette.contentColor)
         .environment(\.colorScheme, palette.preferredContentScheme ?? colorScheme)

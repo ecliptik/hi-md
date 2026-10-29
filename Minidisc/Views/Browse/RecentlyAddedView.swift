@@ -107,7 +107,7 @@ struct RecentlyAddedView: View {
         }
         .listStyle(.plain)
         .ignoresSafeArea(.container, edges: .top)
-        .minidiscHideTopScrollEdgeEffect()
+        .minidiscTopScrollEdgeEffect()
         .background(bodyColor.ignoresSafeArea())
         .refreshable {
             if container?.serverState.isOnline == true {

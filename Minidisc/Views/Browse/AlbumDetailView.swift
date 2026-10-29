@@ -357,7 +357,7 @@ struct AlbumDetailView: View {
         }
         .refreshable { await viewModel?.load() }
         .miniPlayerBottomMargin()
-        .minidiscHideTopScrollEdgeEffect()
+        .minidiscTopScrollEdgeEffect()
         .minidiscSongSwipeContainer()
         .alert("Remove downloaded album?", isPresented: $showDeleteAlert) {
             Button("Remove", role: .destructive) { Task { await viewModel?.deleteDownload() } }

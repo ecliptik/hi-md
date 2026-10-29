@@ -329,7 +329,7 @@ struct PlaylistDetailView: View {
         .environment(\.editMode, isEditing ? Binding.constant(EditMode.active) : nil)
         .scrollContentBackground(.hidden)
         .ignoresSafeArea(.container, edges: .top)
-        .minidiscHideTopScrollEdgeEffect()
+        .minidiscTopScrollEdgeEffect()
         .miniPlayerBottomMargin()
         .refreshable { await viewModel?.load() }
         .alert("Remove downloaded playlist?", isPresented: $showDeleteAlert) {

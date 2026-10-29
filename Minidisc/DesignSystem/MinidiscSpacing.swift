@@ -61,11 +61,27 @@ extension View {
         modifier(ContentWidthModifier())
     }
 
-    /// Hides the iOS 26 scroll-edge effect (the soft blur the system fades under top bars). Used on the
-    /// immersive detail scroll views, where the cover scrolls under a transparent nav bar and the blur would
-    /// otherwise flicker in/out behind it.
-    func minidiscHideTopScrollEdgeEffect() -> some View {
-        scrollEdgeEffectHidden(true, for: .top)
+    /// The iOS 26 scroll-edge effect (the soft blur under the status bar and top bar), held back
+    /// until the page has scrolled `threshold` points. On the immersive detail pages the cover scrolls
+    /// under a transparent bar, where the blur would flicker in and out over the artwork; past it,
+    /// the songs would otherwise run under the clock with nothing behind it.
+    func minidiscTopScrollEdgeEffect(afterScrolling threshold: CGFloat = 280) -> some View {
+        modifier(TopScrollEdgeEffectAfterHeader(threshold: threshold))
+    }
+}
+
+private struct TopScrollEdgeEffectAfterHeader: ViewModifier {
+    let threshold: CGFloat
+    @State private var isPastHeader = false
+
+    func body(content: Content) -> some View {
+        content
+            .onScrollGeometryChange(for: Bool.self) { geometry in
+                geometry.contentOffset.y + geometry.contentInsets.top > threshold
+            } action: { _, isPast in
+                isPastHeader = isPast
+            }
+            .scrollEdgeEffectHidden(!isPastHeader, for: .top)
     }
 }
 
