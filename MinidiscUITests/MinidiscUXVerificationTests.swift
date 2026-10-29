@@ -709,6 +709,20 @@ final class MinidiscUXVerificationTests: XCTestCase {
         return rows.sorted { $0.1 < $1.1 }.map { $0.0 }
     }
 
+    func testSearchTabPutsTheCursorInTheSearchField() async throws {
+        try await launchFixtureApp(searchCatalog: true)
+        try tapTab("Recherche")
+        let keyboard = app.keyboards.firstMatch
+        XCTAssertTrue(keyboard.waitForExistence(timeout: 5),
+                      "Tapping the Search tab should focus its field and raise the keyboard.")
+        // Put the keyboard away, then tap Search again while already on it.
+        app.typeText("\n")
+        XCTAssertTrue(keyboard.waitForNonExistence(timeout: 5))
+        try tapTab("Recherche")
+        XCTAssertTrue(keyboard.waitForExistence(timeout: 5),
+                      "Tapping Search again while on it should focus the field again.")
+    }
+
     func testFixtureSearchRankingAndFilters() async throws {
         try await launchFixtureApp(searchCatalog: true)
         try tapTab("Recherche")

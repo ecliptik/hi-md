@@ -9,6 +9,8 @@ struct MainTabView: View {
     @State private var discoverPath = NavigationPath()
     @State private var playlistsPath = NavigationPath()
     @SceneStorage("minidisc.selectedTab") private var selectedTab: AppTab = .home
+    /// Whether the search field is active (focused, with the keyboard up).
+    @State private var isSearchActive = false
     @State private var playerPresentation = PlayerContainerConfiguration()
     @State private var playlistAddition = PlaylistAddition()
     @AppStorage("minidisc.appTheme") private var theme: AppTheme = .system
@@ -58,8 +60,21 @@ struct MainTabView: View {
             .environment(playlistAddition)
     }
 
+    /// The tab bar's selection. Tapping Search, or tapping it again while there, puts the cursor in
+    /// the search field. Tabs changed by links and a relaunch on Search don't raise the keyboard.
+    private var tabSelection: Binding<AppTab> {
+        Binding(
+            get: { selectedTab },
+            set: { tab in
+                selectedTab = tab
+                // On the next pass, once the Search tab's content is on screen.
+                if tab == .search { Task { @MainActor in isSearchActive = true } }
+            }
+        )
+    }
+
     private var tabs: some View {
-        TabView(selection: $selectedTab) {
+        TabView(selection: tabSelection) {
             if container?.serverState.activeServer != nil {
                 Tab("Home", image: "HomeTabIcon", value: AppTab.home) {
                     NavigationStack(path: $homePath) {
@@ -102,7 +117,8 @@ struct MainTabView: View {
                             .navigationTitle("Search")
                             .toolbarTitleDisplayMode(.inlineLarge)
                     }
-                    .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always),
+                    .searchable(text: $searchText, isPresented: $isSearchActive,
+                                placement: .navigationBarDrawer(displayMode: .always),
                                 prompt: "Artists, albums, songs, playlists…")
                 }
             }
