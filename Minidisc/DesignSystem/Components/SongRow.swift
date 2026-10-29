@@ -173,13 +173,6 @@ struct SongRow: View {
                         Text(verbatim: numberLabel)
                             .font(.minidiscCellSubtitle)
                             .foregroundStyle(secondaryColor)
-                            .opacity(isFavorite ? 0 : 1)
-                        if isFavorite {
-                            Image(systemName: "heart.fill")
-                                .font(.caption2)
-                                .foregroundStyle(playingAccent)
-                                .accessibilityLabel("Favorite")
-                        }
                     }
                 }
                 .frame(width: showsDiscNumber ? 36 : 28, height: 44, alignment: .center)
@@ -187,11 +180,21 @@ struct SongRow: View {
             }
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(song.title)
-                    .font(.minidiscBody)
-                    .foregroundStyle(isCurrentTrack ? playingAccent : titleColor)
-                    .lineLimit(textLineLimit)
-                    .fixedSize(horizontal: false, vertical: true)
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Text(song.title)
+                        .font(.minidiscBody)
+                        .foregroundStyle(isCurrentTrack ? playingAccent : titleColor)
+                        .lineLimit(textLineLimit)
+                        .fixedSize(horizontal: false, vertical: true)
+                    // After the title, as in Music, so the track number keeps its place. Rows
+                    // with artwork mark the cover instead.
+                    if isFavorite, !showCoverArt {
+                        Image(systemName: "heart.fill")
+                            .font(.caption2)
+                            .foregroundStyle(playingAccent)
+                            .layoutPriority(1)
+                    }
+                }
                 if let secondaryText = secondaryText ?? (showArtist ? song.artist : nil) {
                     Text(secondaryText)
                         .font(.minidiscCellSubtitle)
