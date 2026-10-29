@@ -287,6 +287,9 @@ actor PlayerService: PlayerServiceProtocol {
     private var transitionCommitWaiters: [CheckedContinuation<Void, Never>] = []
     private var seekGeneration: UInt64 = 0
     private var durationMismatchLoggedTrackID: String?
+    /// The last progress tick's position and song, to notice the playhead moving backwards with no
+    /// seek, which normal playback never does. Cleared by a seek.
+    private var lastTickPlayhead: (trackID: String, position: TimeInterval)?
     private var originalQueueOrder: [DisplayableSong]?
     private var instantMixTask: Task<Void, Never>?
     private var autoExtendFetchTask: Task<Void, Never>?
@@ -1967,6 +1970,8 @@ actor PlayerService: PlayerServiceProtocol {
             return
         }
         seekGeneration &+= 1
+        playbackDiagnostics.record(.playhead(.seek(from: engine.progress, to: target)))
+        lastTickPlayhead = nil
         if audioSystemRecovery != nil {
             audioSystemRecovery?.position = target
             invalidateAudioRecoveryPlayback()
@@ -3375,6 +3380,14 @@ actor PlayerService: PlayerServiceProtocol {
         if durationSnapshot.shouldRefineEngineDuration {
             engine.setTrackDuration(audioDuration)
         }
+        if let trackID = durationSnapshot.trackID {
+            if let last = lastTickPlayhead, last.trackID == trackID,
+               progress < last.position - Self.playheadJumpBackThreshold {
+                playbackDiagnostics.record(.playhead(.jumpedBack(from: last.position, to: progress)))
+                Logger.player.warning("[DURATION] playhead jumped back with no seek — track=\(trackID, privacy: .public) from=\(last.position, format: .fixed(precision: 3))s to=\(progress, format: .fixed(precision: 3))s")
+            }
+            lastTickPlayhead = (trackID, progress)
+        }
         if let trackID = durationSnapshot.trackID,
            progress > durationSnapshot.duration + 0.5 {
             logDurationMismatchIfNeeded(
@@ -4419,8 +4432,32 @@ actor PlayerService: PlayerServiceProtocol {
         guard generation == playbackGeneration else { return }
         if stored { currentSongDownload?.isComplete = true }
         await publishCurrentSongNeedsNetwork(false)
-        if stored { await switchToCompleteCopyIfStalled() }
+        if stored {
+            await capStreamAtCompleteCopy(generation: generation)
+            await switchToCompleteCopyIfStalled()
+        }
     }
+
+    /// Ends the playing stream where the song really ends, measured from the complete copy just
+    /// cached. A server that answers AVPlayer's later request for a transcode's tail from byte 0
+    /// would otherwise splice the song's beginning onto its end and play it again, unnoticed: the
+    /// item keeps playing, so no stall or end of track is ever reported.
+    private func capStreamAtCompleteCopy(generation: UInt64) async {
+        guard currentSourceIsRemoteStream, let download = currentSongDownload, download.isComplete,
+              let fileURL = await audioStreamCache.cachedURL(forSongId: download.songId, serverId: download.serverId),
+              let duration = try? await AVURLAsset(url: fileURL).load(.duration), duration.isNumeric else { return }
+        let seconds = CMTimeGetSeconds(duration)
+        guard seconds > 1, generation == playbackGeneration, currentSourceIsRemoteStream else { return }
+        // A little past the real end: the stream ends naturally first unless it runs on.
+        let cap = seconds + Self.streamEndCapMargin
+        engine.capPlayback(atExactDuration: cap, expectedCurrentTrackID: download.songId)
+        playbackDiagnostics.record(.playhead(.endCapped(at: cap)))
+        Logger.player.info("[DURATION] capped stream at the complete copy's length \(cap, format: .fixed(precision: 3))s track=\(download.songId, privacy: .public)")
+    }
+
+    nonisolated static let streamEndCapMargin: TimeInterval = 0.5
+    /// A tick's position may wobble slightly; a jump this far back is a real rewind.
+    nonisolated static let playheadJumpBackThreshold: TimeInterval = 3
 
     /// Restarts a full download that was cancelled before it finished, outside the transition window.
     private func resumeCurrentSongDownloadIfNeeded() async {

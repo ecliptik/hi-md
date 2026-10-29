@@ -99,6 +99,11 @@ nonisolated final class AVPlayerEngine: AudioEngine, @unchecked Sendable {
     /// Authoritative track length from the library metadata. AVPlayer's own `item.duration` is an
     /// estimate that drifts on transcoded/VBR streams, which would arm the overlap at the wrong time.
     private var metadataDuration: Double = 0
+    /// The exact length of the current remote item, measured from its complete cached copy, and
+    /// the item it applies to. A converted stream that a server answers again from byte 0 when
+    /// AVPlayer asks for its tail would otherwise play past the real end, back into the song's
+    /// beginning; ending the item here takes the normal end-of-track path instead.
+    private var exactEndCap: (item: ObjectIdentifier, seconds: Double)?
 
     /// Orchestration intent: true between a play/resume and the next pause/stop. What separates
     /// "AVPlayer stopped on its own" (end of file, stall) from "the user pressed pause".
@@ -230,8 +235,20 @@ nonisolated final class AVPlayerEngine: AudioEngine, @unchecked Sendable {
     /// seconds of starting. Local files keep the system default (0): they never wait for data.
     nonisolated static let remoteForwardBufferDuration: TimeInterval = 240
 
+    /// A converted stream (one requested with an estimated length) buffers the whole song. A
+    /// server may answer AVPlayer's later request for the tail of a transcode from byte 0, which
+    /// splices the song's start onto its end; fetched in one go, there is no later request.
+    nonisolated static let transcodedForwardBufferDuration: TimeInterval = 900
+
     nonisolated static func preferredForwardBufferDuration(for url: URL) -> TimeInterval {
-        url.isFileURL ? 0 : remoteForwardBufferDuration
+        if url.isFileURL { return 0 }
+        return requestsEstimatedLength(url) ? transcodedForwardBufferDuration : remoteForwardBufferDuration
+    }
+
+    nonisolated static func requestsEstimatedLength(_ url: URL) -> Bool {
+        URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems?.contains {
+            $0.name == "estimateContentLength" && $0.value?.lowercased() == "true"
+        } ?? false
     }
 
     /// Every item, on either deck, is built here so both get the same buffering policy.
@@ -292,15 +309,34 @@ nonisolated final class AVPlayerEngine: AudioEngine, @unchecked Sendable {
         lock.lock()
         defer { lock.unlock() }
         guard let item = currentItem, isCurrentTrackForPreload(expectedCurrentTrackID) else { return }
+        let cap = endCapSeconds(for: item)
         guard seconds > 0 else {
-            item.forwardPlaybackEndTime = .invalid
+            item.forwardPlaybackEndTime = cap.map { CMTime(seconds: $0, preferredTimescale: 600) } ?? .invalid
             return
         }
-        let duration = item.duration.isNumeric ? CMTimeGetSeconds(item.duration) : metadataDuration
+        var duration = item.duration.isNumeric ? CMTimeGetSeconds(item.duration) : metadataDuration
+        if let cap { duration = min(duration, cap) }
         guard duration > seconds else { return }
         // Ending the item early makes AVPlayer post didPlayToEndTime at that point, so the hand-off
         // fires where the music actually stops rather than after the encoder's padding.
         item.forwardPlaybackEndTime = CMTime(seconds: duration - seconds, preferredTimescale: 600)
+    }
+
+    func capPlayback(atExactDuration seconds: Double, expectedCurrentTrackID: String) {
+        lock.lock()
+        defer { lock.unlock() }
+        guard seconds > 0, let item = currentItem, let asset = currentAsset as? AVURLAsset, !asset.url.isFileURL,
+              isCurrentTrackForPreload(expectedCurrentTrackID) else { return }
+        exactEndCap = (ObjectIdentifier(item), seconds)
+        // An end trim already in place is earlier still; keep it.
+        let current = item.forwardPlaybackEndTime
+        if current.isNumeric, CMTimeGetSeconds(current) <= seconds { return }
+        item.forwardPlaybackEndTime = CMTime(seconds: seconds, preferredTimescale: 600)
+    }
+
+    private func endCapSeconds(for item: AVPlayerItem) -> Double? {
+        guard let exactEndCap, exactEndCap.item == ObjectIdentifier(item) else { return nil }
+        return exactEndCap.seconds
     }
 
     func preloadNext(
@@ -939,6 +975,7 @@ nonisolated final class AVPlayerEngine: AudioEngine, @unchecked Sendable {
         standbyPreparationState = .idle
         pendingOverlap = 0
         metadataDuration = 0
+        exactEndCap = nil
         rampActive = 1
         rampStandby = 1
         applyDeckVolumes()
@@ -992,6 +1029,7 @@ nonisolated final class AVPlayerEngine: AudioEngine, @unchecked Sendable {
         handedOffTrackID = nil
         pendingOverlap = 0
         metadataDuration = 0
+        exactEndCap = nil
         rampActive = 1
         rampStandby = 1
         contextA.tapInstalled = false

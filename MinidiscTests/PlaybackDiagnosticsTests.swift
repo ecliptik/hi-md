@@ -4,6 +4,20 @@ import Testing
 
 @Suite("Playback diagnostics")
 struct PlaybackDiagnosticsTests {
+    @Test func playheadEventsShowWhereThePositionWent() {
+        let diagnostics = PlaybackDiagnostics()
+        diagnostics.record(.playhead(.seek(from: 12.34, to: 0)))
+        diagnostics.record(.playhead(.jumpedBack(from: 246.1, to: 1.2)))
+        diagnostics.record(.playhead(.endCapped(at: 247.45)))
+        let report = diagnostics.makeReport(context: .init(
+            appVersion: "test", appBuild: "0", operatingSystem: "test", playbackStatus: .playing,
+            isPlaybackAvailable: true, networkPath: nil, connectionVersion: nil
+        ))
+        #expect(report.contains("playhead seek from=12.3s to=0.0s"))
+        #expect(report.contains("playhead jumped-back from=246.1s to=1.2s"))
+        #expect(report.contains("playhead end-capped at=247.4s") || report.contains("playhead end-capped at=247.5s"))
+    }
+
     @Test func engineFailureKeepsCodesWithoutErrorPayloads() {
         let secret = "PRIVATE_TOKEN_AND_SONG"
         let error = NSError(domain: "AVFoundationErrorDomain", code: -11800, userInfo: [

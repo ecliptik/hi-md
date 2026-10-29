@@ -124,6 +124,14 @@ nonisolated final class PlaybackDiagnostics: Sendable {
         case recoveryInterrupted
     }
 
+    /// Where the listening position went outside normal playback: a seek, an unexplained jump
+    /// back within the same song, or the stream being ended at its measured length.
+    enum PlayheadEvent: Sendable, Equatable {
+        case seek(from: TimeInterval, to: TimeInterval)
+        case jumpedBack(from: TimeInterval, to: TimeInterval)
+        case endCapped(at: TimeInterval)
+    }
+
     struct NetworkPath: Sendable, Equatable {
         let generation: UInt64
         let isOnline: Bool
@@ -211,6 +219,7 @@ nonisolated final class PlaybackDiagnostics: Sendable {
         case unavailableTrackSkipped(hasNext: Bool)
         case networkRecovery(NetworkRecoveryEvent)
         case audioSession(AudioSessionEvent)
+        case playhead(PlayheadEvent)
     }
 
     private struct Entry: Sendable {
@@ -352,7 +361,17 @@ nonisolated final class PlaybackDiagnostics: Sendable {
             "network-recovery \(describe(recovery))"
         case .audioSession(let audioSession):
             "audio-session \(describe(audioSession))"
+        case .playhead(.seek(let from, let to)):
+            "playhead seek from=\(seconds(from)) to=\(seconds(to))"
+        case .playhead(.jumpedBack(let from, let to)):
+            "playhead jumped-back from=\(seconds(from)) to=\(seconds(to))"
+        case .playhead(.endCapped(let at)):
+            "playhead end-capped at=\(seconds(at))"
         }
+    }
+
+    private static func seconds(_ value: TimeInterval) -> String {
+        String(format: "%.1fs", value)
     }
 
     private static func describe(_ path: NetworkPath) -> String {

@@ -189,6 +189,12 @@ nonisolated protocol AudioEngine: AnyObject, Sendable {
     /// Ignored unless `expectedCurrentTrackID` is still the active track.
     func setTrackEndTrim(_ seconds: Double, expectedCurrentTrackID: String)
 
+    /// Ends the CURRENT remote item no later than `seconds`, its exact length as measured from a
+    /// complete local copy, so a stream that runs past its real end finishes there instead. An
+    /// earlier end trim still wins. Ignored for local files and unless `expectedCurrentTrackID` is
+    /// still the active track.
+    func capPlayback(atExactDuration seconds: Double, expectedCurrentTrackID: String)
+
     /// The authoritative length of the current track from library metadata, for engines whose own
     /// duration estimate drifts (transcoded/VBR streams) and would mistime transitions.
     func setTrackDuration(_ seconds: Double)
@@ -197,4 +203,7 @@ nonisolated protocol AudioEngine: AnyObject, Sendable {
 nonisolated extension AudioEngine {
     /// Engines that cannot report loading never delay a rebuild.
     var bufferedDuration: TimeInterval { 0 }
+
+    /// Engines without a separate end cap ignore it.
+    func capPlayback(atExactDuration seconds: Double, expectedCurrentTrackID: String) {}
 }
