@@ -115,7 +115,17 @@ struct LyricsLineView: View {
 
     private var scale: CGFloat {
         guard isSynced, currentIndex != nil else { return 1.0 }
-        return distance == 0 ? 1.05 : 1.0
+        return distance == 0 ? Self.currentLineScale : 1.0
+    }
+
+    nonisolated static let currentLineScale: CGFloat = 1.05
+    nonisolated static let karaokeCurrentLineScale: CGFloat = 1.12
+
+    /// The largest this line can grow. Every line is laid out narrower by that much, so the
+    /// current line still fits when it grows, and no line re-wraps as it becomes current.
+    private var largestScale: CGFloat {
+        guard isSynced else { return 1.0 }
+        return isKaraoke ? Self.karaokeCurrentLineScale : Self.currentLineScale
     }
 
     private var lineFont: Font {
@@ -127,13 +137,15 @@ struct LyricsLineView: View {
     }
 
     var body: some View {
-        Text(value)
-            .font(lineFont)
-            .multilineTextAlignment(isKaraoke ? .center : .leading)
+        ScaleRoomLayout(scale: largestScale, centered: isKaraoke) {
+            Text(value)
+                .font(lineFont)
+                .multilineTextAlignment(isKaraoke ? .center : .leading)
+        }
             .frame(maxWidth: .infinity, alignment: isKaraoke ? .center : .leading)
             .foregroundStyle(LyricsLineColors.style(opacity: opacity, onWindowBackground: typography.usesSystemColors))
             .blur(radius: blurRadius)
-            .scaleEffect(isKaraoke && distance == 0 && currentIndex != nil ? 1.12 : scale,
+            .scaleEffect(isKaraoke && distance == 0 && currentIndex != nil ? Self.karaokeCurrentLineScale : scale,
                          anchor: isKaraoke ? .center : .leading)
             // Reduce Motion: the lines change at once, without the blur and size easing in.
             .animation(reduceMotion ? nil : .easeInOut(duration: 0.25), value: currentIndex)
@@ -146,5 +158,30 @@ struct LyricsLineView: View {
             .accessibilityAction {
                 if isTappable { onTap() }
             }
+    }
+}
+
+/// Takes the full width offered but lays its content out `scale` times narrower, at the leading
+/// edge or centred, so a later `scaleEffect` of up to `scale` from that anchor stays inside.
+private struct ScaleRoomLayout: Layout {
+    let scale: CGFloat
+    let centered: Bool
+
+    private func narrowed(_ proposal: ProposedViewSize) -> ProposedViewSize {
+        ProposedViewSize(width: proposal.width.map { $0 / scale }, height: proposal.height)
+    }
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        guard let content = subviews.first else { return .zero }
+        let size = content.sizeThatFits(narrowed(proposal))
+        return CGSize(width: proposal.width ?? size.width * scale, height: size.height)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        guard let content = subviews.first else { return }
+        let inner = narrowed(ProposedViewSize(width: bounds.width, height: bounds.height))
+        let width = content.sizeThatFits(inner).width
+        let x = centered ? bounds.midX - width / 2 : bounds.minX
+        content.place(at: CGPoint(x: x, y: bounds.minY), anchor: .topLeading, proposal: inner)
     }
 }
