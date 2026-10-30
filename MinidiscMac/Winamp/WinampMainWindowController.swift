@@ -658,6 +658,13 @@ final class WinampMainWindowController: NSObject, NSWindowDelegate, WinampMainVi
                               (.off, String(localized: "Off"))] {
             menu.addItem(item(title, isOn: preferences.visualizerMode == mode) { $0.setVisualizerMode(mode) })
         }
+        menu.addItem(.separator())
+        let milkDrop = item(String(localized: "MilkDrop"), isOn: MilkDropWindowController.isOpen) { _ in
+            MilkDropWindowController.shared.toggle()
+        }
+        milkDrop.keyEquivalent = "k"
+        milkDrop.keyEquivalentModifierMask = [.control, .shift]
+        menu.addItem(milkDrop)
         return menu
     }
 

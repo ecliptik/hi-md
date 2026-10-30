@@ -1,0 +1,23 @@
+[preset00]
+// Hi-MD's own preset: a slow blue tunnel that pulls in harder with the bass.
+fDecay=0.980000
+fGammaAdj=2.000000
+nWaveMode=2
+bWaveThick=1
+bAdditiveWaves=1
+fWaveAlpha=0.700000
+fWaveScale=0.900000
+zoom=1.040000
+rot=0.020000
+warp=0.500000
+wave_r=0.300000
+wave_g=0.500000
+wave_b=1.000000
+ob_size=0.000000
+ib_size=0.000000
+per_frame_1=zoom = 1.03 + 0.04*bass_att;
+per_frame_2=rot = 0.02 + 0.03*sin(time*0.2);
+per_frame_3=wave_g = 0.4 + 0.3*sin(time*0.5);
+per_frame_4=wave_r = 0.15 + 0.2*mid_att;
+per_pixel_1=rot = rot + 0.04*(1 - rad);
+per_pixel_2=dx = 0.003*sin(y*12 + time);

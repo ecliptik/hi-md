@@ -74,6 +74,8 @@ final class WinampMode: WinampWindowHost {
     private var autoEqualizerTrackID: String?
     private var isObservingTracks = false
     private var stackingObservers: [any NSObjectProtocol] = []
+    /// Windows hidden while MilkDrop is full screen, to show again when it leaves.
+    private var steppedAside: [NSWindow] = []
 
     private struct Drag {
         let window: WinampPreferences.Window
@@ -251,6 +253,7 @@ final class WinampMode: WinampWindowHost {
         equalizerWindow = nil
         playlistWindow = nil
         folderBrowser?.close()
+        MilkDropWindowController.closeIfOpen()
         isObservingTracks = false
     }
 
@@ -341,6 +344,21 @@ final class WinampMode: WinampWindowHost {
         let level = windowLevel
         for window in managedWindows where window.window.level != level { window.window.level = level }
         if let browser = folderBrowser?.window, browser.level != level { browser.level = level }
+        MilkDropWindowController.setLevel(level)
+    }
+
+    /// MilkDrop full screen: Miniamp's windows float above the app's ordinary ones, so macOS
+    /// brings them into the full-screen space over the visuals. They step aside until it leaves,
+    /// as Winamp's full-screen visualizers covered it.
+    func stepAside(forFullScreen isFullScreen: Bool) {
+        if isFullScreen {
+            let windows: [NSWindow] = managedWindows.map(\.window) + [folderBrowser?.window].compactMap { $0 }
+            steppedAside = windows.filter(\.isVisible)
+            for window in steppedAside { window.orderOut(nil) }
+        } else {
+            for window in steppedAside { window.orderFront(nil) }
+            steppedAside = []
+        }
     }
 
     func toggleAlwaysOnTop() {
@@ -479,7 +497,8 @@ func winampZoomMenuItem(host: WinampWindowHost?) -> NSMenuItem {
     return item
 }
 
-/// View > Winamp Mode, plus the skin, window and current-song heart items while it's on.
+/// View > Miniamp turns it on and off. While it's on, its windows, skins and playlist files have a
+/// Miniamp menu of their own, as Winamp had, rather than crowding the View menu.
 struct WinampCommands: Commands {
     @AppStorage(WinampPreferences.Key.isOpen) private var isOpen = false
     @AppStorage(WinampPreferences.Key.zoom) private var zoom = 1
@@ -490,11 +509,17 @@ struct WinampCommands: Commands {
             Divider()
             Toggle("Miniamp", isOn: Binding(get: { isOpen }, set: { WinampMode.shared.setOpen($0) }))
                 .keyboardShortcut("w", modifiers: [.command, .shift])
-            if isOpen {
-                Button("Miniamp Equalizer") { WinampMode.shared.toggle(.equalizer) }
+        }
+        if isOpen {
+            CommandMenu("Miniamp") {
+                Button("Equalizer") { WinampMode.shared.toggle(.equalizer) }
                     .keyboardShortcut("g", modifiers: [.command, .option])
-                Button("Miniamp Playlist") { WinampMode.shared.toggle(.playlist) }
+                Button("Playlist") { WinampMode.shared.toggle(.playlist) }
                     .keyboardShortcut("e", modifiers: [.command, .option])
+                // Winamp started its visualization plug-in with ⌃⇧K.
+                Button("MilkDrop") { MilkDropWindowController.shared.toggle() }
+                    .keyboardShortcut("k", modifiers: [.control, .shift])
+                Divider()
                 // The playing song's heart, as in the main window: ⌘⇧H for "heart".
                 Button {
                     favorites.toggleCurrent()
@@ -503,7 +528,8 @@ struct WinampCommands: Commands {
                 }
                 .keyboardShortcut("h", modifiers: [.command, .shift])
                 .disabled(!favorites.current.canToggle)
-                Menu("Miniamp Zoom") {
+                Divider()
+                Menu("Zoom") {
                     ForEach(Array(WinampZoom.levels), id: \.self) { level in
                         Toggle(WinampZoom.title(level), isOn: Binding(
                             get: { WinampZoom.clamped(zoom) == level },
@@ -512,10 +538,11 @@ struct WinampCommands: Commands {
                         .keyboardShortcut(KeyEquivalent(Character(String(level))), modifiers: [.command, .option])
                     }
                 }
-                Button("Open Playlist File…") { WinampMode.shared.playlistFiles?.open(replacing: true) }
-                Button("Save Playlist File…") { WinampMode.shared.playlistFiles?.save() }
                 Button("Load Skin…") { WinampMode.shared.chooseSkin() }
                 Button("Default Skin") { WinampMode.shared.useDefaultSkin() }
+                Divider()
+                Button("Open Playlist File…") { WinampMode.shared.playlistFiles?.open(replacing: true) }
+                Button("Save Playlist File…") { WinampMode.shared.playlistFiles?.save() }
                 Button("Add Demo to Playlist") { WinampMode.shared.addDemo() }
             }
         }

@@ -56,7 +56,7 @@ Hi-MD is a revamp of Minidisc, like [Hi-MD](https://www.minidisc.org/keep/sony_h
 **On the Mac**
 
 - A native Mac app with a Music-style library, a full-window Now Playing with lyrics, a MiniPlayer that shrinks down to a bar of controls, and a menu bar player, in Liquid Glass.
-- Miniamp, a compact player that loads classic Winamp 2 skins (`.wsz`), with playlist and equalizer windows and its own Hi-MD Gold skin.
+- Miniamp, a compact player that loads classic Winamp 2 skins (`.wsz`), with playlist and equalizer windows, its own Hi-MD Gold skin, and a MilkDrop window that plays MilkDrop presets (`.milk`) from a folder you choose, drawn by [projectM](https://github.com/projectM-visualizer/projectm).
 
 **Across Apple platforms**
 

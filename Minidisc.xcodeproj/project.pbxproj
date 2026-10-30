@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		EC1D270000000000000000F2 /* libprojectM-4.4.dylib in Embed Libraries */ = {isa = PBXBuildFile; fileRef = EC1D270000000000000000F1 /* libprojectM-4.4.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		8785D13D3012A3A500208269 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 8785D13C3012A3A500208269 /* AppIcon.icon */; };
 		8785D1413012A3A500208269 /* AppIconDark.icon in Resources */ = {isa = PBXBuildFile; fileRef = 8785D1403012A3A500208269 /* AppIconDark.icon */; };
 		8785D1433012A3A500208269 /* AppIconLight.icon in Resources */ = {isa = PBXBuildFile; fileRef = 8785D1423012A3A500208269 /* AppIconLight.icon */; };
@@ -49,6 +50,17 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
+		EC1D270000000000000000F3 /* Embed Libraries */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				EC1D270000000000000000F2 /* libprojectM-4.4.dylib in Embed Libraries */,
+			);
+			name = "Embed Libraries";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		EC1D2700000000000000000C /* Embed Foundation Extensions */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -74,6 +86,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		EC1D270000000000000000F1 /* libprojectM-4.4.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = "libprojectM-4.4.dylib"; path = "Vendor/projectM/lib/libprojectM-4.4.dylib"; sourceTree = SOURCE_ROOT; };
 		8785D13C3012A3A500208269 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIcon.icon; sourceTree = "<group>"; };
 		8785D1403012A3A500208269 /* AppIconDark.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIconDark.icon; sourceTree = "<group>"; };
 		8785D1423012A3A500208269 /* AppIconLight.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIconLight.icon; sourceTree = "<group>"; };
@@ -353,6 +366,7 @@
 				DBA4A7612F9BBFCC008BC5A9 /* MinidiscTests */,
 				DBA4A76B2F9BBFCC008BC5A9 /* MinidiscUITests */,
 				C0F16A000000000000000002 /* Config */,
+				EC1D270000000000000000F1 /* libprojectM-4.4.dylib */,
 				DBA4A7522F9BBFCB008BC5A9 /* Products */,
 				8785D13C3012A3A500208269 /* AppIcon.icon */,
 				8785D1403012A3A500208269 /* AppIconDark.icon */,
@@ -508,6 +522,7 @@
 				EC1D27000000000000000034 /* Sources */,
 				EC1D27000000000000000035 /* Frameworks */,
 				EC1D27000000000000000036 /* Resources */,
+				EC1D270000000000000000F3 /* Embed Libraries */,
 			);
 			buildRules = (
 			);
@@ -1211,6 +1226,19 @@
 				ENABLE_USER_SELECTED_FILES = readwrite;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = MinidiscMac/Info.plist;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/Vendor/projectM/include",
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/Vendor/projectM/lib",
+				);
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-lprojectM-4.4",
+				);
+				SWIFT_OBJC_BRIDGING_HEADER = "MinidiscMac/MinidiscMac-Bridging-Header.h";
 				INFOPLIST_KEY_CFBundleDisplayName = "Hi-MD";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.music";
@@ -1253,6 +1281,19 @@
 				ENABLE_USER_SELECTED_FILES = readwrite;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = MinidiscMac/Info.plist;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/Vendor/projectM/include",
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/Vendor/projectM/lib",
+				);
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-lprojectM-4.4",
+				);
+				SWIFT_OBJC_BRIDGING_HEADER = "MinidiscMac/MinidiscMac-Bridging-Header.h";
 				INFOPLIST_KEY_CFBundleDisplayName = "Hi-MD";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.music";

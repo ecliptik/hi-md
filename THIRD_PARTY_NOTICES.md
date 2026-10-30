@@ -37,6 +37,14 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
+## Libraries
+
+### projectM
+
+<https://github.com/projectM-visualizer/projectm>, release v4.1.8. LGPL-2.1 (`Vendor/projectM/LICENSE.txt`). The MilkDrop engine behind Miniamp's MilkDrop window, in the Mac app only. It is built unmodified from that release by `Scripts/ProjectM/build.sh` and shipped as a separate dynamic library, `Hi-MD.app/Contents/Frameworks/libprojectM-4.4.dylib`, which can be rebuilt from source with that script and replaced. Its headers are in `Vendor/projectM/include`.
+
+The MilkDrop presets that ship with Hi-MD (`MinidiscMac/MilkDrop/Presets`, named "Hi-MD - …") were written for it and come under Hi-MD's own license. Presets from other authors are not bundled; Miniamp loads them from a folder the listener chooses.
+
 ## Data
 
 ### AutoEq
