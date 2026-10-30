@@ -8,6 +8,10 @@ actor FavoritesService: FavoritesServiceProtocol {
     private nonisolated let serverState: ServerState
     nonisolated let modelContainer: ModelContainer
     private lazy var backgroundContext: ModelContext = ModelContext(modelContainer)
+    /// Stars and unstars on their way to the server, and when the last one finished: a starred
+    /// list requested before then may not have it yet, so it mustn't overwrite the local hearts.
+    private var editsInFlight = 0
+    private var lastEditFinished = Date.distantPast
 
     init(libraryService: any FavoriteEditing, serverState: ServerState, modelContainer: ModelContainer) {
         self.libraryService = libraryService
@@ -31,6 +35,8 @@ actor FavoritesService: FavoritesServiceProtocol {
 
     func star(itemType: FavoriteType, itemId: String) async throws {
         guard let serverId = await MainActor.run(body: { serverState.activeServer?.id }) else { throw MinidiscError.serverNotConfigured }
+        beginEdit()
+        defer { endEdit() }
 
         let record = FavoriteRecord(itemType: itemType, itemId: itemId, starredDate: Date(), serverId: serverId)
         backgroundContext.insert(record)
@@ -59,6 +65,8 @@ actor FavoritesService: FavoritesServiceProtocol {
         )
         descriptor.fetchLimit = 1
         guard let record = try backgroundContext.fetch(descriptor).first else { return }
+        beginEdit()
+        defer { endEdit() }
 
         let capturedServerId = record.serverId
         let capturedDate = record.starredDate
@@ -85,9 +93,19 @@ actor FavoritesService: FavoritesServiceProtocol {
     func syncFromServer() async throws {
         guard let serverId = await MainActor.run(body: { serverState.activeServer?.id }) else { return }
 
+        let requestedAt = Date()
         let starred = try await libraryService.getStarred2()
         try Task.checkCancellation()
+        try await reconcile(with: starred, serverID: serverId, requestedAt: requestedAt)
+    }
+
+    /// Makes the local hearts match a starred list someone else already fetched, such as Home's,
+    /// so a shelf of favourites and its hearts come from the same answer.
+    func reconcile(with starred: Starred2, serverID serverId: UUID, requestedAt: Date) async throws {
         guard await MainActor.run(body: { serverState.activeServer?.id }) == serverId else { throw CancellationError() }
+        // A star or unstar made since the list was requested may be missing from it; the next
+        // sync catches up instead of undoing it.
+        guard editsInFlight == 0, lastEditFinished < requestedAt else { return }
 
         let descriptor = FetchDescriptor<FavoriteRecord>(
             predicate: #Predicate<FavoriteRecord> { $0.serverId == serverId }
@@ -120,6 +138,13 @@ actor FavoritesService: FavoritesServiceProtocol {
         try saveChanges()
         Logger.favorites.info("Favorites synced: \(added, privacy: .public) added, \(toRemove.count, privacy: .public) removed, \(unchanged, privacy: .public) unchanged")
     }
+    private func beginEdit() { editsInFlight += 1 }
+
+    private func endEdit() {
+        editsInFlight -= 1
+        lastEditFinished = Date()
+    }
+
     private func saveChanges() throws {
         do { try backgroundContext.save() }
         catch { backgroundContext.rollback(); throw error }

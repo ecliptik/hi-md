@@ -43,7 +43,7 @@ struct HomeView: View {
             if viewModel == nil || loadedServerID != serverID {
                 loadedServerID = serverID
                 viewModel = HomeFeedViewModel(libraryService: c.libraryService, cache: HomeFeedCache.shared, serverID: serverID,
-                                              diagnostics: c.playbackDiagnostics)
+                                              diagnostics: c.playbackDiagnostics, favoritesService: c.favoritesService)
             }
             await viewModel?.load(isOnline: isOnline)
         }

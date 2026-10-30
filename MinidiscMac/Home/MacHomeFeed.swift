@@ -20,7 +20,8 @@ final class MacHomeFeed {
         self.container = container
         self.serverID = serverID
         feed = HomeFeedViewModel(libraryService: container.libraryService, cache: HomeFeedCache.shared,
-                                 serverID: serverID, diagnostics: container.playbackDiagnostics)
+                                 serverID: serverID, diagnostics: container.playbackDiagnostics,
+                                 favoritesService: container.favoritesService)
     }
 
     var content: HomeFeedContent { HomeFeedContent(feed: feed, container: container) }

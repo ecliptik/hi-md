@@ -64,18 +64,21 @@ final class HomeFeedViewModel {
     private let cache: HomeFeedCache?
     private let serverID: UUID?
     private let diagnostics: PlaybackDiagnostics?
+    private let favoritesService: (any FavoritesServiceProtocol)?
     private var generation: UInt64 = 0
 
     init(
         libraryService: any PlaylistBrowsing & RecentlyAddedAlbumBrowsing & ListeningHistoryBrowsing & GenreBrowsing,
         cache: HomeFeedCache? = nil,
         serverID: UUID? = nil,
-        diagnostics: PlaybackDiagnostics? = nil
+        diagnostics: PlaybackDiagnostics? = nil,
+        favoritesService: (any FavoritesServiceProtocol)? = nil
     ) {
         self.libraryService = libraryService
         self.cache = cache
         self.serverID = serverID
         self.diagnostics = diagnostics
+        self.favoritesService = favoritesService
     }
 
     func load(isOnline: Bool = true, preserveLayout: Bool = false) async {
@@ -105,6 +108,7 @@ final class HomeFeedViewModel {
         pendingSections = isOnline ? [.playlists, .history, .recent, .genres, .habits] : [.playlists, .recent]
         if isOnline && starredService != nil { pendingSections.insert(.favorites) }
         let service = libraryService
+        let favoritesService = favoritesService, serverID = serverID
         let shuffleSeed = serverID?.uuidString ?? ""
         var staged = snapshot
         await withTaskGroup(of: SectionResult.self) { group in
@@ -121,7 +125,13 @@ final class HomeFeedViewModel {
                 if let starredService {
                     group.addTask {
                         await Self.fetch(.favorites) {
+                            let requestedAt = Date()
                             let starred = try await starredService.getStarred2()
+                            // The shelf's hearts read the local favourites, which otherwise only
+                            // refresh on launch, so stars made elsewhere showed up here unhearted.
+                            if let favoritesService, let serverID {
+                                try? await favoritesService.reconcile(with: starred, serverID: serverID, requestedAt: requestedAt)
+                            }
                             return .favorites(HomeFavorites(starred: starred, songLimit: 60, albumLimit: 40, artistLimit: 100))
                         }
                     }
