@@ -12,11 +12,7 @@ nonisolated enum WinampMainRenderer {
         if state.isShaded {
             return renderShade(state, sprites: sprites ?? WinampSpriteCache(skin: skin))
         }
-        guard let context = CGContext(
-            data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: 0,
-            space: CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB(),
-            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-        ) else { return nil }
+        guard let context = WinampBitmap.context(width: width, height: height) else { return nil }
         draw(state, skin: skin, sprites: sprites ?? WinampSpriteCache(skin: skin), in: context)
         return context.makeImage()
     }

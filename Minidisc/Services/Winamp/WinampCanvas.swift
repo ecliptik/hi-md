@@ -17,11 +17,7 @@ nonisolated struct WinampCanvas {
     static func make(size: CGSize, scale: CGFloat, sprites: WinampSpriteCache) -> WinampCanvas? {
         let width = Int((size.width * scale).rounded())
         let height = Int((size.height * scale).rounded())
-        guard width > 0, height > 0, let context = CGContext(
-            data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: 0,
-            space: CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB(),
-            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-        ) else { return nil }
+        guard width > 0, height > 0, let context = WinampBitmap.context(width: width, height: height) else { return nil }
         context.interpolationQuality = .none
         context.setShouldAntialias(false)
         context.scaleBy(x: scale, y: scale)
@@ -110,5 +106,19 @@ nonisolated struct WinampCanvas {
             if family.caseInsensitiveCompare(candidate) == .orderedSame || candidate == "Arial" { return font }
         }
         return CTFontCreateUIFontForLanguage(.system, pixelSize, nil) ?? CTFontCreateWithName("Helvetica" as CFString, pixelSize, nil)
+    }
+}
+
+/// The bitmap format every Miniamp window and sprite is drawn in: sRGB, 8-bit BGRA with
+/// premultiplied alpha, the layout Core Animation shows as it is. The RGBA bitmaps it used
+/// before were converted on the main thread for every frame, and sprites in a skin's own colour
+/// space were colour-matched each time they were drawn.
+nonisolated enum WinampBitmap {
+    static let colorSpace = CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB()
+    static let bitmapInfo = CGImageAlphaInfo.premultipliedFirst.rawValue | CGBitmapInfo.byteOrder32Little.rawValue
+
+    static func context(width: Int, height: Int) -> CGContext? {
+        CGContext(data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: 0,
+                  space: colorSpace, bitmapInfo: bitmapInfo)
     }
 }

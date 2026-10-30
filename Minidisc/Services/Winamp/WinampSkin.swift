@@ -1,5 +1,6 @@
 import CoreGraphics
 import Foundation
+import Synchronization
 import ImageIO
 
 /// An sRGB colour from a skin's text files.
@@ -21,9 +22,26 @@ nonisolated struct WinampColor: Sendable, Hashable {
         self.init(red: UInt8(value >> 16 & 0xFF), green: UInt8(value >> 8 & 0xFF), blue: UInt8(value & 0xFF))
     }
 
-    var cgColor: CGColor {
-        CGColor(srgbRed: CGFloat(red) / 255, green: CGFloat(green) / 255, blue: CGFloat(blue) / 255, alpha: 1)
+    /// Part way from this colour to `other`: 0 is this one, 1 is `other`.
+    func mixed(with other: WinampColor, amount: Double) -> WinampColor {
+        func channel(_ a: UInt8, _ b: UInt8) -> UInt8 { UInt8((Double(a) + (Double(b) - Double(a)) * amount).rounded()) }
+        return WinampColor(red: channel(red, other.red), green: channel(green, other.green), blue: channel(blue, other.blue))
     }
+
+    /// Made once per colour: Miniamp fills thousands of pixel-sized rects a second, and a new
+    /// CGColor for each was a noticeable share of the main thread.
+    var cgColor: CGColor {
+        let key = UInt32(red) << 16 | UInt32(green) << 8 | UInt32(blue)
+        return WinampColor.cache.withLock { cache in
+            if let color = cache[key] { return color }
+            let color = CGColor(srgbRed: CGFloat(red) / 255, green: CGFloat(green) / 255, blue: CGFloat(blue) / 255, alpha: 1)
+            if cache.count > 4096 { cache.removeAll() }
+            cache[key] = color
+            return color
+        }
+    }
+
+    private static let cache = Mutex<[UInt32: CGColor]>([:])
 }
 
 /// `pledit.txt`: the playlist window's text colours and font.
@@ -33,6 +51,10 @@ nonisolated struct WinampPlaylistStyle: Sendable, Hashable {
     var normalBackground: WinampColor
     var selectedBackground: WinampColor
     var font: String
+
+    /// Autoplay's songs, after the listener's own: the skin's text faded halfway into its
+    /// background, so it works with any skin.
+    var autoplay: WinampColor { normal.mixed(with: normalBackground, amount: 0.5) }
 
     static let minidiscGold = WinampPlaylistStyle(
         normal: WinampColor(red: 0xD9, green: 0xB0, blue: 0x4C),
@@ -282,11 +304,8 @@ nonisolated struct WinampSkin: @unchecked Sendable {
     /// Decodes once into a plain bitmap, so sprites cut from it are drawn without decoding the
     /// BMP again on every frame, since the image source isn't allowed to cache.
     private static func decoded(_ image: CGImage) -> CGImage? {
-        let space = image.colorSpace.flatMap { $0.model == .rgb ? $0 : nil }
-            ?? CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB()
-        guard let context = CGContext(data: nil, width: image.width, height: image.height, bitsPerComponent: 8,
-                                      bytesPerRow: 0, space: space,
-                                      bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return nil }
+        // In the canvases' own format, so drawing a sprite is a copy rather than a colour match.
+        guard let context = WinampBitmap.context(width: image.width, height: image.height) else { return nil }
         context.interpolationQuality = .none
         context.draw(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
         return context.makeImage()
