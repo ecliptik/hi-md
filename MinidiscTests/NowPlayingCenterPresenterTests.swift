@@ -79,7 +79,17 @@ struct NowPlayingCenterPresenterTests {
         #expect(content.artwork == nil)
 
         presenter.setArtwork(image: image(), fallback: snapshot("b", title: "Incoming"), generation: 2)
-        #expect((presenter.model.content as? MusicContent)?.artwork?.id == "b#cover-b")
+        #expect((presenter.model.content as? MusicContent)?.artwork?.id.hasPrefix("b#cover-b#") == true)
+    }
+
+    @Test("A cover already in memory goes out with the song, and a sharper one replaces it as new artwork")
+    func coverGoesOutWithTheSong() throws {
+        let presenter = NowPlayingCenterPresenter()
+        presenter.setBaseInfo(for: snapshot("s1", title: "Song"), artwork: image(), generation: 1)
+        let thumbnail = try #require((presenter.model.content as? MusicContent)?.artwork)
+        presenter.setArtwork(image: image(), fallback: snapshot("s1", title: "Song"), generation: 1)
+        let fullSize = try #require((presenter.model.content as? MusicContent)?.artwork)
+        #expect(fullSize.id != thumbnail.id)
     }
 
     @Test("Position updates move the clock without replacing the song")

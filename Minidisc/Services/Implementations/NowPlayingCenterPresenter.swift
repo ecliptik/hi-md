@@ -29,6 +29,10 @@ final class NowPlayingCenterPresenter {
     private var current: NowPlayingSnapshot?
     private var duration: TimeInterval = 0
     private var artworkData: Data?
+    /// Counts covers given to the system, so each has its own artwork ID: a cover that arrives
+    /// after its song, or a sharper one replacing a thumbnail, is new to the Dynamic Island,
+    /// which otherwise sometimes keeps showing an empty tile.
+    private var artworkRevision = 0
     private weak var playerService: (any PlayerServiceProtocol)?
     private var likeAction: (@Sendable () async -> Void)?
     private var isLiveStream = false
@@ -72,7 +76,8 @@ final class NowPlayingCenterPresenter {
         clearRelevantEntities()
     }
 
-    func setBaseInfo(for snapshot: NowPlayingSnapshot, generation: UInt64) {
+    /// `artwork`, when the cover is already in memory, goes out with the song itself.
+    func setBaseInfo(for snapshot: NowPlayingSnapshot, artwork: PlatformImage? = nil, generation: UInt64) {
         guard generation >= contentGeneration else { return }
         contentGeneration = generation
         // The next song on the same album keeps its cover through the change, instead of
@@ -82,7 +87,12 @@ final class NowPlayingCenterPresenter {
             && snapshot.coverArtId == current?.coverArtId && current?.isLiveStream == false
         current = snapshot
         duration = snapshot.duration
-        if !keepsCover { artworkData = nil }
+        if let data = artwork?.jpegData(compressionQuality: 0.9) {
+            artworkData = data
+            artworkRevision &+= 1
+        } else if !keepsCover {
+            artworkData = nil
+        }
         rebuildContent()
         model.playbackSnapshot = Self.playbackSnapshot(position: snapshot.position, rate: snapshot.playbackRate)
         publishRelevantEntity(for: snapshot)
@@ -118,6 +128,7 @@ final class NowPlayingCenterPresenter {
         guard generation == contentGeneration, let data = image.jpegData(compressionQuality: 0.9) else { return }
         if current == nil { current = snapshot }
         artworkData = data
+        artworkRevision &+= 1
         rebuildContent()
     }
 
@@ -129,6 +140,7 @@ final class NowPlayingCenterPresenter {
         }
         if current == nil { current = snapshot }
         artworkData = data
+        artworkRevision &+= 1
         rebuildContent()
     }
 
@@ -161,7 +173,7 @@ final class NowPlayingCenterPresenter {
         let artwork = artworkData.map { data in
             // Unique to the song, so a new song's cover is always fetched afresh even when it is
             // the same album art as the last one's.
-            Artwork(id: "\(snapshot.songId ?? snapshot.title)#\(snapshot.coverArtId ?? "")") { _ in
+            Artwork(id: "\(snapshot.songId ?? snapshot.title)#\(snapshot.coverArtId ?? "")#\(artworkRevision)") { _ in
                 try ArtworkRepresentation(data: data)
             }
         }

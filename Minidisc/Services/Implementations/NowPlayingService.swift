@@ -95,7 +95,17 @@ actor NowPlayingService: NowPlayingServiceProtocol {
         let generation = contentGeneration
 
         currentSong = snapshot
-        await presenter.setBaseInfo(for: snapshot, generation: generation)
+        // A cover already in memory goes out with the song, so the system never has it without
+        // one: the Dynamic Island doesn't always redraw for a cover that arrives afterwards. The
+        // thumbnail will do until the full-size cover loads.
+        var hero: PlatformImage?
+        var thumbnail: PlatformImage?
+        if let coverArtId = snapshot.coverArtId {
+            hero = await artworkImageCache.cached(for: coverArtId, tier: .hero)
+            if hero == nil { thumbnail = await artworkImageCache.cached(for: coverArtId, tier: .thumb) }
+        }
+        guard isCurrent(snapshot, generation: generation) else { return }
+        await presenter.setBaseInfo(for: snapshot, artwork: hero ?? thumbnail, generation: generation)
         guard isCurrent(snapshot, generation: generation) else { return }
         await updateRemoteCommandsAvailability(isLiveStream: false)
         guard isCurrent(snapshot, generation: generation) else { return }
@@ -106,16 +116,8 @@ actor NowPlayingService: NowPlayingServiceProtocol {
             await showNoArtwork(fallback: snapshot, generation: generation)
             return
         }
-        if let coverArtId = snapshot.coverArtId,
-           let cachedImage = await artworkImageCache.cached(for: coverArtId, tier: .hero) {
-            guard isCurrent(snapshot, generation: generation) else { return }
-            await presenter.setArtwork(
-                image: cachedImage,
-                fallback: snapshot,
-                generation: generation
-            )
-            return
-        }
+        // The full-size cover already went out with the song.
+        if hero != nil { return }
 
         // The disk cache or the server can take seconds, up to the 10 s request timeout offline.
         // Callers such as launch-time session restore and Siri must not wait for it, so the song's

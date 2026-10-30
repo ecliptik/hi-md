@@ -113,10 +113,13 @@ final class NowPlayingCenterPresenter {
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
     }
 
-    func setBaseInfo(for snapshot: NowPlayingSnapshot, generation: UInt64) {
+    /// `artwork`, when the cover is already in memory, goes out with the song itself.
+    func setBaseInfo(for snapshot: NowPlayingSnapshot, artwork: PlatformImage? = nil, generation: UInt64) {
         guard generation >= contentGeneration else { return }
         contentGeneration = generation
-        MPNowPlayingInfoCenter.default().nowPlayingInfo = makeBaseInfo(for: snapshot)
+        var info = makeBaseInfo(for: snapshot)
+        if let artwork { info[MPMediaItemPropertyArtwork] = Self.makeArtwork(image: artwork) }
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = info
     }
 
     func mergePosition(
