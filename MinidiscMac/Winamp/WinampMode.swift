@@ -514,8 +514,9 @@ struct WinampCommands: Commands {
             CommandMenu("Miniamp") {
                 Button("Equalizer") { WinampMode.shared.toggle(.equalizer) }
                     .keyboardShortcut("g", modifiers: [.command, .option])
+                // ⌥⌘E is Window › Equalizer, as in the Music app.
                 Button("Playlist") { WinampMode.shared.toggle(.playlist) }
-                    .keyboardShortcut("e", modifiers: [.command, .option])
+                    .keyboardShortcut("p", modifiers: [.command, .option])
                 // Winamp started its visualization plug-in with ⌃⇧K.
                 Button("MilkDrop") { MilkDropWindowController.shared.toggle() }
                     .keyboardShortcut("k", modifiers: [.control, .shift])

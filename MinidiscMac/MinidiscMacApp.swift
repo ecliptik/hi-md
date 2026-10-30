@@ -69,6 +69,20 @@ struct MinidiscMacApp: App {
         .defaultSize(width: MiniPlayerLayout.defaultSide, height: MiniPlayerLayout.defaultSide)
         .defaultPosition(.topTrailing)
 
+        // MARK: Equalizer
+
+        // Window > Equalizer (⌥⌘E), as in the Music app: the Settings tab's equalizer in a small
+        // window of its own, so it's a click away while listening.
+        Window("Equalizer", id: "equalizer") {
+            NavigationStack { EqualizerView() }
+                .frame(minWidth: 460, minHeight: 420)
+                .tint(Color.minidiscAccent)
+        }
+        .keyboardShortcut("e", modifiers: [.command, .option])
+        .windowResizability(.contentMinSize)
+        .defaultSize(width: 520, height: 560)
+        .defaultPosition(.center)
+
         Settings {
             if let container = activeContainer {
                 MacSettingsView()
