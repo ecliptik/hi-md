@@ -67,7 +67,8 @@ nonisolated enum LibraryFacets {
             }
         }
         return counts.map { key, entry in
-            let name = entry.spellings.max { $0.value != $1.value ? $0.value < $1.value : $0.key > $1.key }?.key ?? key
+            var name = entry.spellings.max { $0.value != $1.value ? $0.value < $1.value : $0.key > $1.key }?.key ?? key
+            if kind == .genre { name = GenreName.displayName(name) }
             return LibraryFacet(kind: kind, key: key, name: name, songCount: entry.count, hasArtistID: entry.hasArtistID)
         }
         .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }

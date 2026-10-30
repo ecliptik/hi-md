@@ -26,6 +26,25 @@ struct GenreNameTests {
         #expect(merged[1].songCount == 79)
     }
 
+    @Test func lowercaseNamesGetCapitalsAndOthersKeepTheirs() {
+        #expect(GenreName.displayName("dark jazz") == "Dark Jazz")
+        #expect(GenreName.displayName("electro-industrial") == "Electro-Industrial")
+        #expect(GenreName.displayName("edm") == "EDM")
+        #expect(GenreName.displayName("r&b") == "R&B")
+        #expect(GenreName.displayName("j-pop") == "J-Pop")
+        #expect(GenreName.displayName("rock and roll") == "Rock and Roll")
+        #expect(GenreName.displayName("hip hop/rap") == "Hip Hop/Rap")
+        #expect(GenreName.displayName("JPop") == "JPop")
+        #expect(GenreName.displayName("Trip Hop") == "Trip Hop")
+        #expect(GenreName.displayName("90s") == "90s")
+    }
+
+    @Test func aMergedGenreShowsItsBusiestSpellingWithCapitals() throws {
+        let merged = GenreName.merge(try genres([("downtempo", 20), ("Downtempo", 3)]))
+        #expect(merged.map(\.name) == ["Downtempo"])
+        #expect(merged[0].variants == ["downtempo", "Downtempo"], "lookups keep the tagged spellings")
+    }
+
     @Test func namesWithoutLettersStayApart() throws {
         let merged = GenreName.merge(try genres([("—", 2), ("?", 3)]))
         #expect(merged.count == 2)
