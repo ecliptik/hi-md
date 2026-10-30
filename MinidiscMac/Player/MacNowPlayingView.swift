@@ -18,7 +18,7 @@ struct MacNowPlayingView: View {
     /// Both pane buttons are toggles; with neither on, the player stands alone in the middle.
     @AppStorage("minidisc.mac.nowPlayingPaneHidden") private var isPaneHidden = false
     @State private var backdrop = FullPlayerViewModel()
-    @State private var showsSpinningDisc = false
+    @AppStorage(MacArtworkMode.storageKey) private var artworkMode: MacArtworkMode = .artwork
     @State private var lyrics = MacLyricsSession()
     @State private var isLyricsFullScreen = false
     @State private var window = MacWindowHandle()
@@ -68,7 +68,7 @@ struct MacNowPlayingView: View {
         .overlay {
             if isLyricsFullScreen {
                 MacFullScreenLyrics(container: container, session: lyrics, backdropColors: backdrop.backgroundColors,
-                                    showsSpinningDisc: $showsSpinningDisc)
+                                    artworkMode: $artworkMode)
                     .transition(.opacity)
             }
         }
@@ -165,7 +165,7 @@ struct MacNowPlayingView: View {
     /// with the window.
     private func playerColumn(_ metrics: NowPlayingMetrics) -> some View {
         VStack(spacing: metrics.columnSpacing) {
-            MacSpinningDiscArtwork(showsDisc: $showsSpinningDisc, cornerRadius: 10, artworkSize: 1200)
+            MacSpinningDiscArtwork(mode: $artworkMode, cornerRadius: 10, artworkSize: 1200)
                 .frame(width: metrics.artworkSide, height: metrics.artworkSide)
                 .shadow(color: .black.opacity(0.35), radius: 18, y: 8)
             songInfo(metrics)
@@ -404,8 +404,8 @@ struct MacSongButtons: View {
     }
 }
 
-/// The playing song's artwork, which clicking swaps for the spinning MiniDisc, as tapping the
-/// cover does on the iPhone; clicking again brings the artwork back. Only a click in the middle
+/// The playing song's artwork, which clicking moves through the spinning MiniDisc, spectrum bars,
+/// an oscilloscope and MilkDrop, then back to the cover (`MacArtworkMode`). Only a click in the middle
 /// of the artwork does it, clear of `controls` (`MacArtworkDiscTarget`), so dragging the window by
 /// the artwork or missing a button leaves it alone. The disc's hub turns while music plays,
 /// unless Reduce Motion is on. With nothing playing it shows the disc at rest.
@@ -413,7 +413,7 @@ struct MacSongButtons: View {
 /// A new song keeps its cover on screen: the same cover changes nothing, and another one
 /// cross-fades in once it has loaded (`ArtworkChange`).
 struct MacSpinningDiscArtwork: View {
-    @Binding var showsDisc: Bool
+    @Binding var mode: MacArtworkMode
     var cornerRadius: Double = 10
     /// The pixel size asked of the server.
     var artworkSize: Int = 1200
@@ -428,15 +428,29 @@ struct MacSpinningDiscArtwork: View {
     var body: some View {
         let state = playback.state
         let hasArtwork = state.currentTrack != nil || state.currentRadio != nil
-        let title = showsDisc ? Text("Show Artwork") : Text("Show Spinning Disc")
+        let title = mode.nextTitle
         ZStack {
-            if showsDisc || !hasArtwork {
-                MinidiscLogoView(isSpinning: state.playbackState == .playing)
-                    .padding(hasArtwork ? 0 : 12)
-                    .transition(reduceMotion ? .opacity : .scale(scale: 0.9).combined(with: .opacity))
+            if !hasArtwork {
+                MinidiscLogoView(isSpinning: false)
+                    .padding(12)
             } else {
-                cover(state)
-                    .transition(.opacity)
+                switch mode {
+                case .artwork:
+                    cover(state)
+                        .transition(.opacity)
+                case .disc:
+                    MinidiscLogoView(isSpinning: state.playbackState == .playing)
+                        .transition(reduceMotion ? .opacity : .scale(scale: 0.9).combined(with: .opacity))
+                case .spectrum:
+                    MacSpectrumArtwork(cornerRadius: cornerRadius)
+                        .transition(.opacity)
+                case .scope:
+                    MacScopeArtwork(cornerRadius: cornerRadius)
+                        .transition(.opacity)
+                case .milkDrop:
+                    MacMilkDropArtwork(cornerRadius: cornerRadius)
+                        .transition(.opacity)
+                }
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -457,7 +471,7 @@ struct MacSpinningDiscArtwork: View {
     }
 
     private func toggle() {
-        withAnimation(reduceMotion ? nil : .smooth(duration: 0.35)) { showsDisc.toggle() }
+        withAnimation(reduceMotion ? nil : .smooth(duration: 0.35)) { mode = mode.next }
     }
 
     @ViewBuilder private func cover(_ state: PlayerState) -> some View {

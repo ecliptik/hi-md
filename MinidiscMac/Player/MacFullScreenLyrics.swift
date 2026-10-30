@@ -11,7 +11,7 @@ struct MacFullScreenLyrics: View {
     let container: AppContainer
     let session: MacLyricsSession
     let backdropColors: [Color]
-    @Binding var showsSpinningDisc: Bool
+    @Binding var artworkMode: MacArtworkMode
 
     @Environment(MacPlayback.self) private var playback
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
@@ -91,7 +91,7 @@ struct MacFullScreenLyrics: View {
     private func playerColumn(_ metrics: FullScreenLyricsMetrics) -> some View {
         VStack(alignment: .leading, spacing: metrics.columnSpacing * 1.5) {
             // Clicking the artwork swaps it for the spinning MiniDisc, as in Now Playing.
-            MacSpinningDiscArtwork(showsDisc: $showsSpinningDisc, cornerRadius: 12 * metrics.scale, artworkSize: 1200)
+            MacSpinningDiscArtwork(mode: $artworkMode, cornerRadius: 12 * metrics.scale, artworkSize: 1200)
                 .frame(width: metrics.artworkSide, height: metrics.artworkSide)
                 .shadow(color: .black.opacity(0.35), radius: 24 * metrics.scale, y: 12 * metrics.scale)
             VStack(spacing: metrics.columnSpacing) {

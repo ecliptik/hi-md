@@ -81,7 +81,7 @@ private struct MacMiniPlayerContent: View {
     @State private var window = MacWindowHandle.miniPlayer()
     @State private var chrome = MacPlayerChrome()
     @State private var sizing = MiniPlayerWindowSizing()
-    @State private var showsSpinningDisc = false
+    @AppStorage(MacArtworkMode.storageKey) private var artworkMode: MacArtworkMode = .artwork
     /// Where the song's controls lie over the artwork, which a click there mustn't swap.
     @State private var controlsFrame: CGRect = .null
     @State private var isVolumeShown = false
@@ -230,8 +230,9 @@ private struct MacMiniPlayerContent: View {
             await model.load(track, container: container)
         }
         .onChange(of: track?.id) { _, _ in
-            // A new song starts on its artwork, as on the iPhone.
-            if showsSpinningDisc { showsSpinningDisc = false }
+            // A new song starts on its artwork rather than the disc, as on the iPhone; a
+            // visualizer stays on.
+            if artworkMode == .disc { artworkMode = .artwork }
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel("MiniPlayer")
@@ -266,7 +267,7 @@ private struct MacMiniPlayerContent: View {
         let scrim = controlsFrame.isNull ? CGRect.null
             : CGRect(x: 0, y: controlsFrame.minY - Self.scrimFade, width: side, height: side - controlsFrame.minY + Self.scrimFade)
         return ZStack(alignment: .bottom) {
-            MacSpinningDiscArtwork(showsDisc: $showsSpinningDisc, cornerRadius: 0, artworkSize: 1200,
+            MacSpinningDiscArtwork(mode: $artworkMode, cornerRadius: 0, artworkSize: 1200,
                                    controls: hasSong ? [topBand, controlsFrame] : [topBand],
                                    covered: hasSong ? [scrim] : [])
             if hasSong {
