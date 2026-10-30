@@ -106,6 +106,14 @@ final class MacNavigator {
         path.append(destination)
     }
 
+    /// A click on a sidebar item always lands on that section's own page, as in the Music app:
+    /// clicking the item that's already selected closes the pages above it and Now Playing.
+    func clickSidebar(_ item: MacSidebarItem) {
+        guard selection == item else { return }
+        isNowPlayingShown = false
+        path = []
+    }
+
     func showAlbum(of song: DisplayableSong, highlighting: Bool = false) {
         guard let albumID = song.albumId else { return }
         show(.album(id: albumID, highlightedSongID: highlighting ? song.id : nil))

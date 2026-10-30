@@ -13,20 +13,20 @@ struct MacSidebar: View {
         @Bindable var navigator = navigator
         List(selection: $navigator.selection) {
             Section {
-                Label("Home", systemImage: "house").tag(MacSidebarItem.home)
-                Label("Search", systemImage: "magnifyingglass").tag(MacSidebarItem.search)
-                Label("Discover", systemImage: "square.grid.2x2").tag(MacSidebarItem.discover)
-                Label("Radio", systemImage: "antenna.radiowaves.left.and.right").tag(MacSidebarItem.radio)
+                Label("Home", systemImage: "house").sidebarItem(MacSidebarItem.home, navigator: navigator)
+                Label("Search", systemImage: "magnifyingglass").sidebarItem(MacSidebarItem.search, navigator: navigator)
+                Label("Discover", systemImage: "square.grid.2x2").sidebarItem(MacSidebarItem.discover, navigator: navigator)
+                Label("Radio", systemImage: "antenna.radiowaves.left.and.right").sidebarItem(MacSidebarItem.radio, navigator: navigator)
             }
 
             Section("Library") {
-                Label("Recently Added", systemImage: "clock").tag(MacSidebarItem.recentlyAdded)
-                Label("Artists", systemImage: "music.microphone").tag(MacSidebarItem.artists)
-                Label("Albums", image: MinidiscSymbol.album).tag(MacSidebarItem.albums)
-                Label("Songs", systemImage: "music.note").tag(MacSidebarItem.songs)
-                Label("Genres", systemImage: "guitars").tag(MacSidebarItem.genres)
-                Label("Favorites", systemImage: "heart").tag(MacSidebarItem.favorites)
-                Label("Downloads", systemImage: "arrow.down.circle").tag(MacSidebarItem.downloads)
+                Label("Recently Added", systemImage: "clock").sidebarItem(MacSidebarItem.recentlyAdded, navigator: navigator)
+                Label("Artists", systemImage: "music.microphone").sidebarItem(MacSidebarItem.artists, navigator: navigator)
+                Label("Albums", image: MinidiscSymbol.album).sidebarItem(MacSidebarItem.albums, navigator: navigator)
+                Label("Songs", systemImage: "music.note").sidebarItem(MacSidebarItem.songs, navigator: navigator)
+                Label("Genres", systemImage: "guitars").sidebarItem(MacSidebarItem.genres, navigator: navigator)
+                Label("Favorites", systemImage: "heart").sidebarItem(MacSidebarItem.favorites, navigator: navigator)
+                Label("Downloads", systemImage: "arrow.down.circle").sidebarItem(MacSidebarItem.downloads, navigator: navigator)
             }
 
             Section {
@@ -60,13 +60,21 @@ struct MacSidebar: View {
         } icon: {
             Image(systemName: "music.note.list")
         }
-        .tag(MacSidebarItem.playlist(id: playlist.id))
+        .sidebarItem(.playlist(id: playlist.id), navigator: navigator)
         .dropDestination(for: MacSongDrag.self) { items, _ in
             guard playlists.canEdit else { return false }
             playlists.add(items.map(\.song), to: playlist)
             return true
         }
         .contextMenu { MacPlaylistMenu(playlist: playlist) }
+    }
+}
+
+private extension View {
+    /// A sidebar row: selecting it shows its section, and clicking it again while it's selected
+    /// goes back to the section's own page.
+    func sidebarItem(_ item: MacSidebarItem, navigator: MacNavigator) -> some View {
+        tag(item).simultaneousGesture(TapGesture().onEnded { navigator.clickSidebar(item) })
     }
 }
 
