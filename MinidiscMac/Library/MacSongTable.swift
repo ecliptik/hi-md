@@ -1,3 +1,4 @@
+import AppKit
 import SwiftData
 import SwiftUI
 
@@ -88,6 +89,7 @@ struct MacSongTable: View {
             if showsArtist {
                 TableColumn("Artist", sortUsing: SongTableComparator(column: .artist)) { row in
                     Text(row.song.artist ?? "")
+                        .foregroundStyle(style == .album ? .secondary : .primary)
                 }
                 .width(min: 100, ideal: 180)
             }
@@ -125,6 +127,10 @@ struct MacSongTable: View {
                 }
             }
         }
+        // An album lays out like the Music app's: roomy rows divided by hairlines, no stripes
+        // and no column headers. Other lists keep the denser sortable table of its Songs view.
+        .tableColumnHeaders(style == .album ? .hidden : .automatic)
+        .alternatingRowBackgrounds(style == .album ? .disabled : .enabled)
         .contextMenu(forSelectionType: SongTableRow.ID.self) { ids in
             let chosen = songs(for: ids, in: rows)
             if !chosen.isEmpty {
@@ -188,7 +194,13 @@ struct MacSongTable: View {
                     .accessibilityLabel("Now Playing")
             }
         }
+        // The tallest cell sets the row's height.
+        .padding(.vertical, style == .album ? Self.albumRowPadding : 0)
+        .background { MacTableRowStyler(separators: style == .album) }
     }
+
+    /// Makes an album's rows about 36 points tall, as in Music.
+    private static let albumRowPadding: CGFloat = 9
 
     private func favoriteCell(_ row: SongTableRow, isFavorite: Bool) -> some View {
         Button {
@@ -236,5 +248,120 @@ struct MacSongTable: View {
             return
         }
         selection = [row.id]
+    }
+}
+
+/// Reaches the NSTableView behind a SwiftUI Table, which on the Mac has no row separators or
+/// hover highlight, from inside one of its cells. Where no table is found the rows go without.
+private struct MacTableRowStyler: NSViewRepresentable {
+    /// Hairlines between the rows, as in a Music album.
+    var separators: Bool
+
+    func makeNSView(context: Context) -> NSView { Hook(separators: separators) }
+    func updateNSView(_ nsView: NSView, context: Context) {}
+
+    private final class Hook: NSView {
+        private let separators: Bool
+
+        init(separators: Bool) {
+            self.separators = separators
+            super.init(frame: .zero)
+        }
+
+        @available(*, unavailable)
+        required init?(coder: NSCoder) {
+            fatalError("init(coder:) is not supported")
+        }
+
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            var ancestor = superview
+            while let view = ancestor, !(view is NSTableView) { ancestor = view.superview }
+            guard let table = ancestor as? NSTableView else { return }
+            if separators, !table.gridStyleMask.contains(.solidHorizontalGridLineMask) {
+                table.gridStyleMask.insert(.solidHorizontalGridLineMask)
+                table.gridColor = .separatorColor
+            }
+            MacTableHoverHighlight.install(in: table)
+        }
+    }
+}
+
+/// Lights up the row under the pointer, as Music does. It covers the table without taking clicks,
+/// and draws a layer above the rows, which AppKit adds and reorders as the table scrolls.
+private final class MacTableHoverHighlight: NSView {
+    private weak var table: NSTableView?
+    private let highlight = CALayer()
+    private var hoveredRow = -1
+
+    static func install(in table: NSTableView) {
+        guard !table.subviews.contains(where: { $0 is MacTableHoverHighlight }) else { return }
+        table.addSubview(MacTableHoverHighlight(table: table), positioned: .below, relativeTo: nil)
+    }
+
+    private init(table: NSTableView) {
+        self.table = table
+        super.init(frame: table.bounds)
+        autoresizingMask = [.width, .height]
+        table.wantsLayer = true
+        highlight.cornerRadius = 6
+        highlight.zPosition = 1
+        highlight.isHidden = true
+        table.layer?.addSublayer(highlight)
+        updateColor()
+        addTrackingArea(NSTrackingArea(rect: .zero, options: [.mouseMoved, .mouseEnteredAndExited, .activeInActiveApp, .inVisibleRect],
+                                       owner: self))
+        if let clip = table.enclosingScrollView?.contentView {
+            clip.postsBoundsChangedNotifications = true
+            NotificationCenter.default.addObserver(self, selector: #selector(contentScrolled),
+                                                   name: NSView.boundsDidChangeNotification, object: clip)
+        }
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) is not supported")
+    }
+
+    /// The table's own coordinates, so a point here is a point in the table.
+    override var isFlipped: Bool { true }
+    override func hitTest(_ point: NSPoint) -> NSView? { nil }
+
+    override func mouseEntered(with event: NSEvent) { hover(at: convert(event.locationInWindow, from: nil)) }
+    override func mouseMoved(with event: NSEvent) { hover(at: convert(event.locationInWindow, from: nil)) }
+    override func mouseExited(with event: NSEvent) { hover(at: nil) }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        updateColor()
+    }
+
+    /// Rows slide under a still pointer while the list scrolls.
+    @objc private func contentScrolled(_ notification: Notification) {
+        guard let window else { return }
+        let point = convert(window.mouseLocationOutsideOfEventStream, from: nil)
+        hover(at: visibleRect.contains(point) ? point : nil)
+    }
+
+    private func hover(at point: NSPoint?) {
+        guard let table else { return }
+        let row = point.map { table.row(at: $0) } ?? -1
+        guard row != hoveredRow else { return }
+        hoveredRow = row
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        if row >= 0 {
+            highlight.frame = table.rowView(atRow: row, makeIfNecessary: false)?.frame ?? table.rect(ofRow: row)
+            highlight.isHidden = false
+        } else {
+            highlight.isHidden = true
+        }
+        CATransaction.commit()
+    }
+
+    private func updateColor() {
+        effectiveAppearance.performAsCurrentDrawingAppearance {
+            highlight.backgroundColor = NSColor.labelColor.withAlphaComponent(0.07).cgColor
+        }
     }
 }
