@@ -81,7 +81,7 @@ private struct MacMiniPlayerContent: View {
     @State private var window = MacWindowHandle.miniPlayer()
     @State private var chrome = MacPlayerChrome()
     @State private var sizing = MiniPlayerWindowSizing()
-    @AppStorage(MacArtworkMode.storageKey) private var artworkMode: MacArtworkMode = .artwork
+    @AppStorage(PlayerArtworkMode.storageKey) private var artworkMode: PlayerArtworkMode = .artwork
     /// Where the song's controls lie over the artwork, which a click there mustn't swap.
     @State private var controlsFrame: CGRect = .null
     @State private var isVolumeShown = false

@@ -45,7 +45,7 @@ struct FullPlayerView: View {
     @State private var surface: PlayerSurface = .player
     @State private var lyricsViewModel: LyricsViewModel?
     @State private var trackSwipe = TrackSwipeInteraction()
-    @State private var showsSpinningDisc = false
+    @AppStorage(PlayerArtworkMode.storageKey) private var artworkMode: PlayerArtworkMode = .artwork
     @Namespace private var morphNS
 
     // MARK: - Player layout
@@ -334,12 +334,21 @@ struct FullPlayerView: View {
     private func flowingCover(_ playerState: PlayerState, coverArtId: String, isSource: Bool) -> some View {
         GeometryReader { geo in
             let artworkSide = min(geo.size.width, geo.size.height)
+            let cornerRadius = isSource ? MinidiscCornerRadius.large : MinidiscCornerRadius.standard
             ZStack {
-                // Easter egg: tapping the cover swaps it for the Minidisc, spinning while music plays.
-                if showsSpinningDisc {
+                // Tapping the cover moves on to the spinning Minidisc, spectrum bars and an
+                // oscilloscope, then back; radio keeps its cover.
+                switch playerState.isLiveStream ? .artwork : artworkMode {
+                case .disc:
                     MinidiscLogoView(isSpinning: playerState.playbackState == .playing)
                         .transition(.scale(scale: 0.9).combined(with: .opacity))
-                } else {
+                case .spectrum:
+                    SpectrumArtwork(cornerRadius: cornerRadius)
+                        .transition(.opacity)
+                case .scope:
+                    ScopeArtwork(cornerRadius: cornerRadius)
+                        .transition(.opacity)
+                case .artwork, .milkDrop:
                     // A song without a cover shows the disc, turning while it plays; a station keeps
                     // its radio placeholder.
                     CoverArtView(id: coverArtId, size: 1000,
@@ -348,12 +357,7 @@ struct FullPlayerView: View {
                                  initialImage: initialArtwork?.id == coverArtId ? initialArtwork?.image : nil,
                                  spinningDisc: playerState.playbackState == .playing,
                                  crossfades: true)
-                        .clipShape(
-                            RoundedRectangle(
-                                cornerRadius: isSource ? MinidiscCornerRadius.large : MinidiscCornerRadius.standard,
-                                style: .continuous
-                            )
-                        )
+                        .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
                         .transition(.opacity)
                 }
             }
@@ -373,7 +377,8 @@ struct FullPlayerView: View {
                 .onTapGesture {
                     guard isSource else { return }
                     HapticFeedback.light.trigger()
-                    withAnimation(.smooth(duration: 0.35)) { showsSpinningDisc.toggle() }
+                    guard !playerState.isLiveStream else { return }
+                    withAnimation(.smooth(duration: 0.35)) { artworkMode = artworkMode.next }
                 }
                 .trackSwipeGesture(
                     interaction: trackSwipe,

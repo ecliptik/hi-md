@@ -18,7 +18,7 @@ struct MacNowPlayingView: View {
     /// Both pane buttons are toggles; with neither on, the player stands alone in the middle.
     @AppStorage("minidisc.mac.nowPlayingPaneHidden") private var isPaneHidden = false
     @State private var backdrop = FullPlayerViewModel()
-    @AppStorage(MacArtworkMode.storageKey) private var artworkMode: MacArtworkMode = .artwork
+    @AppStorage(PlayerArtworkMode.storageKey) private var artworkMode: PlayerArtworkMode = .artwork
     @State private var lyrics = MacLyricsSession()
     @State private var isLyricsFullScreen = false
     @State private var window = MacWindowHandle()
@@ -405,7 +405,7 @@ struct MacSongButtons: View {
 }
 
 /// The playing song's artwork, which clicking moves through the spinning MiniDisc, spectrum bars,
-/// an oscilloscope and MilkDrop, then back to the cover (`MacArtworkMode`). Only a click in the middle
+/// an oscilloscope and MilkDrop, then back to the cover (`PlayerArtworkMode`). Only a click in the middle
 /// of the artwork does it, clear of `controls` (`MacArtworkDiscTarget`), so dragging the window by
 /// the artwork or missing a button leaves it alone. The disc's hub turns while music plays,
 /// unless Reduce Motion is on. With nothing playing it shows the disc at rest.
@@ -413,7 +413,7 @@ struct MacSongButtons: View {
 /// A new song keeps its cover on screen: the same cover changes nothing, and another one
 /// cross-fades in once it has loaded (`ArtworkChange`).
 struct MacSpinningDiscArtwork: View {
-    @Binding var mode: MacArtworkMode
+    @Binding var mode: PlayerArtworkMode
     var cornerRadius: Double = 10
     /// The pixel size asked of the server.
     var artworkSize: Int = 1200
@@ -442,10 +442,10 @@ struct MacSpinningDiscArtwork: View {
                     MinidiscLogoView(isSpinning: state.playbackState == .playing)
                         .transition(reduceMotion ? .opacity : .scale(scale: 0.9).combined(with: .opacity))
                 case .spectrum:
-                    MacSpectrumArtwork(cornerRadius: cornerRadius)
+                    SpectrumArtwork(cornerRadius: cornerRadius)
                         .transition(.opacity)
                 case .scope:
-                    MacScopeArtwork(cornerRadius: cornerRadius)
+                    ScopeArtwork(cornerRadius: cornerRadius)
                         .transition(.opacity)
                 case .milkDrop:
                     MacMilkDropArtwork(cornerRadius: cornerRadius)

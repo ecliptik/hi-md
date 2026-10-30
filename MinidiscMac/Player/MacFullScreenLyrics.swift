@@ -11,7 +11,7 @@ struct MacFullScreenLyrics: View {
     let container: AppContainer
     let session: MacLyricsSession
     let backdropColors: [Color]
-    @Binding var artworkMode: MacArtworkMode
+    @Binding var artworkMode: PlayerArtworkMode
 
     @Environment(MacPlayback.self) private var playback
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
