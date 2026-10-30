@@ -92,6 +92,27 @@ struct AIPlaylistMakerTests {
         await #expect(throws: AIPlaylistError.notEnoughMatches) { try await maker.make("90s ska punk") }
     }
 
+    @Test func artistsNamedInTheRequestAreIncludedEvenIfTheModelMissesThem() async throws {
+        let model = ScriptedPlaylistModel()
+        model.plansWithArtists = false
+        let songs = try library()
+        let maker = AIPlaylistMaker(model: model, library: { songs })
+        let draft = try await maker.make("a late-night drive with massive attack and TRICKY", seed: 2)
+        #expect(Set(draft.songs.compactMap(\.artist)) == ["Massive Attack", "Tricky"])
+        #expect(AIPlaylistMaker.artistsNamed(in: "a fair price", library: songs).isEmpty)
+    }
+
+    @Test func aModelThatPicksTooFewIsToppedUpFromTheCandidates() async throws {
+        let model = ScriptedPlaylistModel()
+        model.plan.genres = ["trip hop"]
+        model.choice = { _ in AIPlaylistChoice(title: "Rain", summary: "", picks: [2]) }
+        let songs = try library()
+        let maker = AIPlaylistMaker(model: model, library: { songs })
+        let draft = try await maker.make("trip-hop", seed: 5)
+        #expect(draft.songs.count == 9, "three each from the three trip-hop artists")
+        #expect(model.shownCandidates[1].contains(draft.songs[0].title), "the model's own pick comes first")
+    }
+
     @Test func cloudRepliesAreReadThroughProseAndFences() throws {
         let plan = try AIPlaylistParser.plan("Sure!\n```json\n{\"genres\":[\"Trip Hop\"],\"artists\":[],\"fromYear\":1990,\"toYear\":0,\"mood\":\"Chill\"}\n```")
         #expect(plan.genres == ["Trip Hop"])

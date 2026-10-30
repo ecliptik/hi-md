@@ -37,15 +37,33 @@ nonisolated struct AIPlaylistMaker: Sendable {
         try Task.checkCancellation()
 
         let summary = Self.summary(of: songs, withArtists: model.plansWithArtists)
-        let plan = Self.resolve(try await model.plan(request, library: summary), in: summary)
+        var plan = Self.resolve(try await model.plan(request, library: summary), in: summary)
+        // Artists the request names are always in, whether or not the model saw the library's
+        // artists: the on-device model never does.
+        for artist in Self.artistsNamed(in: request, library: songs) where !plan.artists.contains(artist) {
+            plan.artists.append(artist)
+        }
         try Task.checkCancellation()
-        let pool = Self.pool(for: plan, from: songs, limit: model.candidateLimit, seed: seed)
+        var pool = Self.pool(for: plan, from: songs, limit: model.candidateLimit, seed: seed)
+        // A period the tags can't satisfy, such as "the 90s" on songs without years, is dropped
+        // rather than leaving nothing to choose from.
+        if pool.count < count, plan.years != nil {
+            plan.years = nil
+            pool = Self.pool(for: plan, from: songs, limit: model.candidateLimit, seed: seed)
+        }
         Logger.ui.info("AI playlist: plan \(plan.genres.count) genres, \(plan.artists.count) artists, mood \(plan.mood?.rawValue ?? "none", privacy: .public) → \(pool.count) candidates")
         guard pool.count >= Self.minimumSongs else { throw AIPlaylistError.notEnoughMatches }
 
         let choice = try await model.choose(request, candidates: Self.lines(pool), count: min(count, pool.count))
         try Task.checkCancellation()
-        let chosen = Self.picks(choice.picks, from: pool, limit: count, perArtist: Self.perArtistLimit)
+        let limits = Self.ArtistLimits(named: plan.artists, songCount: count)
+        var chosen = Self.picks(choice.picks, from: pool, limit: count, limits: limits)
+        // The on-device model often answers with only a few numbers. The best of the rest of the
+        // candidates fill the playlist out, rather than giving up on it.
+        if chosen.count < min(count, pool.count) {
+            Logger.ui.info("AI playlist: \(chosen.count) picks; filling up from the candidates")
+            chosen = Self.topUp(chosen, from: pool, limit: count, limits: limits)
+        }
         guard chosen.count >= Self.minimumSongs else { throw AIPlaylistError.notEnoughMatches }
         let title = Self.cleanTitle(choice.title)
         return AIPlaylistDraft(title: title.isEmpty ? request : title, summary: choice.summary, request: request, songs: chosen)
@@ -123,7 +141,9 @@ nonisolated struct AIPlaylistMaker: Sendable {
             for song in spread(tier, random: &random) where pool.count < limit {
                 let artist = artistKey(song.artist ?? "")
                 let album = song.albumId ?? song.album ?? song.id
-                guard perArtist[artist, default: 0] < 8, perAlbum[album, default: 0] < 4 else { continue }
+                // Artists the plan names may fill more of the list than the others.
+                let artistCap = artistKeys.contains(artist) ? 20 : 8
+                guard perArtist[artist, default: 0] < artistCap, perAlbum[album, default: 0] < 4 else { continue }
                 perArtist[artist, default: 0] += 1
                 perAlbum[album, default: 0] += 1
                 pool.append(song)
@@ -151,9 +171,33 @@ nonisolated struct AIPlaylistMaker: Sendable {
         }
     }
 
-    /// The chosen candidates in the model's order, skipping numbers off the list, repeats and an
-    /// artist's songs beyond `perArtist`.
+    /// How many songs one artist may have: three, or more for an artist the request names, so
+    /// "Nine Inch Nails and The Naked And Famous" can be mostly those two.
+    struct ArtistLimits: Sendable {
+        var standard = AIPlaylistMaker.perArtistLimit
+        var named: Set<String> = []
+        var forNamed = AIPlaylistMaker.perArtistLimit
+
+        init() {}
+
+        init(named artists: [String], songCount: Int) {
+            named = Set(artists.map(AIPlaylistMaker.artistKey))
+            guard !named.isEmpty else { return }
+            forNamed = min(10, max(standard, songCount / (2 * named.count)))
+        }
+
+        func limit(for artistKey: String) -> Int { named.contains(artistKey) ? forNamed : standard }
+    }
+
     static func picks(_ numbers: [Int], from pool: [Song], limit: Int, perArtist: Int) -> [Song] {
+        var limits = ArtistLimits()
+        limits.standard = perArtist
+        return picks(numbers, from: pool, limit: limit, limits: limits)
+    }
+
+    /// The chosen candidates in the model's order, skipping numbers off the list, repeats and an
+    /// artist's songs beyond their limit.
+    static func picks(_ numbers: [Int], from pool: [Song], limit: Int, limits: ArtistLimits) -> [Song] {
         var seen = Set<Int>()
         var artists: [String: Int] = [:]
         var chosen: [Song] = []
@@ -163,12 +207,56 @@ nonisolated struct AIPlaylistMaker: Sendable {
             let song = pool[index]
             let artist = artistKey(song.artist ?? "")
             if !artist.isEmpty {
-                guard artists[artist, default: 0] < perArtist else { continue }
+                guard artists[artist, default: 0] < limits.limit(for: artist) else { continue }
                 artists[artist, default: 0] += 1
             }
             chosen.append(song)
         }
         return chosen
+    }
+
+    /// Adds candidates in the pool's order, skipping ones already chosen and artists at their
+    /// limit, until the playlist has `limit` songs or the pool runs out.
+    static func topUp(_ chosen: [Song], from pool: [Song], limit: Int, limits: ArtistLimits = ArtistLimits()) -> [Song] {
+        var result = chosen
+        var ids = Set(chosen.map(\.id))
+        var artists: [String: Int] = [:]
+        for song in chosen { artists[artistKey(song.artist ?? ""), default: 0] += 1 }
+        for song in pool where result.count < limit && !ids.contains(song.id) {
+            let artist = artistKey(song.artist ?? "")
+            if !artist.isEmpty {
+                guard artists[artist, default: 0] < limits.limit(for: artist) else { continue }
+                artists[artist, default: 0] += 1
+            }
+            ids.insert(song.id)
+            result.append(song)
+        }
+        return result
+    }
+
+    /// The library's artists the request names, matched word for word ("nine inch nails" in
+    /// "a late-night drive with Nine Inch Nails"), so "Air" isn't found inside "fair". One-word
+    /// names need three letters or more.
+    static func artistsNamed(in request: String, library songs: [Song]) -> [String] {
+        let requestWords = words(request)
+        guard !requestWords.isEmpty else { return [] }
+        var seen = Set<String>()
+        var found: [String] = []
+        for song in songs {
+            guard let artist = song.artist, !artist.isEmpty, seen.insert(artist.lowercased()).inserted else { continue }
+            let name = words(artist)
+            guard !name.isEmpty, name.count > 1 || name[0].count >= 3, name.count <= requestWords.count else { continue }
+            let matches = (0...(requestWords.count - name.count)).contains { start in
+                Array(requestWords[start..<(start + name.count)]) == name
+            }
+            if matches { found.append(artist) }
+        }
+        return found
+    }
+
+    private static func words(_ text: String) -> [String] {
+        text.lowercased().folding(options: .diacriticInsensitive, locale: nil)
+            .split(whereSeparator: { !$0.isLetter && !$0.isNumber }).map(String.init)
     }
 
     // MARK: - Helpers
