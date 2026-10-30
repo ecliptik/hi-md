@@ -9,6 +9,10 @@ nonisolated struct WinampPlaylistDisplayState: Sendable, Hashable {
         var duration: String
         var isSelected = false
         var isCurrent = false
+        /// Added by Autoplay after the listener's own songs; drawn dimmer.
+        var isAutoplay = false
+        /// The first Autoplay song: a dotted line above it marks where the playlist ends.
+        var startsAutoplay = false
     }
 
     var size = WinampPlaylistSize.standard.pixelSize
@@ -101,7 +105,14 @@ nonisolated enum WinampPlaylistRenderer {
                 if state.focusedRow == state.firstRow + offset {
                     drawFocusOutline(rect, color: style.normal, canvas: canvas)
                 }
-                let color = row.isCurrent ? style.current : style.normal
+                if row.startsAutoplay {
+                    var x = rect.minX + 3
+                    while x < rect.maxX - 3 {
+                        canvas.fill(CGRect(x: x, y: rect.minY, width: 1, height: 1), color: style.autoplay)
+                        x += 2
+                    }
+                }
+                let color = row.isCurrent ? style.current : row.isAutoplay ? style.autoplay : style.normal
                 let durationWidth = CGFloat(max(row.duration.count, 4)) * 6 + 4
                 canvas.drawString(row.duration, font: font, color: color, at: CGPoint(x: rect.maxX - durationWidth - 3, y: rect.minY),
                                   baseline: textBaseline, maxWidth: durationWidth, alignRight: true)

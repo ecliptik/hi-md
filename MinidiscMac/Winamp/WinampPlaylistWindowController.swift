@@ -115,6 +115,7 @@ final class WinampPlaylistWindowController: NSObject, NSWindowDelegate, WinampSu
         withObservationTracking {
             _ = player.queue
             _ = player.currentIndex
+            _ = player.originalQueueEndIndex
             _ = player.currentTrack?.id
             _ = player.position
             _ = player.duration
@@ -154,12 +155,16 @@ final class WinampPlaylistWindowController: NSObject, NSWindowDelegate, WinampSu
         state.firstRow = firstRow
         let current = currentRow
         let end = min(firstRow + visibleRows + 1, queue.count)
+        // Songs Autoplay added after the listener's own, set apart rather than mixed in.
+        let autoplayStart = player.originalQueueEndIndex.flatMap { $0 < queue.count ? $0 : nil }
         if firstRow < end {
             state.rows = (firstRow..<end).map { index in
                 let song = queue[index]
                 return .init(title: WinampPlaylistText.rowTitle(number: index + 1, artist: song.artist, title: song.title),
                              duration: WinampPlaylistText.duration(song.duration),
-                             isSelected: selection.contains(index), isCurrent: index == current)
+                             isSelected: selection.contains(index), isCurrent: index == current,
+                             isAutoplay: autoplayStart.map { index >= $0 } ?? false,
+                             startsAutoplay: index == autoplayStart && index > 0)
             }
         }
         state.focusedRow = isActive ? selection.focus : nil
@@ -643,12 +648,14 @@ final class WinampPlaylistWindowController: NSObject, NSWindowDelegate, WinampSu
         remove(selection.rows)
     }
 
-    /// Removes rows from the end so the earlier ones keep their places. The playing song stays.
+    /// Removes rows from the end so the earlier ones keep their places. A song that's playing
+    /// stays; paused or stopped, the current song goes too, last, and the next one takes its place.
     private func remove(_ rows: Set<Int>) {
         guard editTask == nil, reorderTask == nil else { return }
         let current = currentRow
+        let removesCurrent = current.map(rows.contains) == true && !player.wantsPlayback
         let targets = rows.filter { $0 != current }.sorted(by: >)
-        guard !targets.isEmpty else { return }
+        guard !targets.isEmpty || removesCurrent else { return }
         let ids = player.queue
         let service = container.playerService
         editTask = Task { [weak self] in
@@ -660,6 +667,7 @@ final class WinampPlaylistWindowController: NSObject, NSWindowDelegate, WinampSu
                                                         destinationTrackID: state.queue[row].id),
                       await service.removeQueueTrack(request) != nil else { break }
             }
+            if removesCurrent { _ = await service.removeCurrentTrackIfNotPlaying() }
             guard let self else { return }
             self.selection.selectNone()
             self.editTask = nil

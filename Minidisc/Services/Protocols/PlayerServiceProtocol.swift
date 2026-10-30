@@ -29,6 +29,8 @@ protocol PlayerServiceProtocol: AnyObject, Sendable {
     func addToQueue(_ songs: [DisplayableSong]) async
     func removeFromQueue(at index: Int) async
     func removeQueueTrack(_ selection: QueueTrackSelection) async -> QueueRemoval?
+    /// Removes the current song when it isn't playing; returns false while it plays.
+    func removeCurrentTrackIfNotPlaying() async -> Bool
     func restoreQueueTrack(_ removal: QueueRemoval) async -> Bool
     func moveQueueTrack(_ selection: QueueTrackSelection, toIndex: Int) async
     func moveInQueue(fromIndex: Int, toIndex: Int) async
@@ -82,6 +84,9 @@ nonisolated struct PreparedPlaybackQueue: Sendable {
 
 extension PlayerServiceProtocol {
     func setAppVisible(_ visible: Bool) async {}
+
+    /// Test doubles keep their current song.
+    func removeCurrentTrackIfNotPlaying() async -> Bool { false }
 
     /// Conformers without a playing-from label (test doubles) ignore the context.
     nonisolated func play(tracks: [DisplayableSong], startIndex: Int, context: PlaybackContext?) async throws {

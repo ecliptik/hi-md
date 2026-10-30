@@ -2321,6 +2321,57 @@ actor PlayerService: PlayerServiceProtocol {
         return removal
     }
 
+    /// Removes the current song when it's paused or stopped, as any other song is removed. The
+    /// song that followed it, or the one before when it was last, becomes current, ready to play
+    /// from its start as after a relaunch; nothing starts playing. Removing the only song stops
+    /// playback and empties the queue. A song that's playing stays.
+    func removeCurrentTrackIfNotPlaying() async -> Bool {
+        let snapshot = await MainActor.run {
+            (queue: state.queue, index: state.currentIndex, isPlaying: state.wantsPlayback, isLive: state.isLiveStream,
+             context: state.playbackContext, repeatMode: state.repeatMode, autoplayStart: state.originalQueueEndIndex)
+        }
+        guard !snapshot.isPlaying, !snapshot.isLive, snapshot.queue.indices.contains(snapshot.index) else { return false }
+        var remaining = snapshot.queue
+        remaining.remove(at: snapshot.index)
+        Logger.player.info("[QUEUE] removing the current track while not playing; \(remaining.count) left")
+        await stop()
+        guard !remaining.isEmpty else { return true }
+
+        queueBuildGeneration &+= 1
+        playbackGeneration &+= 1
+        transportIntentGeneration &+= 1
+        let generation = playbackGeneration
+        let transportGeneration = transportIntentGeneration
+        let index = min(snapshot.index, remaining.count - 1)
+        let track = remaining[index]
+        queueGeneration &+= 1
+        let newQueueGeneration = queueGeneration
+        await MainActor.run {
+            state.queueGeneration = newQueueGeneration
+            state.queue = remaining
+            state.currentIndex = index
+            state.currentTrack = track
+            state.currentRadio = nil
+            state.playbackContext = snapshot.context
+            state.position = 0
+            state.duration = track.duration
+            state.repeatMode = snapshot.repeatMode
+            // Autoplay's songs are still set apart, one place earlier when the removed song was before them.
+            state.originalQueueEndIndex = snapshot.autoplayStart.flatMap { start in
+                let moved = snapshot.index < start ? start - 1 : start
+                return moved < remaining.count ? moved : nil
+            }
+            state.playbackState = .paused
+        }
+        guard isCurrentPlaybackIntent(playbackGeneration: generation, transportIntentGeneration: transportGeneration) else {
+            return true
+        }
+        await saveSession()
+        await prepareCurrentTrackForRestoration(track: track, position: 0, generation: generation,
+                                                transportGeneration: transportGeneration)
+        return true
+    }
+
     func restoreQueueTrack(_ removal: QueueRemoval) async -> Bool {
         guard removal.queueGeneration == queueGeneration else { return false }
         let previousNextTrackID = await queuedNextTrackID()
@@ -2432,10 +2483,19 @@ actor PlayerService: PlayerServiceProtocol {
                 currentTrack: state.currentTrack,
                 repeatMode: state.repeatMode,
                 queueRevision: state.queueRevision,
-                context: state.playbackContext
+                context: state.playbackContext,
+                autoplayStart: state.originalQueueEndIndex
             )
         }
         await sessionService.save(playerState: snapshot)
+    }
+
+    /// Where Autoplay began in a session saved before that was kept. Playing an album, the
+    /// album's own songs lead the queue, so Autoplay starts at the first song from elsewhere.
+    nonisolated static func inferredAutoplayStart(queue: [DisplayableSong], context: PlaybackContext?) -> Int? {
+        guard case .album(let albumID, _, _)? = context, queue.first?.albumId == albumID,
+              let first = queue.firstIndex(where: { $0.albumId != albumID }) else { return nil }
+        return first
     }
 
     func restoreSession() async {
@@ -2470,6 +2530,8 @@ actor PlayerService: PlayerServiceProtocol {
             state.position = restoredPosition
             state.duration = restoredDuration
             state.repeatMode = data.repeatMode
+            state.originalQueueEndIndex = data.autoplayStart
+                ?? (state.isAutoExtendEnabled ? Self.inferredAutoplayStart(queue: data.queue, context: data.context) : nil)
             state.playbackState = .paused
         }
         guard isCurrentPlaybackIntent(

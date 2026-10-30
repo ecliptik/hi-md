@@ -1369,3 +1369,47 @@ struct NowPlayingOwnershipTests {
         #expect(h.audioSession.deactivations == 1)
     }
 }
+
+@Suite("Removing the current song", .serialized, .timeLimit(.minutes(1)))
+@MainActor
+struct RemoveCurrentSongTests {
+    @Test func aPausedSongIsRemovedAndTheNextWaitsWithoutPlaying() async throws {
+        let h = try RecoveryHarness()
+        try await h.play(["a", "b", "c"])
+        await h.player.pause()
+        let plays = h.engine.playCount
+        #expect(await h.player.removeCurrentTrackIfNotPlaying())
+        #expect(h.state.queue.map(\.id) == ["b", "c"])
+        #expect(h.state.currentTrack?.id == "b")
+        #expect(h.state.playbackState == .paused)
+        #expect(h.engine.playCount == plays, "nothing starts playing")
+    }
+
+    @Test func removingTheLastPausedSongLeavesTheOneBefore() async throws {
+        let h = try RecoveryHarness()
+        try await h.play(["a", "b"])
+        try await h.player.skipToNext()
+        await h.player.pause()
+        #expect(await h.player.removeCurrentTrackIfNotPlaying())
+        #expect(h.state.queue.map(\.id) == ["a"])
+        #expect(h.state.currentTrack?.id == "a")
+    }
+
+    @Test func removingTheOnlyPausedSongEmptiesThePlaylist() async throws {
+        let h = try RecoveryHarness()
+        try await h.play(["a"])
+        await h.player.pause()
+        #expect(await h.player.removeCurrentTrackIfNotPlaying())
+        #expect(h.state.queue.isEmpty)
+        #expect(h.state.currentTrack == nil)
+    }
+
+    @Test func aPlayingSongStays() async throws {
+        let h = try RecoveryHarness()
+        try await h.play(["a", "b"])
+        #expect(await h.player.removeCurrentTrackIfNotPlaying() == false)
+        #expect(h.state.queue.map(\.id) == ["a", "b"])
+        await h.player.stop()
+    }
+}
+

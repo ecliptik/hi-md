@@ -246,6 +246,36 @@ struct PlaybackContextSessionTests {
         #expect(try #require(await service.loadRestoredSession()).context == nil)
     }
 
+    @Test("Where Autoplay's songs begin survives a relaunch, and a stale index is dropped")
+    func autoplayStartRoundTrip() async throws {
+        let service = PlaybackSessionService(modelContainer: try ModelContainer.session(inMemory: true))
+        var withAutoplay = payload(nil)
+        withAutoplay.autoplayStart = 1
+        await service.save(playerState: withAutoplay)
+        #expect(try #require(await service.loadRestoredSession()).autoplayStart == 1)
+        withAutoplay.autoplayStart = 9
+        await service.save(playerState: withAutoplay)
+        #expect(try #require(await service.loadRestoredSession()).autoplayStart == nil, "past the end of the queue")
+        await service.save(playerState: payload(nil))
+        #expect(try #require(await service.loadRestoredSession()).autoplayStart == nil)
+    }
+
+    @Test("An album session saved without the marker finds where Autoplay began")
+    func inferredAutoplayStart() throws {
+        func song(_ id: String, album: String?) throws -> DisplayableSong {
+            var fields = [#""id":"\#(id)""#, #""title":"\#(id)""#, #""isDir":false"#]
+            if let album { fields.append(#""albumId":"\#(album)""#) }
+            return DisplayableSong(from: try JSONDecoder().decode(Song.self, from: Data("{\(fields.joined(separator: ","))}".utf8)))
+        }
+        let queue = try [song("1", album: "sv"), song("2", album: "sv"), song("x", album: "other"), song("y", album: "sv")]
+        let album = PlaybackContext.album(id: "sv", name: "Screen Violence", coverArtId: nil)
+        #expect(PlayerService.inferredAutoplayStart(queue: queue, context: album) == 2)
+        #expect(PlayerService.inferredAutoplayStart(queue: queue, context: .smartShuffle) == nil, "only albums say where they end")
+        #expect(PlayerService.inferredAutoplayStart(queue: Array(queue.prefix(2)), context: album) == nil, "nothing after the album")
+        let other = PlaybackContext.album(id: "other", name: "Other", coverArtId: nil)
+        #expect(PlayerService.inferredAutoplayStart(queue: queue, context: other) == nil, "the queue doesn't start with that album")
+    }
+
     @Test("A session saved before contexts existed restores with none")
     func sessionWithoutContextRow() async throws {
         let container = try ModelContainer.session(inMemory: true)

@@ -19,6 +19,9 @@ final class PlaybackSession {
 
     var lastUpdated: Date
     var repeatModeRaw: String = RepeatMode.off.rawValue
+    /// Where Autoplay's songs begin in the queue, so a relaunch still sets them apart. Optional
+    /// with no default work to do, so older stores open with a lightweight migration.
+    var autoplayStartIndex: Int? = nil
 
     init(
         currentIndex: Int = 0,
@@ -55,8 +58,10 @@ final class PlaybackSession {
         currentPosition: TimeInterval,
         queueData: Data?,
         currentTrack: DisplayableSong?,
-        repeatMode: RepeatMode
+        repeatMode: RepeatMode,
+        autoplayStartIndex: Int? = nil
     ) {
+        self.autoplayStartIndex = autoplayStartIndex
         self.currentIndex = currentIndex
         self.currentPosition = currentPosition
         if let queueData { self.queueData = queueData }

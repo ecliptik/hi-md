@@ -25,7 +25,8 @@ actor PlaybackSessionService {
             currentPosition: playerState.currentPosition,
             queueData: queueUnchanged ? nil : (try? encoder.encode(playerState.queue)) ?? Data(),
             currentTrack: playerState.currentTrack,
-            repeatMode: playerState.repeatMode
+            repeatMode: playerState.repeatMode,
+            autoplayStartIndex: playerState.autoplayStart
         )
         saveContext(playerState.context)
         do {
@@ -72,7 +73,8 @@ actor PlaybackSessionService {
             currentPosition: safePosition,
             currentTrackDuration: safeDuration,
             repeatMode: session.decodedRepeatMode(),
-            context: fetchContext()?.decodedContext()
+            context: fetchContext()?.decodedContext(),
+            autoplayStart: session.autoplayStartIndex.flatMap { (0..<queue.count).contains($0) ? $0 : nil }
         )
     }
 
@@ -153,6 +155,8 @@ nonisolated struct SessionPayload: Sendable {
     var queueRevision: UInt64? = nil
     /// Where the queue came from, for "Playing from …".
     var context: PlaybackContext? = nil
+    /// `PlayerState.originalQueueEndIndex`: where Autoplay's songs begin.
+    var autoplayStart: Int? = nil
 }
 
 // MARK: - RestoredSession
@@ -164,4 +168,5 @@ nonisolated struct RestoredSession: Sendable {
     let currentTrackDuration: TimeInterval
     let repeatMode: RepeatMode
     var context: PlaybackContext? = nil
+    var autoplayStart: Int? = nil
 }
