@@ -78,6 +78,8 @@ nonisolated protocol MoodTrackSourcing: AnyObject, Sendable {
     /// Keeps the raw OpenSubsonic mood and BPM tags used by the local mood matcher.
     func songsByGenre(_ genre: String, count: Int) async throws -> [Song]
     func randomSongs(size: Int) async throws -> [Song]
+    /// The server's genre names, so a mood can ask for each spelling it actually has.
+    func genres() async throws -> [Genre]
 }
 
 nonisolated protocol ArtistRecommendationBrowsing: AnyObject, Sendable {

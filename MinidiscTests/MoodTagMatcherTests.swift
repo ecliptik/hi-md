@@ -69,12 +69,18 @@ struct MoodTagMatcherTests {
         #expect(MoodTagMatcher.score(fast, for: .focus) == MoodTagMatcher.score(slow, for: .focus))
     }
 
-    @Test("tempo separates energetic from night")
-    func tempoSeparatesOppositeMoods() {
-        let fast = SongTagFeatures(bpm: 150)
-        let slow = SongTagFeatures(bpm: 65)
-        #expect(MoodTagMatcher.score(fast, for: .energetic)! > MoodTagMatcher.score(fast, for: .night)!)
-        #expect(MoodTagMatcher.score(slow, for: .night)! > MoodTagMatcher.score(slow, for: .energetic)!)
+    @Test("tempo alone matches no mood, so the library's biggest genre can't flood one")
+    func tempoAloneMatchesNothing() {
+        let jPopAtChillTempo = SongTagFeatures(genres: ["JPop"], bpm: 90)
+        #expect(MoodTagMatcher.score(jPopAtChillTempo, for: .chill) == 0)
+        #expect(MoodTagMatcher.score(SongTagFeatures(bpm: 150), for: .energetic) == 0)
+    }
+
+    @Test("tempo ranks songs the tags already matched")
+    func tempoSharpensATagMatch() {
+        let fastDance = SongTagFeatures(genres: ["Dance"], bpm: 150)
+        let slowDance = SongTagFeatures(genres: ["Dance"], bpm: 80)
+        #expect(MoodTagMatcher.score(fastDance, for: .energetic)! > MoodTagMatcher.score(slowDance, for: .energetic)!)
     }
 
     // MARK: - Ranking

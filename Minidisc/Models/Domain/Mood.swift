@@ -59,5 +59,6 @@ nonisolated enum Mood: String, CaseIterable, Sendable, Identifiable, Codable {
         allCases.first { $0.playlistNames.contains(name) }
     }
 
-    static let trackCount = 75
+    /// Long enough for an evening, short enough that every song was chosen for the mood.
+    static let trackCount = 40
 }

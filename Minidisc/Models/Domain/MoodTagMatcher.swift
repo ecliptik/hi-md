@@ -4,20 +4,27 @@ nonisolated struct SongTagFeatures: Sendable, Equatable {
     let moods: [String]
     let genres: [String]
     let bpm: Int?
+    /// Only for spreading a playlist across artists; it never adds to a score.
+    let artist: String?
 
-    init(moods: [String] = [], genres: [String] = [], bpm: Int? = nil) {
+    init(moods: [String] = [], genres: [String] = [], bpm: Int? = nil, artist: String? = nil) {
         self.moods = moods
         self.genres = genres
         self.bpm = bpm
+        self.artist = artist
     }
 }
 
-/// Tag-based fallback when AudioMuse is unavailable. Weights MOOD above BPM above genre.
+/// Tag-based fallback when AudioMuse is unavailable. Weights MOOD above BPM above genre, but a
+/// track has to match a MOOD or genre tag before its tempo counts: tempo alone filled Chill with
+/// whatever genre the library had most of.
 nonisolated enum MoodTagMatcher {
 
     static let moodTagWeight = 3.0
     static let bpmWeight = 2.0
     static let genreWeight = 1.0
+    /// Songs one artist may have in a mood playlist.
+    static let perArtistLimit = 3
 
     /// Words looked for inside a track's MOOD tags. Substring matching, lowercased, because these
     /// tags are free text and arrive as "Calm", "calm/relaxed", "Relaxing" in equal measure.
@@ -58,10 +65,7 @@ nonisolated enum MoodTagMatcher {
     /// Normalizes punctuation and removes the whole token "and", so Hip-Hop/Rap and
     /// Hip Hop agree without changing words such as Sandwich.
     static func normalise(_ text: String) -> String {
-        text.lowercased()
-            .split(whereSeparator: { !$0.isLetter && !$0.isNumber })
-            .filter { $0 != "and" }
-            .joined()
+        GenreName.key(text)
     }
 
     private static func matches(_ tags: [String], anyOf keywords: [String]) -> Bool {
@@ -87,22 +91,33 @@ nonisolated enum MoodTagMatcher {
 
         if let bpm = features.bpm, bpm > 0, let range = bpmRange(mood) {
             sawSignal = true
-            if range.contains(bpm) { total += bpmWeight }
+            // Tempo only sharpens a match the tags already made.
+            if total > 0, range.contains(bpm) { total += bpmWeight }
         }
 
         guard sawSignal else { return nil }
         return total
     }
 
-    /// Drops zero scores and breaks ties by ID for stable results.
-    static func rank(_ candidates: [(id: String, features: SongTagFeatures)], for mood: Mood, limit: Int) -> [String] {
-        candidates
-            .compactMap { candidate -> (String, Double)? in
+    /// Drops zero scores, keeps at most `perArtist` songs by any one artist, and breaks ties by ID
+    /// for stable results.
+    static func rank(_ candidates: [(id: String, features: SongTagFeatures)], for mood: Mood, limit: Int,
+                     perArtist: Int = perArtistLimit) -> [String] {
+        let ranked = candidates
+            .compactMap { candidate -> (id: String, artist: String?, score: Double)? in
                 guard let score = score(candidate.features, for: mood), score > 0 else { return nil }
-                return (candidate.id, score)
+                return (candidate.id, candidate.features.artist.map(GenreName.key), score)
             }
-            .sorted { $0.1 != $1.1 ? $0.1 > $1.1 : $0.0 < $1.0 }
-            .prefix(limit)
-            .map(\.0)
+            .sorted { $0.score != $1.score ? $0.score > $1.score : $0.id < $1.id }
+        var perArtistCount: [String: Int] = [:]
+        var chosen: [String] = []
+        for candidate in ranked where chosen.count < limit {
+            if let artist = candidate.artist, !artist.isEmpty {
+                guard perArtistCount[artist, default: 0] < perArtist else { continue }
+                perArtistCount[artist, default: 0] += 1
+            }
+            chosen.append(candidate.id)
+        }
+        return chosen
     }
 }

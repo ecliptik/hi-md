@@ -69,6 +69,8 @@ nonisolated struct LibraryTagTrackProvider: MoodTrackProvider {
     let libraryService: any MoodTrackSourcing
 
     static let perGenreFetch = 200
+    /// Server genres asked for per mood, busiest first: "pop" alone can match a dozen of them.
+    static let maxGenresPerMood = 10
 
     var kind: MoodSourceKind { .tags }
 
@@ -100,7 +102,7 @@ nonisolated struct LibraryTagTrackProvider: MoodTrackProvider {
     ) async throws -> [(id: String, features: SongTagFeatures)] {
         var seen = Set<String>()
         var candidates: [(id: String, features: SongTagFeatures)] = []
-        for genre in MoodTagMatcher.genres(mood) {
+        for genre in try await genreNames(for: mood) {
             try Task.checkCancellation()
             // A genre the library simply does not have is normal, not an error — skip and continue,
             // otherwise one absent genre would sink the whole mood.
@@ -124,6 +126,29 @@ nonisolated struct LibraryTagTrackProvider: MoodTrackProvider {
         return candidates
     }
 
+    /// The server's own names for the mood's genres, whatever their spelling or capitals, busiest
+    /// first; the server matches genre names exactly. Without its list, the mood's genres are asked
+    /// for as written.
+    private func genreNames(for mood: Mood) async throws -> [String] {
+        let available: [Genre]
+        do {
+            available = try await libraryService.genres()
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch {
+            try Task.checkCancellation()
+            return MoodTagMatcher.genres(mood)
+        }
+        let wanted = MoodTagMatcher.genres(mood).map(GenreName.key).filter { !$0.isEmpty }
+        let matching = available
+            .filter { genre in
+                let key = GenreName.key(genre.value)
+                return genre.songCount > 0 && wanted.contains { key.contains($0) }
+            }
+            .sorted { $0.songCount != $1.songCount ? $0.songCount > $1.songCount : $0.value < $1.value }
+        return matching.prefix(Self.maxGenresPerMood).map(\.value)
+    }
+
     private func randomCandidates() async throws -> [(id: String, features: SongTagFeatures)] {
         do {
             let songs = try await libraryService.randomSongs(size: Self.fallbackPoolSize)
@@ -142,6 +167,6 @@ nonisolated struct LibraryTagTrackProvider: MoodTrackProvider {
     static func features(of song: Song) -> SongTagFeatures {
         var genres = song.genres?.map(\.name) ?? []
         if let legacy = song.genre, !genres.contains(legacy) { genres.append(legacy) }
-        return SongTagFeatures(moods: song.moods ?? [], genres: genres, bpm: song.bpm)
+        return SongTagFeatures(moods: song.moods ?? [], genres: genres, bpm: song.bpm, artist: song.artist)
     }
 }

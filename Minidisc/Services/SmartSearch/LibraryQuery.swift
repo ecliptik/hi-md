@@ -69,12 +69,11 @@ nonisolated enum LibraryQueryFilter {
         if !query.genres.isEmpty, !contains(songGenres, anyOf: query.genres) { return false }
         if let mood = query.mood {
             if let range = MoodTagMatcher.bpmRange(mood), let bpm = song.bpm, bpm > 0, !range.contains(bpm) { return false }
-            // Without explicit genres, the mood's genres stand in for them; songs with a BPM
-            // inside the mood's range qualify as well.
+            // Without explicit genres, the song's mood or genre tags must fit the mood; tempo
+            // alone isn't enough, or the library's biggest genre fills every mood.
             if query.genres.isEmpty {
-                let byGenre = contains(songGenres, anyOf: MoodTagMatcher.genres(mood))
-                let byTempo = MoodTagMatcher.bpmRange(mood).map { range in song.bpm.map { range.contains($0) } ?? false } ?? false
-                guard byGenre || byTempo else { return false }
+                let score = MoodTagMatcher.score(LibraryTagTrackProvider.features(of: song), for: mood) ?? 0
+                guard score > 0 else { return false }
             }
         }
         if !query.titleWords.isEmpty, !contains([song.title, song.album].compactMap { $0 }, anyOf: query.titleWords) {

@@ -11,6 +11,8 @@ actor TagLibraryStub: LibrarySearching, MoodTrackSourcing {
     var songsPerGenre: [String: [Song]] = [:]
     var randomPool: [Song] = []
     var searchResults: [Song] = []
+    /// The server's genre list; nil makes `genres()` fail, as an older server's might.
+    var genreList: [Genre]?
     private var _searches: [String] = []
     var searches: [String] { _searches }
 
@@ -19,6 +21,15 @@ actor TagLibraryStub: LibrarySearching, MoodTrackSourcing {
 
     func setSongs(_ songs: [Song], forGenre genre: String) { songsPerGenre[genre] = songs }
     func setRandomPool(_ songs: [Song]) { randomPool = songs }
+    func setGenres(_ genres: [(name: String, songs: Int)]) throws {
+        let list = genres.map { #"{"value":"\#($0.name)","songCount":\#($0.songs),"albumCount":1}"# }.joined(separator: ",")
+        genreList = try JSONDecoder().decode([Genre].self, from: Data("[\(list)]".utf8))
+    }
+
+    func genres() async throws -> [Genre] {
+        guard let genreList else { throw URLError(.badServerResponse) }
+        return genreList
+    }
     func setSearchResults(_ songs: [Song]) { searchResults = songs }
 
     func songsByGenre(_ genre: String, count: Int) async throws -> [Song] {
@@ -67,19 +78,20 @@ struct LibraryTagTrackProviderTests {
         #expect(await library.randomCalls == 0, "no need for the broad pool when genres answered")
     }
 
-    @Test("a library with none of a mood's genres falls back to a broad sample")
+    @Test("a library with none of a mood's genres falls back to a broad sample, where tempo alone doesn't qualify")
     func emptyGenresFallBackToRandomPool() async throws {
         let library = TagLibraryStub()
         await library.setRandomPool([
             try song(id: "slow", bpm: 70),
-            try song(id: "fast", bpm: 175),
+            try song(id: "slow ambient", genre: "Ambient", bpm: 70),
+            try song(id: "fast ambient", genre: "Ambient", bpm: 175),
         ])
         let provider = LibraryTagTrackProvider(libraryService: library)
 
         let ids = try await provider.trackIds(for: .night, limit: 10)
 
         #expect(await library.randomCalls == 1)
-        #expect(ids == ["slow"], "BPM alone should still separate a night track from a fast one")
+        #expect(ids == ["slow ambient", "fast ambient"], "tempo ranks tag matches but adds no songs of its own")
     }
 
     @Test("the broad sample uses MOOD tags when there is no BPM")
@@ -123,5 +135,29 @@ struct LibraryTagTrackProviderTests {
         let provider = LibraryTagTrackProvider(libraryService: library)
 
         #expect(try await provider.trackIds(for: .night, limit: 10) == ["dup"])
+    }
+
+    @Test("the server's own spellings of a mood's genres are asked for, busiest first")
+    func serverGenreSpellingsAreUsed() async throws {
+        let library = TagLibraryStub()
+        try await library.setGenres([("JPop", 754), ("Soul", 68), ("neo soul", 4), ("Reggae", 0), ("Lo-Fi", 12)])
+        await library.setSongs([try song(id: "s", genre: "Soul")], forGenre: "Soul")
+        let provider = LibraryTagTrackProvider(libraryService: library)
+
+        #expect(try await provider.trackIds(for: .chill, limit: 10) == ["s"])
+        #expect(await library.genreQueries == ["Soul", "Lo-Fi", "neo soul"], "no JPop, and no genre without songs")
+    }
+
+    @Test("one artist can't fill a mood playlist")
+    func artistsAreCapped() async throws {
+        let library = TagLibraryStub()
+        let songs = try (1...6).map { try song(id: "a\($0)", artist: "Massive Attack", genre: "Ambient") }
+            + [try song(id: "b1", artist: "Portishead", genre: "Ambient")]
+        await library.setSongs(songs, forGenre: "ambient")
+        let provider = LibraryTagTrackProvider(libraryService: library)
+
+        let ids = try await provider.trackIds(for: .night, limit: 10)
+
+        #expect(ids == ["a1", "a2", "a3", "b1"])
     }
 }

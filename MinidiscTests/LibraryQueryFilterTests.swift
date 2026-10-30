@@ -26,13 +26,15 @@ struct LibraryQueryFilterTests {
         #expect(ids == ["1", "2"])
     }
 
-    @Test func moodAloneUsesItsGenresOrTempo() {
+    @Test func moodAloneUsesItsGenresNotTempoAlone() {
         var query = LibraryQuery()
         query.mood = .focus
         #expect(LibraryQueryFilter.matches(Song(id: "a", title: "A", genre: "Modern Classical"), query, now: now))
         #expect(!LibraryQueryFilter.matches(Song(id: "b", title: "B", genre: "Punk"), query, now: now))
         query.mood = .workout
-        #expect(LibraryQueryFilter.matches(Song(id: "c", title: "C", genre: "Pop", bpm: 140), query, now: now))
+        #expect(LibraryQueryFilter.matches(Song(id: "c", title: "C", genre: "Techno", bpm: 140), query, now: now))
+        #expect(!LibraryQueryFilter.matches(Song(id: "d", title: "D", genre: "Pop", bpm: 140), query, now: now),
+                "a workout tempo doesn't make pop a workout song")
     }
 
     @Test func artistsFavoritesAndRecentPlays() {
