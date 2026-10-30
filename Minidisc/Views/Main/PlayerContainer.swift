@@ -108,12 +108,15 @@ struct PlayerContainer: View {
                                    dismissAction: dismiss)
                         .toastOverlay(reservesMiniPlayerSpace: false)
                         .geometryGroup()
-                        .transition(.opacity)
+                        // Gone before the card lands on the accessory: fading over the whole morph
+                        // left it tinting the mini-player until the overlay was swapped back.
+                        .transition(.asymmetric(insertion: .opacity,
+                                                removal: .opacity.animation(.easeOut(duration: 0.15))))
                 }
             }
             .frame(width: expanded ? size.width : rect.width,
                    height: expanded ? size.height : rect.height)
-            .overlay(alignment: .top) {
+            .overlay(alignment: .bottom) {
                 if !expanded {
                     miniPlayer(isAttached: true)
                         .environment(\.colorScheme, configuration.accessoryColorScheme)
@@ -207,8 +210,10 @@ private struct PlayerContainerPosition: ViewModifier {
             let globalRect = proxy.frame(in: .global)
             return content
                 .offset(y: dragOffset)
+                // Collapsing, the card keeps its bottom edge on the accessory's and shrinks down into
+                // it. Pinning the top edge let the still-tall card hang over the tab bar.
                 .offset(x: expanded ? 0 : minimisedRect.minX - globalRect.minX,
-                        y: expanded ? 0 : minimisedRect.minY - globalRect.minY)
+                        y: expanded ? 0 : minimisedRect.maxY - globalRect.maxY)
         }
     }
 }
