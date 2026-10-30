@@ -112,7 +112,7 @@ actor OfflineBrowsingReader {
         }
         return OfflineBrowsingSnapshot(songs: manual + automatic + cachedSongs,
             playlists: savedPlaylists + indexedPlaylists, membership: members,
-            favorites: HomeFavorites(songs: saved.favorites?.song ?? [], albums: saved.favorites?.album ?? [], artists: saved.favorites?.artist ?? []))
+            favorites: saved.favorites.map { HomeFavorites(starred: $0) } ?? HomeFavorites())
     }
 }
 

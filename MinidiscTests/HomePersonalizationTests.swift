@@ -6,6 +6,24 @@ import Testing
 @Suite("Home personalization")
 @MainActor
 struct HomePersonalizationTests {
+    private struct Starred { let id: String; let starred: Date? }
+
+    @Test("Favourites come newest first, in the same order every time")
+    func favouritesNewestFirst() {
+        let items = [
+            Starred(id: "old", starred: Date(timeIntervalSince1970: 100)),
+            Starred(id: "undated", starred: nil),
+            Starred(id: "new-b", starred: Date(timeIntervalSince1970: 300)),
+            Starred(id: "middle", starred: Date(timeIntervalSince1970: 200)),
+            Starred(id: "new-a", starred: Date(timeIntervalSince1970: 300))
+        ]
+        let ordered = HomeFavorites.newestFirst(items, starred: \.starred, id: \.id, limit: .max).map(\.id)
+        #expect(ordered == ["new-a", "new-b", "middle", "old", "undated"])
+        // Whatever order the server sends them in.
+        #expect(HomeFavorites.newestFirst(items.reversed(), starred: \.starred, id: \.id, limit: .max).map(\.id) == ordered)
+        #expect(HomeFavorites.newestFirst(items, starred: \.starred, id: \.id, limit: 2).map(\.id) == ["new-a", "new-b"])
+    }
+
     @Test("Rediscovery removes duplicates and the latest listening history")
     func rediscovery() throws {
         let a = try album("a", artistID: "artist")

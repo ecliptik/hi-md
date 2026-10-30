@@ -122,8 +122,7 @@ final class HomeFeedViewModel {
                     group.addTask {
                         await Self.fetch(.favorites) {
                             let starred = try await starredService.getStarred2()
-                            return .favorites(HomeFavorites(songs: Array((starred.song ?? []).prefix(60)),
-                                albums: Array((starred.album ?? []).prefix(40)), artists: Array((starred.artist ?? []).prefix(100))))
+                            return .favorites(HomeFavorites(starred: starred, songLimit: 60, albumLimit: 40, artistLimit: 100))
                         }
                     }
                 }

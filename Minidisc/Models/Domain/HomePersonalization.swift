@@ -7,6 +7,24 @@ nonisolated struct HomeFavorites: Codable, Sendable {
     var artists: [ArtistID3] = []
 }
 
+nonisolated extension HomeFavorites {
+    /// The server's starred items, newest favourite first. Servers promise no order for them, and
+    /// Navidrome's changed from one refresh to the next, reshuffling Home's shelves.
+    init(starred: Starred2, songLimit: Int = .max, albumLimit: Int = .max, artistLimit: Int = .max) {
+        songs = Self.newestFirst(starred.song ?? [], starred: \.starred, id: \.id, limit: songLimit)
+        albums = Self.newestFirst(starred.album ?? [], starred: \.starred, id: \.id, limit: albumLimit)
+        artists = Self.newestFirst(starred.artist ?? [], starred: \.starred, id: \.id, limit: artistLimit)
+    }
+
+    /// Most recently starred first; items with the same date (or none) keep a fixed order by ID.
+    static func newestFirst<T>(_ items: [T], starred: KeyPath<T, Date?>, id: KeyPath<T, String>, limit: Int) -> [T] {
+        Array(items.sorted { lhs, rhs in
+            let left = lhs[keyPath: starred] ?? .distantPast, right = rhs[keyPath: starred] ?? .distantPast
+            return left != right ? left > right : lhs[keyPath: id] < rhs[keyPath: id]
+        }.prefix(limit))
+    }
+}
+
 enum HomePersonalization {
     nonisolated static func unique(_ albums: [AlbumID3], excluding ids: Set<String> = []) -> [AlbumID3] {
         var seen = ids
