@@ -149,10 +149,12 @@ struct MacTransportControls: View {
 }
 
 /// The playing song's artwork, title and artist above the scrubber, like the Music app's display.
-/// Clicking the title reveals the album; clicking the artist opens the artist.
+/// Clicking the title reveals the album; clicking the artist opens the artist; the heart at the
+/// end of the title line stars the song.
 private struct MacNowPlayingDisplay: View {
     @Environment(MacPlayback.self) private var playback
     @Environment(MacNavigator.self) private var navigator
+    @Environment(\.minidiscPlayingAccent) private var accent
 
     var body: some View {
         let state = playback.state
@@ -202,6 +204,7 @@ private struct MacNowPlayingDisplay: View {
                         .buttonStyle(.plain)
                         .font(.subheadline.weight(.medium))
                         .lineLimit(1)
+                        .padding(.horizontal, 26)
                         .disabled(track.albumId == nil || track.isLocalFile)
                         .help("Go to Album")
                     if let artist = track.artist {
@@ -219,13 +222,42 @@ private struct MacNowPlayingDisplay: View {
                 }
                 MacScrubber()
             }
+            // Room at either end of the title line, so a long title never runs under the heart.
+            .padding(.horizontal, 2)
             .frame(maxWidth: .infinity)
+            .overlay(alignment: .topTrailing) {
+                if state.currentRadio == nil, let track = state.currentTrack, !track.isLocalFile {
+                    heart(for: track)
+                }
+            }
         }
         .padding(.leading, 3)
         .padding(.trailing, 8)
         .padding(.vertical, 2)
         // The centre segment, a shade inside the glass, as the Music app's.
         .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    /// The same store as every other heart, so it changes with them, offline too.
+    private func heart(for track: DisplayableSong) -> some View {
+        FavoriteMatches(.song, id: track.id) { toggle in
+            Button {
+                playback.setFavorite(toggle.toggled, itemType: .song, id: track.id)
+            } label: {
+                Image(systemName: toggle.systemImage)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(toggle.isFavorite ? accent : Color.secondary)
+                    .contentTransition(.symbolEffect(.replace))
+                    .frame(width: 24, height: 20)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .help(Text(toggle.actionTitle))
+            .accessibilityLabel(Text("Favorite"))
+            .accessibilityValue(Text(toggle.accessibilityValue))
+            .accessibilityAddTraits(toggle.isFavorite ? .isSelected : [])
+        }
+        .padding(.top, 1)
     }
 }
 
