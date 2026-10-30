@@ -210,7 +210,7 @@ struct MacSongTable: View {
                 .foregroundStyle(isFavorite ? playingAccent : Color.secondary.opacity(0.5))
         }
         .buttonStyle(.borderless)
-        .disabled(row.song.isLocalFile || !playback.container.serverState.isOnline)
+        .disabled(row.song.isLocalFile)
         .accessibilityLabel(isFavorite ? "Remove from Favorites" : "Add to Favorites")
     }
 

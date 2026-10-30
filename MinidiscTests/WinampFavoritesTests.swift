@@ -136,10 +136,11 @@ struct WinampFavoriteStatusTests {
         #expect(String(localized: plain.menuTitle) == String(localized: "Add Current Song to Favorites"))
     }
 
-    @Test func offlineShowsTheHeartButCannotChangeIt() {
+    /// Offline changes wait in the favourites outbox until the server is back.
+    @Test func offlineTheHeartStillChanges() {
         let status = WinampFavoriteStatus.current(songID: "s1", isLocalFile: false, isRadio: false, isOnline: false) { _ in true }
         #expect(status.isShown && status.isFavorite)
-        #expect(!status.canToggle)
+        #expect(status.canToggle)
     }
 
     @Test func nothingToStarHidesTheHeart() {

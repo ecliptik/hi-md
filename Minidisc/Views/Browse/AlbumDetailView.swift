@@ -262,7 +262,7 @@ struct AlbumDetailView: View {
                     playLabelColor: palette.playLabelColor,
                     playFillColor: palette.playFillColor,
                     favorite: FavoriteToggle(isFavorite: isAlbumFavorite),
-                    canFavorite: isOnline,
+                    canFavorite: true,
                     toggleFavorite: toggleAlbumFavorite
                 )
                 .padding(.top, MinidiscSpacing.l)

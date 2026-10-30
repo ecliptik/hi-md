@@ -260,7 +260,12 @@ final class AppContainer {
         )
         nowPlayingService = nowPlaying
 
-        favoritesService = FavoritesService(libraryService: library, serverState: serverState, modelContainer: modelContainer)
+        favoritesService = FavoritesService(
+            libraryService: library, serverState: serverState, modelContainer: modelContainer,
+            outbox: FavoriteOutbox(directory: inMemory
+                ? URL.temporaryDirectory.appendingPathComponent("minidisc-favorite-outbox-\(UUID())")
+                : URL.applicationSupportDirectory.appendingPathComponent("minidisc-favorite-outbox"))
+        )
         let pin = PinService(modelContainer: modelContainer)
         pinService = pin
         let playlist = PlaylistService(

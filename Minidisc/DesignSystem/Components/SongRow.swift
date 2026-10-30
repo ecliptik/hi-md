@@ -325,12 +325,10 @@ private struct SongActions: View {
                         Button("Undo", systemImage: "heart.slash.fill") {
                             toggleFavorite()
                         }
-                        .disabled(!isOnline)
                     } else {
                         Button("Favorite", systemImage: "heart.fill") {
                             toggleFavorite()
                         }
-                        .disabled(!isOnline)
                     }
                 }
 

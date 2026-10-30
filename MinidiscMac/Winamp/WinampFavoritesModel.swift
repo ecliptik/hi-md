@@ -92,7 +92,8 @@ final class WinampFavoritesModel {
         )
     }
 
-    var canChange: Bool { container?.serverState.isOnline == true }
+    /// Offline changes wait in the favourites outbox until the server is back.
+    var canChange: Bool { container != nil }
 
     func apply(_ action: WinampFavoriteSelection.Action) {
         guard let container else { return }

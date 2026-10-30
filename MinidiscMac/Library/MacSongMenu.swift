@@ -34,7 +34,7 @@ struct MacSongMenu: View {
                systemImage: isFavorite ? "heart.slash" : "heart") {
             playback.setFavorite(!isFavorite, songs: songs)
         }
-        .disabled(serverSongs.isEmpty || !playback.container.serverState.isOnline)
+        .disabled(serverSongs.isEmpty)
 
         Button("Download", systemImage: "arrow.down.circle") { playback.download(songs) }
             .disabled(serverSongs.allSatisfy(\.isDownloaded) || !playback.container.serverState.isOnline)

@@ -7,11 +7,12 @@ import Testing
 private actor FailingFavoriteEditor: FavoriteEditing {
     var shouldFail = true
     func setFailure(_ value: Bool) { shouldFail = value }
+    /// The server answers and refuses, which puts the heart back; a timeout would queue instead.
     func star(songIds: [String], albumIds: [String], artistIds: [String]) async throws {
-        if shouldFail { throw URLError(.timedOut) }
+        if shouldFail { throw SwiftSonicError.httpError(statusCode: 403, endpoint: "star", serverHost: nil) }
     }
     func unstar(songIds: [String], albumIds: [String], artistIds: [String]) async throws {
-        if shouldFail { throw URLError(.timedOut) }
+        if shouldFail { throw SwiftSonicError.httpError(statusCode: 403, endpoint: "unstar", serverHost: nil) }
     }
     func getStarred2() async throws -> Starred2 { throw URLError(.timedOut) }
 }
@@ -22,6 +23,7 @@ struct FavoritesFailureTests {
         let container = try ModelContainer.minidisc(inMemory: true)
         let state = ServerState()
         state.activeServer = ServerSnapshot(from: ServerConfig(displayName: "Test", baseURL: "https://example.invalid", username: "test"))
+        state.isOnline = true
         let editor = FailingFavoriteEditor()
         let service = FavoritesService(libraryService: editor, serverState: state, modelContainer: container)
         do { try await service.star(itemType: .song, itemId: "track"); Issue.record("Expected server failure") }

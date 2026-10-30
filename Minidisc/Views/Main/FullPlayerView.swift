@@ -540,7 +540,7 @@ private struct TrackInfoSection: View {
                             .contentShape(Circle())
                     }
                     .buttonStyle(.plain)
-                    .disabled(!isOnline || playerState.currentTrack == nil || playerState.currentTrack?.isLocalFile == true)
+                    .disabled(playerState.currentTrack == nil || playerState.currentTrack?.isLocalFile == true)
                     .accessibilityLabel(isFavorite ? "Remove from Favorites" : "Add to Favorites")
                 }
 
@@ -560,12 +560,12 @@ private struct TrackInfoSection: View {
                                 Button("Undo", systemImage: "heart.slash.fill") {
                                     toggleFavorite()
                                 }
-                                .disabled(!isOnline || playerState.currentTrack == nil || playerState.currentTrack?.isLocalFile == true)
+                                .disabled(playerState.currentTrack == nil || playerState.currentTrack?.isLocalFile == true)
                             } else {
                                 Button("Favorite", systemImage: "heart.fill") {
                                     toggleFavorite()
                                 }
-                                .disabled(!isOnline || playerState.currentTrack == nil || playerState.currentTrack?.isLocalFile == true)
+                                .disabled(playerState.currentTrack == nil || playerState.currentTrack?.isLocalFile == true)
                             }
                         }
 

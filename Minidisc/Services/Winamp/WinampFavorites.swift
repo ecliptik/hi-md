@@ -10,13 +10,13 @@ nonisolated struct WinampFavoriteStatus: Sendable, Hashable {
     /// The server song the heart is for; nil hides the heart.
     var songID: String?
     var isFavorite: Bool
-    /// Starring needs the server; offline the heart shows its state but can't change it.
+    /// Offline, a change waits in the favourites outbox until the server is back.
     var isOnline: Bool
 
     static let unavailable = WinampFavoriteStatus(songID: nil, isFavorite: false, isOnline: false)
 
     var isShown: Bool { songID != nil }
-    var canToggle: Bool { songID != nil && isOnline }
+    var canToggle: Bool { songID != nil }
 
     /// The heart for the current song: hidden for radio, local files and an empty player.
     static func current(songID: String?, isLocalFile: Bool, isRadio: Bool, isOnline: Bool,

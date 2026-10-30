@@ -44,7 +44,6 @@ struct MacFavoriteButton: View {
             .accessibilityValue(Text(toggle.accessibilityValue))
             .accessibilityHint(Text(toggle.actionTitle))
             .accessibilityAddTraits(toggle.isFavorite ? .isSelected : [])
-            .disabled(!playback.container.serverState.isOnline)
         }
     }
 }
@@ -62,7 +61,6 @@ struct MacFavoriteMenuItem: View {
             Button(String(localized: toggle.actionTitle), systemImage: toggle.menuSystemImage) {
                 playback.setFavorite(toggle.toggled, itemType: itemType, id: itemID)
             }
-            .disabled(!playback.container.serverState.isOnline)
         }
     }
 }
