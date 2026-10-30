@@ -43,57 +43,8 @@ struct CollectionContextPreview: View {
     }
 }
 
-struct SongContextPreview: View {
-    let coverImage: PlatformImage?
-    let song: DisplayableSong
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: MinidiscSpacing.m) {
-            Group {
-                if let coverImage {
-                    Image(platformImage: coverImage)
-                        .resizable()
-                        .aspectRatio(1, contentMode: .fit)
-                } else {
-                    // An album, playlist or song without a cover: the MiniDisc, as in the lists.
-                    MissingCoverDisc(isLarge: true)
-                        .aspectRatio(1, contentMode: .fit)
-                }
-            }
-            .frame(maxWidth: 240, maxHeight: 240)
-            .clipShape(RoundedRectangle(cornerRadius: 10))
-
-            VStack(alignment: .leading, spacing: MinidiscSpacing.xs) {
-                Text(song.title)
-                    .font(.headline)
-                    .foregroundStyle(.primary)
-                    .lineLimit(2)
-
-                if let artist = song.artist {
-                    Text(artist)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                }
-
-                if let albumName = song.albumName {
-                    Text(albumName)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                }
-            }
-        }
-        .padding(MinidiscSpacing.l)
-        .frame(width: 280)
-    }
-}
-
-// MARK: - Song context menu
-
 struct SongContextMenuModifier: ViewModifier {
     let song: DisplayableSong
-    let coverImage: PlatformImage?
 
     @Environment(\.appContainer) private var container
 
@@ -176,8 +127,6 @@ struct SongContextMenuModifier: ViewModifier {
             }
             }
             .tint(.primary)
-        } preview: {
-            SongContextPreview(coverImage: coverImage, song: song)
         }
     }
 }
@@ -548,8 +497,8 @@ struct LazyCollectionContextMenuModifier: ViewModifier {
 // MARK: - View extensions
 
 extension View {
-    func songContextMenu(song: DisplayableSong, coverImage: PlatformImage? = nil) -> some View {
-        modifier(SongContextMenuModifier(song: song, coverImage: coverImage))
+    func songContextMenu(song: DisplayableSong) -> some View {
+        modifier(SongContextMenuModifier(song: song))
     }
 
     /// - Parameters:

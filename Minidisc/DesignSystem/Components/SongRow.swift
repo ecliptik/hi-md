@@ -34,11 +34,9 @@ struct SongRow: View {
     var onTap: (() -> Void)? = nil
 
     @Environment(\.appContainer) private var container
-    @Environment(ArtworkImageCache.self) private var artworkImageCache
     @Environment(\.minidiscPlayingAccent) private var playingAccent
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @ScaledMetric(relativeTo: .body) private var menuSymbolSize: CGFloat = 17
-    @State private var coverImage: PlatformImage?
     @State private var shareRequest: DisplayableSong?
     @State private var preparedShare: PreparedTrackShare?
     @State private var trackInformation: DisplayableSong?
@@ -112,9 +110,6 @@ struct SongRow: View {
         }
         .padding(.vertical, trailingAccessory == .menu ? 0 : MinidiscSpacing.s)
         .contentShape(Rectangle())
-        .task(id: song.id) {
-            coverImage = await artworkImageCache.load(coverArtId: song.coverArtId ?? song.id)
-        }
         .task(id: shareRequest?.id) {
             await prepareRequestedShare()
         }
@@ -124,10 +119,9 @@ struct SongRow: View {
         .sheet(item: $trackInformation) { track in
             TrackInformationSheet(track: track)
         }
+        // No artwork preview: iOS lifts the row itself, as Music does, leaving room for the menu.
         .contextMenu {
             actions
-        } preview: {
-            SongContextPreview(coverImage: coverImage, song: song)
         }
         .modifier(SongQuickActions(song: song, onAddToPlaylist: onAddToPlaylist))
     }
