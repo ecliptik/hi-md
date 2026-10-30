@@ -45,10 +45,12 @@ struct MacDiscoverView: View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 30) {
                 if isOnline {
-                    MacRecommendationsCard()
-                        .padding(.horizontal, MacShelfMetrics.margin)
-                    MacPlaylistMakerCard()
-                        .padding(.horizontal, MacShelfMetrics.margin)
+                    // The two AI cards share a row, as a pair, rather than each spanning the page.
+                    HStack(spacing: 16) {
+                        MacRecommendationsCard()
+                        MacPlaylistMakerCard()
+                    }
+                    .padding(.horizontal, MacShelfMetrics.margin)
                     if model.showsFreshReleases {
                         freshReleases(model)
                     }
