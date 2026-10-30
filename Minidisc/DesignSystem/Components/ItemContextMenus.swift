@@ -43,6 +43,32 @@ struct CollectionContextPreview: View {
     }
 }
 
+/// What a song's long press lifts above its menu: a row-sized card with the title, artist and
+/// album on the menu's own backing. A large cover pushed the menu down the screen (every song in
+/// an album has the same one), and lifting the row itself let the rows behind it show through.
+struct SongContextPreview: View {
+    let song: DisplayableSong
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(song.title)
+                .font(.headline)
+                .foregroundStyle(.primary)
+                .lineLimit(2)
+            let details = [song.artist, song.albumName].compactMap { $0 }.filter { !$0.isEmpty }
+            if !details.isEmpty {
+                Text(details.joined(separator: " — "))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+        }
+        .padding(.horizontal, MinidiscSpacing.l)
+        .padding(.vertical, MinidiscSpacing.m)
+        .frame(width: 300, alignment: .leading)
+    }
+}
+
 struct SongContextMenuModifier: ViewModifier {
     let song: DisplayableSong
 
@@ -127,6 +153,8 @@ struct SongContextMenuModifier: ViewModifier {
             }
             }
             .tint(.primary)
+        } preview: {
+            SongContextPreview(song: song)
         }
     }
 }

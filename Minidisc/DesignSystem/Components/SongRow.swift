@@ -119,9 +119,10 @@ struct SongRow: View {
         .sheet(item: $trackInformation) { track in
             TrackInformationSheet(track: track)
         }
-        // No artwork preview: iOS lifts the row itself, as Music does, leaving room for the menu.
         .contextMenu {
             actions
+        } preview: {
+            SongContextPreview(song: song)
         }
         .modifier(SongQuickActions(song: song, onAddToPlaylist: onAddToPlaylist))
     }
