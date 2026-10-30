@@ -8,6 +8,29 @@ import Testing
 struct HomePersonalizationTests {
     private struct Starred { let id: String; let starred: Date? }
 
+    @Test("Heavy rotation is what's been played a lot lately, not an old favourite")
+    func heavyRotationIsRecent() throws {
+        let now = Date(timeIntervalSince1970: 1_000_000_000)
+        let day: TimeInterval = 86_400
+        func album(_ id: String, plays: Int, playedDaysAgo: Double?) -> AlbumID3 {
+            AlbumID3(id: id, name: id, songCount: 10, duration: 2400, playCount: plays,
+                     played: playedDaysAgo.map { now.addingTimeInterval(-$0 * day) })
+        }
+        let mostPlayed = [
+            album("pogues", plays: 300, playedDaysAgo: 200),
+            album("rentals", plays: 40, playedDaysAgo: 10),
+            album("blur", plays: 90, playedDaysAgo: 3),
+            album("ash", plays: 60, playedDaysAgo: 30),
+            album("starred", plays: 80, playedDaysAgo: 1),
+        ]
+        let rotation = HomePersonalization.heavyRotation(mostPlayed, excluding: ["starred"], now: now)
+        #expect(rotation.map(\.id) == ["blur", "ash", "rentals"])
+
+        // Without play dates, as on plain Subsonic servers, the list stays as the server ranks it.
+        let undated = [album("a", plays: 5, playedDaysAgo: nil), album("b", plays: 9, playedDaysAgo: nil)]
+        #expect(HomePersonalization.heavyRotation(undated, excluding: [], now: now).map(\.id) == ["a", "b"])
+    }
+
     @Test("Favourites come newest first, in the same order every time")
     func favouritesNewestFirst() {
         let items = [

@@ -26,6 +26,28 @@ nonisolated extension HomeFavorites {
 }
 
 enum HomePersonalization {
+    /// How recently an album must have been played to count as in heavy rotation.
+    nonisolated static let heavyRotationWindow: TimeInterval = 45 * 24 * 60 * 60
+
+    /// Albums played a lot that have also been played lately, most plays first. The server's
+    /// most-played list ranks by plays ever, so an old favourite led it long after the listener
+    /// moved on. Servers that don't report when an album was last played get that list as it is.
+    nonisolated static func heavyRotation(_ mostPlayed: [AlbumID3], excluding ids: Set<String>, now: Date = .now,
+                                          limit: Int = 12) -> [AlbumID3] {
+        let candidates = unique(mostPlayed, excluding: ids)
+        guard candidates.contains(where: { $0.played != nil }) else { return Array(candidates.prefix(limit)) }
+        let recent = candidates.enumerated().filter { _, album in
+            album.played.map { now.timeIntervalSince($0) <= heavyRotationWindow } ?? false
+        }
+        return recent
+            .sorted { lhs, rhs in
+                let left = lhs.element.playCount ?? 0, right = rhs.element.playCount ?? 0
+                return left != right ? left > right : lhs.offset < rhs.offset
+            }
+            .prefix(limit)
+            .map(\.element)
+    }
+
     nonisolated static func unique(_ albums: [AlbumID3], excluding ids: Set<String> = []) -> [AlbumID3] {
         var seen = ids
         return albums.filter { seen.insert($0.id).inserted }

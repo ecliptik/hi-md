@@ -41,8 +41,10 @@ final class HomeFeedViewModel {
     private(set) var genreShelves: [GenreShelf] = []
     private(set) var favorites = HomeFavorites()
     private(set) var mostPlayed: [AlbumID3] = []
+    /// Played a lot, and lately. Favourite albums have their own shelf; Recently Played may share
+    /// albums with it, as everything in heavy rotation was played recently.
     var heavyRotation: [AlbumID3] {
-        Array(HomePersonalization.unique(mostPlayed, excluding: Set((recentlyPlayed + favorites.albums).map(\.id))).prefix(12))
+        HomePersonalization.heavyRotation(mostPlayed, excluding: Set(favorites.albums.map(\.id)))
     }
     var rediscovery: [AlbumID3] {
         HomePersonalization.rediscovery(favorites: [], frequent: mostPlayed,
@@ -121,7 +123,8 @@ final class HomeFeedViewModel {
             }
             group.addTask { await Self.fetch(.recent) { .recent(try await service.recentlyAddedAlbums(size: 60)) } }
             if isOnline {
-                group.addTask { await Self.fetch(.habits) { .habits(try await service.mostPlayedAlbums(size: 40)) } }
+                // Deep enough that an album played a lot lately, but less than old favourites, is in it.
+                group.addTask { await Self.fetch(.habits) { .habits(try await service.mostPlayedAlbums(size: 100)) } }
                 if let starredService {
                     group.addTask {
                         await Self.fetch(.favorites) {
