@@ -43,29 +43,53 @@ struct CollectionContextPreview: View {
     }
 }
 
-/// What a song's long press lifts above its menu: a row-sized card with the title, artist and
-/// album on the menu's own backing. A large cover pushed the menu down the screen (every song in
-/// an album has the same one), and lifting the row itself let the rows behind it show through.
+/// What a song's long press lifts above its menu, as in Music: a small cover beside the title,
+/// artist and album, on the menu's own backing. A full-width cover pushed the menu down the screen,
+/// and lifting the row itself let the rows behind it show through.
 struct SongContextPreview: View {
     let song: DisplayableSong
+    /// Loaded ahead by the row: the preview is drawn the moment the press lands.
+    var coverImage: PlatformImage? = nil
+
+    private static let coverSide: CGFloat = 96
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(song.title)
-                .font(.headline)
-                .foregroundStyle(.primary)
-                .lineLimit(2)
-            let details = [song.artist, song.albumName].compactMap { $0 }.filter { !$0.isEmpty }
-            if !details.isEmpty {
-                Text(details.joined(separator: " — "))
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
+        HStack(alignment: .center, spacing: MinidiscSpacing.l) {
+            Group {
+                if let coverImage {
+                    Image(platformImage: coverImage)
+                        .resizable()
+                        .aspectRatio(1, contentMode: .fill)
+                } else {
+                    // A song without a cover: the MiniDisc, as in the lists.
+                    MissingCoverDisc(isLarge: false)
+                }
             }
+            .frame(width: Self.coverSide, height: Self.coverSide)
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(song.title)
+                    .font(.headline)
+                    .foregroundStyle(.primary)
+                    .lineLimit(2)
+                if let artist = song.artist, !artist.isEmpty {
+                    Text(artist)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(3)
+                }
+                if let album = song.albumName, !album.isEmpty {
+                    Text(album)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(.horizontal, MinidiscSpacing.l)
-        .padding(.vertical, MinidiscSpacing.m)
-        .frame(width: 300, alignment: .leading)
+        .padding(MinidiscSpacing.l)
+        .frame(width: 340)
     }
 }
 

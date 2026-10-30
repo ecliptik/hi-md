@@ -36,7 +36,10 @@ struct SongRow: View {
     @Environment(\.appContainer) private var container
     @Environment(\.minidiscPlayingAccent) private var playingAccent
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(ArtworkImageCache.self) private var artworkImageCache
     @ScaledMetric(relativeTo: .body) private var menuSymbolSize: CGFloat = 17
+    /// The cover for the long-press preview, loaded ahead since the preview can't wait for it.
+    @State private var coverImage: PlatformImage?
     @State private var shareRequest: DisplayableSong?
     @State private var preparedShare: PreparedTrackShare?
     @State private var trackInformation: DisplayableSong?
@@ -110,6 +113,9 @@ struct SongRow: View {
         }
         .padding(.vertical, trailingAccessory == .menu ? 0 : MinidiscSpacing.s)
         .contentShape(Rectangle())
+        .task(id: song.id) {
+            coverImage = await artworkImageCache.load(coverArtId: song.coverArtId ?? song.id)
+        }
         .task(id: shareRequest?.id) {
             await prepareRequestedShare()
         }
@@ -122,7 +128,7 @@ struct SongRow: View {
         .contextMenu {
             actions
         } preview: {
-            SongContextPreview(song: song)
+            SongContextPreview(song: song, coverImage: coverImage)
         }
         .modifier(SongQuickActions(song: song, onAddToPlaylist: onAddToPlaylist))
     }
