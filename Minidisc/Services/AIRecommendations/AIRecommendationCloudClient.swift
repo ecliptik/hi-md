@@ -48,6 +48,14 @@ nonisolated struct AIRecommendationCloudClient: Sendable {
         return try AIRecommendationParser.parsePicks(Self.replyText(from: data, provider: provider))
     }
 
+    /// One system and one user message, and the reply's text. AI playlists read it themselves.
+    @concurrent
+    func complete(system: String, user: String, provider: AIRecommendationProvider, key: String, model: String) async throws -> String {
+        let request = try Self.request(provider, key: key, model: model, system: system, user: user, maxTokens: Self.maxTokens)
+        let data = try await send(request, provider: provider, model: model)
+        return try Self.replyText(from: data, provider: provider)
+    }
+
     /// The smallest round trip that proves the key and model work. Sends no listening data, and
     /// only the status matters: a short cap can leave a thinking model with no text to return.
     @concurrent

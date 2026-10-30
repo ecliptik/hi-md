@@ -1,6 +1,58 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "%@ · %lld songs" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ · %2$lld Titel"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ · %2$lld τραγούδια"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ · %2$lld canciones"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ · %2$lld titres"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ · %2$lld brani"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ · %2$lld曲"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ · %2$lld 首歌曲"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ · %2$lld 首歌曲"
+          }
+        }
+      }
+    },
     "%lld of %lld songs aren't on the server." : {
       "localizations" : {
         "de" : {
@@ -792,6 +844,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "加入播放列表檔案⋯"
+          }
+        }
+      }
+    },
+    "AI Recommendations Settings" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einstellungen für KI-Empfehlungen"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ρυθμίσεις Προτάσεων ΤΝ"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajustes de Recomendaciones con IA"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Réglages des Recommandations IA"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impostazioni Consigli IA"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AIによるおすすめの設定"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI 推荐设置"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI 推薦設定"
           }
         }
       }
@@ -2202,6 +2306,58 @@
         }
       }
     },
+    "Choosing songs…" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Titel werden ausgewählt …"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Επιλογή τραγουδιών…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eligiendo canciones…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choix des titres…"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scelta dei brani…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "曲を選んでいます…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在挑选歌曲…"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在挑選歌曲…"
+          }
+        }
+      }
+    },
     "Close Now Playing" : {
       "localizations" : {
         "de" : {
@@ -2723,6 +2879,58 @@
         }
       }
     },
+    "Couldn't save the playlist. Try again." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Playlist konnte nicht gesichert werden. Versuch es noch einmal."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Δεν ήταν δυνατή η αποθήκευση της λίστας. Δοκιμάστε ξανά."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se ha podido guardar la lista. Vuelve a intentarlo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible d'enregistrer la liste de lecture. Réessayez."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile salvare la playlist. Riprova."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "プレイリストを保存できませんでした。もう一度お試しください。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法存储播放列表。请再试一次。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法儲存播放列表。請再試一次。"
+          }
+        }
+      }
+    },
     "Dark" : {
       "localizations" : {
         "de" : {
@@ -3032,6 +3240,162 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "遞減"
+          }
+        }
+      }
+    },
+    "Describe a feeling, an occasion, an era or a sound." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beschreib ein Gefühl, einen Anlass, eine Ära oder einen Sound."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Περιγράψτε ένα συναίσθημα, μια περίσταση, μια εποχή ή έναν ήχο."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Describe un sentimiento, una ocasión, una época o un sonido."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Décrivez une émotion, une occasion, une époque ou un son."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Descrivi un'emozione, un'occasione, un'epoca o un sound."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "気分、場面、時代、サウンドなどを説明してください。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "描述一种感觉、一个场合、一个年代或一种声音。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "描述一種感覺、一個場合、一個年代或一種聲音。"
+          }
+        }
+      }
+    },
+    "Describe it, and AI picks from your library" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beschreib sie, und die KI wählt aus deiner Mediathek"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Περιγράψτε τη και η ΤΝ επιλέγει από τη βιβλιοθήκη σας"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Descríbela y la IA elige de tu biblioteca"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Décrivez-la, et l'IA choisit dans votre bibliothèque"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Descrivila e l'IA sceglie dalla tua libreria"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "説明すると、AIがライブラリから選びます"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "描述一下，AI 就会从你的音乐库中挑选"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "描述一下，AI 就會從你的資料庫中挑選"
+          }
+        }
+      }
+    },
+    "Describe the playlist you'd like, or pick an idea." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beschreib die Playlist, die du möchtest, oder wähl eine Idee."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Περιγράψτε τη λίστα που θέλετε ή επιλέξτε μια ιδέα."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Describe la lista que quieres o elige una idea."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Décrivez la liste de lecture que vous souhaitez, ou choisissez une idée."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Descrivi la playlist che vorresti o scegli un'idea."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "作りたいプレイリストを説明するか、アイデアを選んでください。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "描述你想要的播放列表，或选择一个点子。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "描述你想要的播放列表，或選擇一個點子。"
           }
         }
       }
@@ -3817,6 +4181,110 @@
         }
       }
     },
+    "Hi-MD couldn't make that playlist. Try again." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hi-MD konnte diese Playlist nicht erstellen. Versuch es noch einmal."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Το Hi-MD δεν μπόρεσε να δημιουργήσει αυτή τη λίστα. Δοκιμάστε ξανά."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hi-MD no ha podido crear esa lista. Vuelve a intentarlo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hi-MD n'a pas pu créer cette liste de lecture. Réessayez."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hi-MD non è riuscito a creare la playlist. Riprova."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hi-MDはそのプレイリストを作れませんでした。もう一度お試しください。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hi-MD 无法创建该播放列表。请再试一次。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hi-MD 無法建立該播放列表。請再試一次。"
+          }
+        }
+      }
+    },
+    "Hi-MD hasn't finished reading your library yet. Try again in a few minutes." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hi-MD hat deine Mediathek noch nicht fertig eingelesen. Versuch es in ein paar Minuten noch einmal."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Το Hi-MD δεν έχει ολοκληρώσει ακόμη την ανάγνωση της βιβλιοθήκης σας. Δοκιμάστε ξανά σε λίγα λεπτά."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hi-MD aún no ha terminado de leer tu biblioteca. Vuelve a intentarlo en unos minutos."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hi-MD n'a pas encore fini de lire votre bibliothèque. Réessayez dans quelques minutes."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hi-MD non ha ancora finito di leggere la tua libreria. Riprova tra qualche minuto."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hi-MDはまだライブラリの読み込みを終えていません。数分後にもう一度お試しください。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hi-MD 尚未读取完你的音乐库。请几分钟后再试。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hi-MD 尚未讀取完你的資料庫。請幾分鐘後再試。"
+          }
+        }
+      }
+    },
     "Hide Lyrics and Queue" : {
       "localizations" : {
         "de" : {
@@ -3865,6 +4333,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "隱藏歌詞和播放佇列"
+          }
+        }
+      }
+    },
+    "Ideas for You" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ideen für dich"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ιδέες για εσάς"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ideas para ti"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Idées pour vous"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Idee per te"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "あなたへのアイデア"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "为你准备的点子"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "為你準備的點子"
           }
         }
       }
@@ -4645,6 +5165,214 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "響度平衡"
+          }
+        }
+      }
+    },
+    "Made by %@ from songs in your library" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Von %@ aus Titeln deiner Mediathek erstellt"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Δημιουργήθηκε από την %@ με τραγούδια της βιβλιοθήκης σας"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Creada por %@ con canciones de tu biblioteca"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Créée par %@ à partir des titres de votre bibliothèque"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Creata da %@ con i brani della tua libreria"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@がライブラリの曲から作成"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "由 %@ 用你音乐库中的歌曲创建"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "由 %@ 用你資料庫中的歌曲建立"
+          }
+        }
+      }
+    },
+    "Make a Playlist" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Playlist erstellen"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Δημιουργία λίστας"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crear una lista"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Créer une liste de lecture"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crea una playlist"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "プレイリストを作る"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "创建播放列表"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "建立播放列表"
+          }
+        }
+      }
+    },
+    "Make Another" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Weitere erstellen"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Δημιουργία άλλης"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crear otra"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En créer une autre"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Creane un'altra"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "別のものを作る"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "再创建一个"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "再建立一個"
+          }
+        }
+      }
+    },
+    "Make Playlist" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Playlist erstellen"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Δημιουργία λίστας"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crear lista"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Créer la liste"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crea playlist"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "プレイリストを作る"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "创建播放列表"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "建立播放列表"
           }
         }
       }
@@ -5481,6 +6209,58 @@
         }
       }
     },
+    "Not enough songs in your library fit that. Try describing it more broadly." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dazu passen nicht genug Titel in deiner Mediathek. Beschreib es etwas allgemeiner."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Δεν ταιριάζουν αρκετά τραγούδια της βιβλιοθήκης σας. Δοκιμάστε μια πιο γενική περιγραφή."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No hay suficientes canciones en tu biblioteca que encajen. Prueba a describirlo de forma más amplia."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trop peu de titres de votre bibliothèque correspondent. Essayez une description plus large."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non ci sono abbastanza brani adatti nella tua libreria. Prova a descriverla in modo più generico."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "条件に合う曲がライブラリに十分ありません。もっと幅広く説明してみてください。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的音乐库中符合条件的歌曲不够。试着描述得宽泛一些。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的資料庫中符合條件的歌曲不夠。試著描述得廣泛一些。"
+          }
+        }
+      }
+    },
     "Not Playing" : {
       "localizations" : {
         "de" : {
@@ -5741,6 +6521,58 @@
         }
       }
     },
+    "Rainy Sunday trip-hop, 90s singalongs…" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trip-Hop für verregnete Sonntage, 90er zum Mitsingen …"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trip-hop για βροχερή Κυριακή, τραγούδια των 90s για να τα τραγουδάς…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trip-hop para un domingo lluvioso, himnos de los 90…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trip-hop pour dimanche pluvieux, tubes des années 90 à chanter…"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trip-hop per una domenica di pioggia, canzoni anni '90 da cantare…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "雨の日曜日のトリップホップ、一緒に歌える90年代…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "雨天周日的神游舞曲、可以跟唱的 90 年代歌曲…"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "雨天週日的神遊舞曲、可以跟唱的 90 年代歌曲…"
+          }
+        }
+      }
+    },
     "Related Songs" : {
       "comment" : "MiniPlayer pane and menu item: songs like the one playing.",
       "localizations" : {
@@ -5842,6 +6674,214 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "將目前歌曲從喜好項目移除"
+          }
+        }
+      }
+    },
+    "Save to Playlists" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In Playlists sichern"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Αποθήκευση στις Λίστες αναπαραγωγής"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Guardar en Listas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enregistrer dans Listes de lecture"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Salva in Playlist"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "プレイリストに保存"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "存储到播放列表"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "儲存到播放列表"
+          }
+        }
+      }
+    },
+    "Saved %@ to Playlists" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ in Playlists gesichert"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Η λίστα %@ αποθηκεύτηκε στις Λίστες αναπαραγωγής"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ se ha guardado en Listas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ enregistrée dans Listes de lecture"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ salvata in Playlist"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@をプレイリストに保存しました"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已将 %@ 存储到播放列表"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已將 %@ 儲存到播放列表"
+          }
+        }
+      }
+    },
+    "Saved to Playlists" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In Playlists gesichert"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Αποθηκεύτηκε στις Λίστες αναπαραγωγής"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Guardada en Listas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enregistrée dans Listes de lecture"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Salvata in Playlist"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "プレイリストに保存しました"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已存储到播放列表"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已儲存到播放列表"
+          }
+        }
+      }
+    },
+    "Saving…" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wird gesichert …"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Αποθήκευση…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Guardando…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enregistrement…"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Salvataggio…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存中…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在存储…"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在儲存…"
           }
         }
       }
@@ -5950,6 +6990,58 @@
         }
       }
     },
+    "Swipe a song to leave it out before saving." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wisch über einen Titel, um ihn vor dem Sichern wegzulassen."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Σύρετε ένα τραγούδι για να το παραλείψετε πριν από την αποθήκευση."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desliza una canción para quitarla antes de guardar."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Balayez un titre pour l'écarter avant d'enregistrer."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scorri su un brano per escluderlo prima di salvare."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存する前に、曲をスワイプすると除外できます。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在存储前轻扫歌曲即可将其移除。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在儲存前滑動歌曲即可將其移除。"
+          }
+        }
+      }
+    },
     "There are no audio files there that Hi-MD can play." : {
       "localizations" : {
         "de" : {
@@ -5998,6 +7090,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "那裡沒有 Hi-MD 可以播放的音訊檔案。"
+          }
+        }
+      }
+    },
+    "Thinking of ideas…" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ideen werden gesammelt …"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Αναζήτηση ιδεών…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buscando ideas…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recherche d'idées…"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ricerca di idee…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アイデアを考えています…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在构思点子…"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在構思點子…"
           }
         }
       }
@@ -7610,6 +8754,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "時間"
+          }
+        }
+      }
+    },
+    "To make playlists, Hi-MD sends %@ your request, the names of your library's genres and up to 400 of its artists, and the title, artist, year and genre of up to 250 songs that might fit. Once you continue, the weekly mood playlists are chosen the same way. Nothing else is sent: no server address, account details or play counts. The terms of your API key apply." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Für Playlists sendet Hi-MD an %@ deine Anfrage, die Namen der Genres deiner Mediathek und von bis zu 400 ihrer Künstler sowie Titel, Künstler, Jahr und Genre von bis zu 250 Titeln, die passen könnten. Wenn du fortfährst, werden auch die wöchentlichen Stimmungs-Playlists so ausgewählt. Sonst wird nichts gesendet: keine Serveradresse, keine Kontodaten und keine Wiedergabezahlen. Es gelten die Bedingungen deines API-Schlüssels."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Για να δημιουργεί λίστες, το Hi-MD στέλνει στην %@ το αίτημά σας, τα ονόματα των ειδών της βιβλιοθήκης σας και έως 400 καλλιτεχνών της, καθώς και τον τίτλο, τον καλλιτέχνη, το έτος και το είδος έως 250 τραγουδιών που ίσως ταιριάζουν. Αν συνεχίσετε, οι εβδομαδιαίες λίστες διάθεσης επιλέγονται με τον ίδιο τρόπο. Δεν στέλνεται τίποτε άλλο: ούτε διεύθυνση διακομιστή, ούτε στοιχεία λογαριασμού, ούτε αριθμοί αναπαραγωγών. Ισχύουν οι όροι του κλειδιού API σας."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Para crear listas, Hi-MD envía a %@ tu petición, los nombres de los géneros de tu biblioteca y de hasta 400 de sus artistas, y el título, artista, año y género de hasta 250 canciones que podrían encajar. Si continúas, las listas semanales de estados de ánimo se eligen de la misma forma. No se envía nada más: ni la dirección del servidor, ni los datos de la cuenta, ni el número de reproducciones. Se aplican las condiciones de tu clave de API."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pour créer des listes de lecture, Hi-MD envoie à %@ votre demande, les noms des genres de votre bibliothèque et de 400 de ses artistes au plus, ainsi que le titre, l'artiste, l'année et le genre de 250 titres au plus qui pourraient convenir. Si vous continuez, les listes d'ambiance hebdomadaires sont choisies de la même façon. Rien d'autre n'est envoyé : ni l'adresse du serveur, ni les informations de compte, ni le nombre d'écoutes. Les conditions de votre clé d'API s'appliquent."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Per creare playlist, Hi-MD invia a %@ la tua richiesta, i nomi dei generi della tua libreria e di un massimo di 400 suoi artisti, e il titolo, l'artista, l'anno e il genere di un massimo di 250 brani che potrebbero essere adatti. Se continui, anche le playlist settimanali per atmosfera vengono scelte così. Non viene inviato nient'altro: né l'indirizzo del server, né i dati dell'account, né il numero di ascolti. Si applicano le condizioni della tua chiave API."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "プレイリストを作るために、Hi-MDはリクエスト、ライブラリのジャンル名とアーティスト最大400組の名前、合いそうな曲最大250曲のタイトル・アーティスト・年・ジャンルを%@に送信します。続けると、毎週のムードプレイリストも同じ方法で選ばれます。それ以外は送信されません。サーバーのアドレス、アカウント情報、再生回数は含まれません。APIキーの利用規約が適用されます。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "为了创建播放列表，Hi-MD 会向 %@ 发送你的请求、音乐库中的风格名称和最多 400 位艺人的名称，以及最多 250 首可能合适的歌曲的标题、艺人、年份和风格。继续后，每周的心情播放列表也会以同样方式挑选。不会发送其他任何内容：没有服务器地址、账户信息或播放次数。适用你的 API 密钥的条款。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "為了建立播放列表，Hi-MD 會向 %@ 傳送你的請求、資料庫中的類型名稱和最多 400 位藝人的名稱，以及最多 250 首可能合適的歌曲的標題、藝人、年份和類型。繼續後，每週的心情播放列表也會以同樣方式挑選。不會傳送其他任何內容：沒有伺服器位址、帳號資料或播放次數。適用你的 API 金鑰的條款。"
           }
         }
       }

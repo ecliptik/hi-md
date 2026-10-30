@@ -83,7 +83,9 @@ actor MoodPlaylistService {
         libraryService: any LibrarySearching & MoodTrackSourcing,
         catalog: LibraryCatalog,
         coverApplier: (@Sendable (PlaylistGradientSpec, String, String) async -> Void)? = nil,
-        preferences: MoodPreferences = MoodPreferences()
+        preferences: MoodPreferences = MoodPreferences(),
+        aiModel: (@Sendable () async -> (any AIPlaylistModel)?)? = nil,
+        indexedSongs: (@Sendable ([String]) async throws -> [Song])? = nil
     ) {
         self.preferences = preferences
         self.applyCover = coverApplier
@@ -102,12 +104,19 @@ actor MoodPlaylistService {
         }
         self.isOnline = { await MainActor.run { serverState.isOnline } }
         self.makeProvider = {
+            let base: any MoodTrackProvider
             if let urlString = await MainActor.run(body: { serverState.activeServer?.audioMuseURL }),
                let credentials = try? await serverService.activeConnection().credentials,
                let client = AudioMuseClient(urlString: urlString, token: credentials.audioMuseToken) {
-                return AudioMuseTrackProvider(client: client, resolver: SubsonicTrackResolver(libraryService: libraryService))
+                base = AudioMuseTrackProvider(client: client, resolver: SubsonicTrackResolver(libraryService: libraryService))
+            } else {
+                base = LibraryTagTrackProvider(libraryService: libraryService)
             }
-            return LibraryTagTrackProvider(libraryService: libraryService)
+            // With AI turned on, it chooses each mood's songs from the pool the base gathers.
+            if let aiModel, let indexedSongs, let model = await aiModel() {
+                return AIMoodTrackProvider(base: base, model: model, songs: indexedSongs)
+            }
+            return base
         }
     }
 

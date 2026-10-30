@@ -47,6 +47,8 @@ struct MacDiscoverView: View {
                 if isOnline {
                     MacRecommendationsCard()
                         .padding(.horizontal, MacShelfMetrics.margin)
+                    MacPlaylistMakerCard()
+                        .padding(.horizontal, MacShelfMetrics.margin)
                     if model.showsFreshReleases {
                         freshReleases(model)
                     }

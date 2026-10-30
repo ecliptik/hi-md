@@ -28,6 +28,8 @@ enum MacDestination: Hashable {
     case homeShelf(HomeShelf)
     /// Recommended for You: albums suggested by the chosen AI provider.
     case recommendations
+    /// Make a Playlist: a playlist the chosen AI provider makes from the library.
+    case playlistMaker
     /// Fresh Releases from the past 90 days, by month.
     case freshReleases
     case freshRelease(AlbumRecommendation)

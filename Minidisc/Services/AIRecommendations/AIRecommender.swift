@@ -14,6 +14,7 @@ final class AIRecommendationSettings {
         static let anthropicModel = "ai-recommendations.anthropicModel"
         static let openAIModel = "ai-recommendations.openAIModel"
         static let sharingAcknowledged = "ai-recommendations.sharingAcknowledged"
+        static let playlistSharingAcknowledged = "ai-playlists.sharingAcknowledged"
     }
 
     @ObservationIgnored private let defaults: UserDefaults
@@ -28,6 +29,11 @@ final class AIRecommendationSettings {
     private(set) var sharingAcknowledged: Set<AIRecommendationProvider> {
         didSet { defaults.set(sharingAcknowledged.map(\.rawValue).sorted(), forKey: Key.sharingAcknowledged) }
     }
+    /// Cloud providers the user has agreed may receive song names for AI playlists, which is more
+    /// than recommendations send, so it's asked separately.
+    private(set) var playlistSharingAcknowledged: Set<AIRecommendationProvider> {
+        didSet { defaults.set(playlistSharingAcknowledged.map(\.rawValue).sorted(), forKey: Key.playlistSharingAcknowledged) }
+    }
 
     init(keychain: any KeychainServiceProtocol, defaults: UserDefaults = .standard) {
         self.keychain = keychain
@@ -36,6 +42,8 @@ final class AIRecommendationSettings {
         anthropicModel = defaults.string(forKey: Key.anthropicModel) ?? ""
         openAIModel = defaults.string(forKey: Key.openAIModel) ?? ""
         sharingAcknowledged = Set((defaults.stringArray(forKey: Key.sharingAcknowledged) ?? [])
+            .compactMap(AIRecommendationProvider.init(rawValue:)))
+        playlistSharingAcknowledged = Set((defaults.stringArray(forKey: Key.playlistSharingAcknowledged) ?? [])
             .compactMap(AIRecommendationProvider.init(rawValue:)))
     }
 
@@ -57,6 +65,15 @@ final class AIRecommendationSettings {
 
     func acknowledgeSharing(for provider: AIRecommendationProvider) {
         sharingAcknowledged.insert(provider)
+    }
+
+    /// True until the user has been told what AI playlists send to this provider.
+    func needsPlaylistSharingNotice(for provider: AIRecommendationProvider) -> Bool {
+        provider.needsAPIKey && !playlistSharingAcknowledged.contains(provider)
+    }
+
+    func acknowledgePlaylistSharing(for provider: AIRecommendationProvider) {
+        playlistSharingAcknowledged.insert(provider)
     }
 
     func apiKey(for provider: AIRecommendationProvider) async -> String? {
@@ -118,6 +135,12 @@ struct AIRecommender {
         let results = try await pipeline.recommend(local.profile)
         Logger.ui.info("AI recommendations: \(results.count) verified from \(provider.rawValue, privacy: .public)")
         return results
+    }
+
+    /// What the listener plays and collects, for AI playlist ideas.
+    func listeningProfile() async throws -> AIListeningProfile {
+        guard let server = container.serverState.activeServer else { throw MusicIntentError.noServer }
+        return try await localData(serverID: server.id).profile
     }
 
     // MARK: - Local data

@@ -202,7 +202,13 @@ final class AppContainer {
             serverState: serverState,
             libraryService: library,
             catalog: catalog,
-            coverApplier: moodCovers
+            coverApplier: moodCovers,
+            // Same defaults as `aiRecommendationSettings`, which Settings edits.
+            aiModel: { [keychain] in await AIPlaylistModels.unattended(keychain: keychain, defaults: .standard) },
+            indexedSongs: { [indexStore, serverState] ids in
+                guard let serverID = await MainActor.run(body: { serverState.activeServer?.id }) else { return [] }
+                return try await indexStore.songs(ids: Set(ids), serverID: serverID)
+            }
         )
 
         let resolver = MediaResolver(

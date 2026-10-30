@@ -150,6 +150,8 @@ private struct MacDestinationView: View {
             MacHomeShelfView(container: container, shelf: shelf)
         case .recommendations:
             MacRecommendationsView(container: container)
+        case .playlistMaker:
+            MacPlaylistMakerView(container: container)
         case .freshReleases:
             MacFreshReleasesView(container: container)
         case .freshRelease(let release):

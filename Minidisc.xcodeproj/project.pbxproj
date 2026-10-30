@@ -155,6 +155,7 @@
 				Views/LocalMusic/LocalMusicCollectionView.swift,
 				Views/LocalMusic/LocalMusicFoldersView.swift,
 				Views/LocalMusic/LocalMusicView.swift,
+				Views/Main/AIPlaylistMakerView.swift,
 				Views/Main/AIRecommendationsView.swift,
 				Views/Main/AllFreshReleasesView.swift,
 				Views/Main/CarouselCollectionViews.swift,

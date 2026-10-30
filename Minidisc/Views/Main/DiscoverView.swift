@@ -34,6 +34,13 @@ struct DiscoverView: View {
                         }
                         .buttonStyle(.plain)
                         .padding(.horizontal, MinidiscSpacing.l)
+                        NavigationLink {
+                            AIPlaylistMakerView()
+                        } label: {
+                            AIPlaylistMakerCard()
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.horizontal, MinidiscSpacing.l)
                         freshReleasesSection(vm: vm)
                         stationsSection(vm)
                     }
