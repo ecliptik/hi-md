@@ -108,6 +108,7 @@ private nonisolated final class RecoveryTestAudioSession: AudioSessionControllin
     private struct Storage {
         var outputs = [RecoveryTestAudioSession.headphones]
         var activations = 0
+        var deactivations = 0
         var invalidations = 0
         var failuresRemaining = 0
     }
@@ -118,6 +119,7 @@ private nonisolated final class RecoveryTestAudioSession: AudioSessionControllin
     }
     var activations: Int { storage.withLock { $0.activations } }
     var invalidations: Int { storage.withLock { $0.invalidations } }
+    var deactivations: Int { storage.withLock { $0.deactivations } }
     func failNextActivations(_ count: Int) { storage.withLock { $0.failuresRemaining = count } }
     func activate() throws {
         let shouldFail = storage.withLock {
@@ -127,7 +129,7 @@ private nonisolated final class RecoveryTestAudioSession: AudioSessionControllin
         }
         if shouldFail { throw NSError(domain: NSOSStatusErrorDomain, code: -50) }
     }
-    func deactivate() {}
+    func deactivate() { storage.withLock { $0.deactivations += 1 } }
     func invalidateConfiguration() { storage.withLock { $0.invalidations += 1 } }
 }
 
@@ -1350,5 +1352,20 @@ struct PatientStallRecoveryTests {
         try await h.waitUntil { h.state.currentTrack?.id == "b" }
         #expect(await h.resolver.availabilityCalls == 1)
         await h.player.stop()
+    }
+}
+
+@Suite("Now Playing ownership", .serialized, .timeLimit(.minutes(1)))
+@MainActor
+struct NowPlayingOwnershipTests {
+    /// Releasing the session on pause handed Now Playing back to Music, so a car or headphones
+    /// connecting later started Music instead of resuming here.
+    @Test func pausingKeepsTheAudioSessionAndStoppingReleasesIt() async throws {
+        let h = try RecoveryHarness()
+        try await h.play()
+        await h.player.pause()
+        #expect(h.audioSession.deactivations == 0)
+        await h.player.stop()
+        #expect(h.audioSession.deactivations == 1)
     }
 }

@@ -1664,7 +1664,9 @@ actor PlayerService: PlayerServiceProtocol {
         guard transportGeneration == transportIntentGeneration, !Task.isCancelled else { return }
         sessionActivationRetryTask?.cancel()
         sessionActivationRetryTask = nil
-        audioSession.deactivate()
+        // The audio session stays active while paused. Deactivating it told iOS that Hi-MD was
+        // done, so the app it had interrupted, usually Music, took back Now Playing, and the next
+        // Bluetooth or car Play started Music instead. Only stop() releases the session.
         stopProgressTimer()
         stopPositionSaveTimer()
         await pushPositionSnapshot(rate: 0.0)
@@ -4006,7 +4008,8 @@ actor PlayerService: PlayerServiceProtocol {
         activeEnginePlayback = nil
         sessionActivationRetryTask?.cancel()
         sessionActivationRetryTask = nil
-        audioSession.deactivate()
+        // Keeps the audio session, as pause() does, so Play from a car or headphones restarts the
+        // queue here rather than in Music.
         pendingRestoreInfo = nil
         stoppedAtEndOfQueue = true
 
