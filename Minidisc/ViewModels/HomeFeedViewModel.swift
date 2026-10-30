@@ -141,13 +141,18 @@ final class HomeFeedViewModel {
                     await Self.fetch(.genres) {
                         // A few spare genres, as albums tagged with several genres would otherwise
                         // fill neighbouring shelves with the same records.
-                        let genres = try await service.genres()
+                        // Spellings of one genre ("Trip-Hop", "Trip Hop") make one shelf.
+                        let genres = GenreName.merge(try await service.genres())
                             .filter { $0.albumCount > 0 }.sorted { $0.albumCount > $1.albumCount }.prefix(9)
                         var fetched: [(name: String, albums: [AlbumID3])] = []
                         // A separate task from the main shelves: a slow genre never holds them back.
                         for genre in genres {
-                            try Task.checkCancellation()
-                            fetched.append((genre.value, try await service.albumsByGenre(genre.value, size: 60)))
+                            var albums: [AlbumID3] = []
+                            for variant in genre.variants.prefix(3) {
+                                try Task.checkCancellation()
+                                albums += try await service.albumsByGenre(variant, size: 60)
+                            }
+                            fetched.append((genre.name, HomePersonalization.unique(albums)))
                         }
                         // A new mix each day, steady within it.
                         let day = Calendar.current.ordinality(of: .day, in: .era, for: Date()) ?? 0

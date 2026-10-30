@@ -14,7 +14,8 @@ nonisolated enum LibraryFacetKind: String, Hashable, Sendable {
 /// One genre, track artist or composer and how many songs it has.
 nonisolated struct LibraryFacet: Hashable, Sendable, Identifiable {
     let kind: LibraryFacetKind
-    /// The server's artist ID when there is one, otherwise the lowercased name.
+    /// The server's artist ID when there is one, otherwise the lowercased name; for genres, the
+    /// spelling-insensitive `GenreName.key`, so "Trip-Hop" and "Trip Hop" are one genre.
     let key: String
     let name: String
     let songCount: Int
@@ -34,7 +35,10 @@ nonisolated enum LibraryFacets {
         switch kind {
         case .genre:
             let names = (song.genres ?? []).map(\.name) + [song.genre].compactMap { $0 }
-            return unique(names.map { (key: $0.lowercased(), name: $0, hasArtistID: false) })
+            return unique(names.map { name in
+                let key = GenreName.key(name)
+                return (key: key.isEmpty ? name.lowercased() : key, name: name, hasArtistID: false)
+            })
         case .trackArtist:
             if let artists = song.artists, !artists.isEmpty {
                 return unique(artists.map { (key: $0.id, name: $0.name, hasArtistID: true) })
@@ -52,17 +56,21 @@ nonisolated enum LibraryFacets {
         }
     }
 
-    /// Facets sorted by name, with their song counts.
+    /// Facets sorted by name, with their song counts. A facet spelled several ways is shown
+    /// under its most common spelling.
     static func facets(_ kind: LibraryFacetKind, in songs: [Song]) -> [LibraryFacet] {
-        var counts: [String: (name: String, count: Int, hasArtistID: Bool)] = [:]
+        var counts: [String: (count: Int, hasArtistID: Bool, spellings: [String: Int])] = [:]
         for song in songs {
             for value in values(of: song, kind: kind) where !value.name.trimmingCharacters(in: .whitespaces).isEmpty {
-                counts[value.key, default: (value.name, 0, value.hasArtistID)].count += 1
+                counts[value.key, default: (0, value.hasArtistID, [:])].count += 1
+                counts[value.key]?.spellings[value.name, default: 0] += 1
             }
         }
-        return counts.map { LibraryFacet(kind: kind, key: $0.key, name: $0.value.name, songCount: $0.value.count,
-                                         hasArtistID: $0.value.hasArtistID) }
-            .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+        return counts.map { key, entry in
+            let name = entry.spellings.max { $0.value != $1.value ? $0.value < $1.value : $0.key > $1.key }?.key ?? key
+            return LibraryFacet(kind: kind, key: key, name: name, songCount: entry.count, hasArtistID: entry.hasArtistID)
+        }
+        .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
     }
 
     static func songs(of facet: LibraryFacet, in songs: [Song]) -> [Song] {
@@ -80,7 +88,8 @@ nonisolated enum LibraryFacets {
             .sorted { ($0.album ?? "", $0.discNumber ?? 0, $0.track ?? 0) < ($1.album ?? "", $1.discNumber ?? 0, $1.track ?? 0) }
     }
 
-    private static func allSongs(store: LibraryIndexStore, serverID: UUID) async throws -> [Song] {
+    /// Every song in the index, read a page at a time.
+    static func allSongs(store: LibraryIndexStore, serverID: UUID) async throws -> [Song] {
         var songs: [Song] = []
         var offset = 0
         while true {

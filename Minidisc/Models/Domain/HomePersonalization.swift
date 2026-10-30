@@ -35,14 +35,14 @@ enum HomePersonalization {
     /// an album tagged with several genres (electronic, ambient, experimental) topped every one
     /// of those shelves alike. Albums keep to the first shelf that has them, each shelf is
     /// shuffled by `seed` so the same artist's catalogue doesn't open every row, genres differing
-    /// only in case count once, and a shelf left with fewer than `minimum` albums is dropped.
+    /// only in spelling count once, and a shelf left with fewer than `minimum` albums is dropped.
     nonisolated static func distinctGenreShelves(_ fetched: [(name: String, albums: [AlbumID3])], limit: Int = 5,
                                      perShelf: Int = 20, minimum: Int = 6, seed: String) -> [(name: String, albums: [AlbumID3])] {
         var shelves: [(name: String, albums: [AlbumID3])] = []
         var seenAlbums = Set<String>()
         var seenGenres = Set<String>()
         for (name, albums) in fetched where shelves.count < limit {
-            guard seenGenres.insert(name.lowercased()).inserted else { continue }
+            guard seenGenres.insert(GenreName.key(name)).inserted else { continue }
             let fresh = unique(albums, excluding: seenAlbums)
                 .sorted { shuffleKey($0.id, seed) < shuffleKey($1.id, seed) }
                 .prefix(perShelf)
