@@ -56,8 +56,10 @@ final class MacSpaceKeyMonitor {
     }
 
     /// The main window, as opposed to a sheet on it, an alert, Settings or the menu bar panel.
+    /// Miniamp's windows count too: they're borderless, so they have no title bar to qualify by.
     private static func isMainContentWindow(_ window: NSWindow) -> Bool {
-        window.isMainWindow && window.attachedSheet == nil && !window.isSheet && !(window is NSPanel)
+        if window is WinampWindow { return window.attachedSheet == nil }
+        return window.isMainWindow && window.attachedSheet == nil && !window.isSheet && !(window is NSPanel)
             && window.styleMask.contains(.titled) && window.identifier?.rawValue.contains("Settings") != true
             && window.canBecomeMain
     }
