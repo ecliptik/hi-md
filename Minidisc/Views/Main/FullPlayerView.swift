@@ -501,7 +501,6 @@ private struct TrackInfoSection: View {
 
     @Query private var favoriteMatches: [FavoriteRecord]
     @Environment(PlaylistAddition.self) private var playlistAddition
-    @State private var showAlbumSheet = false
     @State private var shareRequest: DisplayableSong?
     @State private var preparedShare: PreparedTrackShare?
     @State private var trackInformation: DisplayableSong?
@@ -576,8 +575,10 @@ private struct TrackInfoSection: View {
 
                         Divider()
                         Button {
-                            guard playerState.currentTrack?.albumId != nil else { return }
-                            showAlbumSheet = true
+                            // Collapses the player and opens the album in the current tab, where
+                            // the mini player stays, as Go to Artist does.
+                            guard let track = playerState.currentTrack, track.albumId != nil else { return }
+                            postNavigateToAlbum(track: track)
                         } label: {
                             Label("Go to Album", symbol: MinidiscSymbol.goToAlbum)
                             if let albumName = playerState.currentTrack?.albumName, !albumName.isEmpty {
@@ -649,16 +650,6 @@ private struct TrackInfoSection: View {
                 .buttonStyle(.plain)
                 .tint(.primary)
                 .accessibilityLabel("More options")
-            }
-        }
-        .sheet(isPresented: $showAlbumSheet) {
-            if let track = playerState.currentTrack,
-               let albumId = track.albumId,
-               let albumName = track.albumName {
-                NavigationStack {
-                    AlbumDetailView(albumId: albumId, albumName: albumName, coverArtId: track.coverArtId)
-                        .resolvesHomeDestinations()
-                }
             }
         }
         .sheet(item: $preparedShare) { share in

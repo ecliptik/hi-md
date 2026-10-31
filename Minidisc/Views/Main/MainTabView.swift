@@ -29,6 +29,19 @@ struct MainTabView: View {
         homePath = NavigationPath([destination])
     }
 
+    /// Collapses the player and opens a page in the tab that's showing, as the Music app does from
+    /// Now Playing, so the mini player and tab bar stay with it. Every tab resolves these pages.
+    private func show(_ destination: HomeDestination) {
+        playerPresentation.reset()
+        switch selectedTab {
+        case .home: homePath.append(destination)
+        case .discover: discoverPath.append(destination)
+        case .library: libraryPath.append(destination)
+        case .playlists: playlistsPath.append(destination)
+        case .search: searchPath.append(destination)
+        }
+    }
+
     /// Opens the link `LinkRouter` is holding. In local-only mode there is no server to show it
     /// on, so it stays queued and opens once a server is connected.
     private func openPendingLink() {
@@ -157,25 +170,19 @@ struct MainTabView: View {
             guard let id   = note.userInfo?["artistId"]   as? String,
                   let name = note.userInfo?["artistName"] as? String else { return }
             let coverArtId = note.userInfo?["coverArtId"] as? String
-            playerPresentation.reset()
-            selectedTab = .home
-            homePath.append(HomeDestination.artistById(id: id, name: name, coverArtId: coverArtId))
+            show(.artistById(id: id, name: name, coverArtId: coverArtId))
         }
         .onReceive(NotificationCenter.default.publisher(for: .minidiscNavigateToAlbum)) { note in
             guard let id   = note.userInfo?["albumId"]   as? String,
                   let name = note.userInfo?["albumName"] as? String else { return }
             let coverArtId = note.userInfo?["coverArtId"] as? String
-            playerPresentation.reset()
-            selectedTab = .home
-            homePath.append(HomeDestination.albumById(id: id, name: name, subtitle: "", coverArtId: coverArtId))
+            show(.albumById(id: id, name: name, subtitle: "", coverArtId: coverArtId))
         }
         .onReceive(NotificationCenter.default.publisher(for: .minidiscNavigateToPlaylist)) { note in
             guard let id   = note.userInfo?["playlistId"] as? String,
                   let name = note.userInfo?["name"]       as? String else { return }
             let coverArtId = note.userInfo?["coverArtId"] as? String
-            playerPresentation.reset()
-            selectedTab = .home
-            homePath.append(HomeDestination.playlistById(id: id, name: name, coverArtId: coverArtId))
+            show(.playlistById(id: id, name: name, coverArtId: coverArtId))
         }
     }
 }
