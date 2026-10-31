@@ -120,6 +120,18 @@ struct MacSongTable: View {
                 .dropDestination(for: MacSongDrag.self) { index, items in
                     drop(items, at: index, into: editing, shownRows: rows)
                 }
+            } else if let discs = discSections(rows) {
+                // An album on several discs: a Disc heading over each disc's tracks, as in Music.
+                ForEach(discs, id: \.number) { disc in
+                    Section {
+                        ForEach(disc.rows) { row in
+                            TableRow(row)
+                                .draggable(MacSongDrag(song: row.song))
+                        }
+                    } header: {
+                        Text("Disc \(disc.number)")
+                    }
+                }
             } else {
                 ForEach(rows) { row in
                     TableRow(row)
@@ -212,6 +224,18 @@ struct MacSongTable: View {
         .buttonStyle(.borderless)
         .disabled(row.song.isLocalFile)
         .accessibilityLabel(isFavorite ? "Remove from Favorites" : "Add to Favorites")
+    }
+
+    /// An album's tracks by disc, in order, when it has more than one disc.
+    private func discSections(_ rows: [SongTableRow]) -> [(number: Int, rows: [SongTableRow])]? {
+        guard style == .album, isListOrder else { return nil }
+        var sections: [(number: Int, rows: [SongTableRow])] = []
+        for row in rows {
+            let disc = row.song.discNumber ?? 1
+            if sections.last?.number == disc { sections[sections.count - 1].rows.append(row) }
+            else { sections.append((disc, [row])) }
+        }
+        return Set(sections.map(\.number)).count > 1 ? sections : nil
     }
 
     // MARK: - Actions

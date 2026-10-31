@@ -1071,11 +1071,25 @@ struct AlbumSongRows: View {
             let isDownloading = downloadingIds.contains(song.id)
             let downloadAction: (() -> Void)? = (liveDownloaded || isDownloading) ? nil : onDownload.map { action in { action(song.id) } }
             let removeAction: (() -> Void)? = liveDownloaded ? onRemoveDownload.map { action in { action(song.id) } } : nil
+            // An album on several discs gets a Disc heading over each disc's tracks, as in the
+            // Music app, rather than numbering them 1.1, 2.1.
+            let startsDisc = showsDiscNumbers && (index == 0 || songs[index - 1].discNumber != song.discNumber)
+            let endsDisc = showsDiscNumbers && index < songs.count - 1 && songs[index + 1].discNumber != song.discNumber
             VStack(spacing: 0) {
-                SongRow(song: liveSong, index: index + 1, showArtist: showArtists, isFavorite: favoriteIds.contains("song:\(song.id)"), titleColor: titleColor, secondaryColor: secondaryColor, trailingAccessory: .duration, onDownload: downloadAction, onRemoveDownload: removeAction, isDownloading: isDownloading, onAddToPlaylist: onAddToPlaylist, onTap: { onTap(index) }, showsDiscNumber: showsDiscNumbers)
+                if startsDisc, let disc = song.discNumber {
+                    Text("Disc \(disc)")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(secondaryColor)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, MinidiscSpacing.l)
+                        .padding(.top, index == 0 ? MinidiscSpacing.s : MinidiscSpacing.xl)
+                        .padding(.bottom, MinidiscSpacing.xs)
+                        .accessibilityAddTraits(.isHeader)
+                }
+                SongRow(song: liveSong, index: index + 1, showArtist: showArtists, isFavorite: favoriteIds.contains("song:\(song.id)"), titleColor: titleColor, secondaryColor: secondaryColor, trailingAccessory: .duration, onDownload: downloadAction, onRemoveDownload: removeAction, isDownloading: isDownloading, onAddToPlaylist: onAddToPlaylist, onTap: { onTap(index) })
                     .padding(.vertical, MinidiscSpacing.xs)
                     .padding(.horizontal, MinidiscSpacing.l)
-                if index < songs.count - 1 {
+                if index < songs.count - 1, !endsDisc {
                     Divider()
                         .overlay(titleColor.opacity(0.22))
                         .padding(.leading, MinidiscSpacing.l + 36)
