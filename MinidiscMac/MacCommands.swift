@@ -76,6 +76,7 @@ struct MacCommands: Commands {
                 .disabled(commands?.canShowLyrics != true && shownPane != .lyrics)
             Toggle("Playing Next", isOn: inspectorBinding(.queue, shown: shownPane, navigator: navigator))
                 .keyboardShortcut("u", modifiers: [.command, .option])
+            MiniPlayerMenuItems()
             Divider()
         }
     }

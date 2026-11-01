@@ -76,16 +76,19 @@ enum MiniPlayerSettings {
     }
 }
 
-/// Window > MiniPlayer as Bar (⌥⌘B), Float MiniPlayer on Top and Hide Main Window with
-/// MiniPlayer.
-struct MiniPlayerCommands: Commands {
+/// View > MiniPlayer (⌥⌘M) and a MiniPlayer Options submenu: as Bar (⌥⌘B), Float on Top and Hide
+/// Main Window with MiniPlayer. `MacCommands` places them after Playing Next; a command group of
+/// their own beside it would land wherever SwiftUI chose.
+struct MiniPlayerMenuItems: View {
     @AppStorage(MiniPlayerSettings.floatsOnTopKey) private var floatsOnTop = true
     @AppStorage(MiniPlayerSettings.hidesMainWindowKey) private var hidesMainWindow = false
     @AppStorage(MiniPlayerSettings.showsBarKey) private var showsBar = false
     @Environment(\.openWindow) private var openWindow
 
-    var body: some Commands {
-        CommandGroup(after: .windowArrangement) {
+    var body: some View {
+        Button("MiniPlayer") { openWindow(id: MacMiniPlayer.windowID) }
+            .keyboardShortcut("m", modifiers: [.command, .option])
+        Menu("MiniPlayer Options") {
             // The open MiniPlayer follows the setting and resizes itself; turning it on with the
             // MiniPlayer closed opens it as the bar.
             Toggle("MiniPlayer as Bar", isOn: Binding(get: { showsBar }, set: { isOn in

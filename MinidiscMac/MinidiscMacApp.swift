@@ -33,7 +33,6 @@ struct MinidiscMacApp: App {
         }
         .commands { MacCommands(container: activeContainer, interface: interface) }
         .commands { WinampCommands() } // Winamp mode: View > Winamp Mode (⌘⇧W)
-        .commands { MiniPlayerCommands() }
         .onChange(of: scenePhase) { _, newPhase in
             guard let container = activeContainer else { return }
             Task { await container.playerService.setAppVisible(newPhase != .background) }
@@ -62,7 +61,8 @@ struct MinidiscMacApp: App {
                     .padding()
             }
         }
-        .keyboardShortcut("m", modifiers: [.command, .option])
+        // View > MiniPlayer opens it, beside Now Playing and Lyrics, rather than the Window menu.
+        .commandsRemoved()
         .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentMinSize)
         .windowBackgroundDragBehavior(.enabled)
