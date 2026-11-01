@@ -127,7 +127,12 @@ final class WinampMode: WinampWindowHost {
 
     var isUsingDefaultSkin: Bool { preferences.skin == .bundled }
 
-    var scale: CGFloat { CGFloat(preferences.zoom) }
+    var scale: CGFloat { CGFloat(appliedZoom ?? preferences.zoom) }
+
+    /// The zoom in use: the chosen one, or less while Miniamp's docked windows wouldn't fit the
+    /// screen the main window is on, as when a laptop leaves its external monitor. Nil is the
+    /// chosen zoom; it's worked out again whenever the screens change.
+    private var appliedZoom: Int?
 
     func showFolderBrowser() {
         guard let container else { return }
@@ -177,6 +182,7 @@ final class WinampMode: WinampWindowHost {
         mainWindow?.window.makeKeyAndOrderFront(nil)
         observeTracksForAuto()
         observeStacking()
+        fitZoomToScreen()
         if !preferences.hasQueuedDemo { queueDemo(container) }
     }
 
@@ -207,6 +213,10 @@ final class WinampMode: WinampWindowHost {
             },
             center.addObserver(forName: NSApplication.didResignActiveNotification, object: nil, queue: .main) { [weak self] _ in
                 MainActor.assumeIsolated { self?.applyLevel() }
+            },
+            // A monitor connected or disconnected, or a resolution change.
+            center.addObserver(forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated { self?.fitZoomToScreen() }
             },
         ]
         applyLevel()
@@ -374,13 +384,21 @@ final class WinampMode: WinampWindowHost {
     /// Zoom for every window, scaled about the main window's top-left corner so docked windows
     /// stay docked, then moved back onto the screen if the bigger stack ran off its edge.
     func setZoom(_ level: Int) {
-        let old = preferences.zoom
         let new = WinampZoom.clamped(level)
-        guard new != old else { return }
+        guard new != preferences.zoom else { return }
         preferences.zoom = new
+        resize(to: new)
+        fitZoomToScreen()
+    }
+
+    /// Zooms the open windows from the zoom in use to `zoom`, keeping the chosen one.
+    private func resize(to zoom: Int) {
+        let old = Int(scale)
+        guard zoom != old else { return }
+        appliedZoom = zoom == preferences.zoom ? nil : zoom
         let visible = managedWindows.filter { $0.window.isVisible }
         guard let anchor = visible.firstIndex(where: { $0.kind == .main }) else { return }
-        let frames = WinampDocking.zoom(visible.map(\.window.frame), anchor: anchor, from: old, to: new,
+        let frames = WinampDocking.zoom(visible.map(\.window.frame), anchor: anchor, from: old, to: zoom,
                                         screens: NSScreen.screens.map(\.visibleFrame))
         for (managed, frame) in zip(visible, frames) {
             managed.window.setFrame(frame, display: true)
@@ -388,6 +406,21 @@ final class WinampMode: WinampWindowHost {
             managed.refresh()
             preferences.setTopLeft(CGPoint(x: frame.minX, y: frame.maxY), of: managed.kind)
         }
+    }
+
+    /// Steps the zoom down until the main window and those docked to it fit its screen, and back
+    /// up to the chosen zoom when there's room again, such as when the monitor is reconnected.
+    private func fitZoomToScreen() {
+        let visible = managedWindows.filter { $0.window.isVisible }
+        guard let anchor = visible.firstIndex(where: { $0.kind == .main }) else { return }
+        let frames = visible.map(\.window.frame)
+        let group = WinampDocking.dockedGroup(root: anchor, frames: frames).union([anchor])
+        let bounds = group.reduce(CGRect.null) { $0.union(frames[$1]) }
+        guard let screen = WinampDocking.screen(for: frames[anchor], among: NSScreen.screens.map(\.visibleFrame))
+                ?? NSScreen.main?.visibleFrame else { return }
+        let current = scale
+        let unit = CGSize(width: bounds.width / current, height: bounds.height / current)
+        resize(to: WinampDocking.fittingZoom(unitSize: unit, in: screen, preferred: preferences.zoom))
     }
 
     // MARK: Docking

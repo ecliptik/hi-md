@@ -149,6 +149,15 @@ nonisolated enum WinampDocking {
         return result
     }
 
+    /// The largest zoom, up to `preferred`, at which windows `unitSize` big at 1× fit `screen`:
+    /// 2× on an external monitor can be taller than a laptop's own display.
+    static func fittingZoom(unitSize: CGSize, in screen: CGRect, preferred: Int) -> Int {
+        guard preferred > 1 else { return max(1, preferred) }
+        return (1...preferred).reversed().first { zoom in
+            unitSize.width * CGFloat(zoom) <= screen.width && unitSize.height * CGFloat(zoom) <= screen.height
+        } ?? 1
+    }
+
     /// The screen showing the most of `frame`, or nil when it's on none of them.
     static func screen(for frame: CGRect, among screens: [CGRect]) -> CGRect? {
         let overlaps = screens.map { screen -> (CGRect, CGFloat) in
