@@ -48,12 +48,15 @@ extension AudioAnalyzerConfiguration {
 struct SpectrumArtwork: View {
     var cornerRadius: Double
     @Environment(\.minidiscPlayingAccent) private var accent
-    @State private var visualizer = PlaybackVisualizer(configuration: .artwork)
+    @State private var feed = VisualizerFeed()
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / Double(PlaybackVisualizer.framesPerSecond))) { _ in
+        TimelineView(.animation(minimumInterval: 1.0 / Double(PlaybackVisualizer.framesPerSecond))) { timeline in
             Canvas { context, size in
-                let bands = visualizer.latestFrame.spectrum
+                // Reading the tick's date makes every tick redraw; otherwise SwiftUI sees nothing
+                // change and the bars barely move.
+                _ = timeline.date
+                let bands = feed.visualizer.latestFrame.spectrum
                 guard !bands.isEmpty else { return }
                 let gap = max(1.5, size.width * 0.006)
                 let width = (size.width - gap * CGFloat(bands.count + 1)) / CGFloat(bands.count)
@@ -70,8 +73,8 @@ struct SpectrumArtwork: View {
         }
         .background(.black)
         .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-        .onAppear { visualizer.start() }
-        .onDisappear { visualizer.stop() }
+        .onAppear { feed.visualizer.start() }
+        .onDisappear { feed.visualizer.stop() }
     }
 }
 
@@ -79,12 +82,13 @@ struct SpectrumArtwork: View {
 struct ScopeArtwork: View {
     var cornerRadius: Double
     @Environment(\.minidiscPlayingAccent) private var accent
-    @State private var visualizer = PlaybackVisualizer(configuration: .artwork)
+    @State private var feed = VisualizerFeed()
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / Double(PlaybackVisualizer.framesPerSecond))) { _ in
+        TimelineView(.animation(minimumInterval: 1.0 / Double(PlaybackVisualizer.framesPerSecond))) { timeline in
             Canvas { context, size in
-                let samples = visualizer.latestFrame.waveform
+                _ = timeline.date
+                let samples = feed.visualizer.latestFrame.waveform
                 guard samples.count > 1 else { return }
                 let middle = size.height / 2
                 var trace = Path()
@@ -100,8 +104,15 @@ struct ScopeArtwork: View {
         }
         .background(.black)
         .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-        .onAppear { visualizer.start() }
-        .onDisappear { visualizer.stop() }
+        .onAppear { feed.visualizer.start() }
+        .onDisappear { feed.visualizer.stop() }
     }
+}
+
+/// Holds the analyser for one visualizer view. Made on first use, so the view's other updates
+/// don't each build one only to throw it away.
+@MainActor
+private final class VisualizerFeed {
+    lazy var visualizer = PlaybackVisualizer(configuration: .artwork)
 }
 
